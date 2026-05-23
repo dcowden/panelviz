@@ -2,7 +2,15 @@ from pathlib import Path
 
 from panelviz.parser import parse_panel_yaml
 from panelviz.routing import WireRouter
-from panelviz.viewer import viewer_data, write_static_viewer
+from panelviz.viewer import (
+    readable_center_text_rotation,
+    readable_local_text_rotation_for_side,
+    readable_screen_text_rotation_for_side,
+    rotated_pin_side,
+    screen_center_text_orientation,
+    viewer_data,
+    write_static_viewer,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -174,3 +182,37 @@ components:
 
     assert wide_pin["width"] > default_pin["width"]
     assert wide_pin["height"] > default_pin["height"]
+
+
+def test_viewer_text_orientation_contract_keeps_component_labels_readable():
+    for rotation in (0, 90, 180, 270):
+        horizontal_local = readable_center_text_rotation("horizontal", rotation)
+        vertical_local = readable_center_text_rotation("vertical", rotation)
+
+        assert (horizontal_local + rotation) % 360 == 0
+        assert (vertical_local + rotation) % 360 == 270
+
+
+def test_viewer_center_text_orientation_uses_rotated_screen_shape():
+    assert screen_center_text_orientation(144, 34, "switched_110N", 14, 0) == "horizontal"
+    assert screen_center_text_orientation(144, 34, "switched_110N", 14, 90) == "vertical"
+    assert screen_center_text_orientation(144, 34, "switched_110N", 14, 270) == "vertical"
+    assert screen_center_text_orientation(144, 34, "switched_110N", 14, 180) == "horizontal"
+
+
+def test_viewer_text_orientation_contract_keeps_terminal_labels_consistent():
+    sides = ("top", "right", "bottom", "left")
+
+    for rotation in (0, 90, 180, 270):
+        for side in sides:
+            local_rotation = readable_local_text_rotation_for_side(side, rotation)
+            screen_rotation = (local_rotation + rotation) % 360
+            screen_side = rotated_pin_side(side, rotation)
+            expected_screen_rotation = readable_screen_text_rotation_for_side(side, rotation) % 360
+
+            assert screen_rotation == expected_screen_rotation
+            assert screen_rotation in {0, 270}
+            if screen_side in {"top", "bottom"}:
+                assert screen_rotation == 270
+            else:
+                assert screen_rotation == 0

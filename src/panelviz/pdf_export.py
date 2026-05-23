@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import math
+from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import date
 from io import BytesIO
@@ -522,6 +523,7 @@ def diagram_reference_grid(data: dict[str, Any]) -> dict[str, Any]:
 
 def _diagram_references(data: dict[str, Any], geo: SheetGeometry) -> dict[int | str, dict[str, str]]:
     refs: dict[int | str, dict[str, str]] = {}
+    grid = data.get("reference_grid")
     for wire in data.get("wires", []):
         endpoints = wire.get("endpoints", [])
         wire_refs: dict[str, str] = {}
@@ -529,7 +531,7 @@ def _diagram_references(data: dict[str, Any], geo: SheetGeometry) -> dict[int | 
             point = endpoint.get("anchor", {})
             if "x" not in point or "y" not in point:
                 continue
-            wire_refs[ref_key] = _zone_ref(float(point["x"]), float(point["y"]), geo)
+            wire_refs[ref_key] = _zone_ref(float(point["x"]), float(point["y"]), geo, grid)
         if not wire_refs:
             continue
         refs[int(wire.get("index", 0))] = wire_refs
@@ -537,13 +539,38 @@ def _diagram_references(data: dict[str, Any], geo: SheetGeometry) -> dict[int | 
     return refs
 
 
-def _zone_ref(x: float, y: float, geo: SheetGeometry) -> str:
+def _zone_ref(x: float, y: float, geo: SheetGeometry, grid: dict[str, Any] | None = None) -> str:
+    zone = _zone_ref_from_grid(x, y, grid)
+    if zone:
+        return zone
     px, py = _map_point(geo, x, y)
     rel_x = min(max((px - geo.drawing_x) / max(1, geo.drawing_w), 0), 0.9999)
     rel_y = min(max((py - geo.drawing_y) / max(1, geo.drawing_h), 0), 0.9999)
     col = int(rel_x * geo.columns) + 1
     row = chr(ord("A") + int(rel_y * geo.rows))
     return f"{row}{col}"
+
+
+def _zone_ref_from_grid(x: float, y: float, grid: dict[str, Any] | None) -> str | None:
+    if not isinstance(grid, dict):
+        return None
+    verticals = grid.get("verticals")
+    horizontals = grid.get("horizontals")
+    rows = int(grid.get("rows", 0) or 0)
+    columns = int(grid.get("columns", 0) or 0)
+    if not isinstance(verticals, list) or not isinstance(horizontals, list):
+        return None
+    if len(verticals) < 2 or len(horizontals) < 2:
+        return None
+    if rows < 1 or columns < 1:
+        return None
+
+    col_index = bisect_right(verticals, x) - 1
+    row_index = bisect_right(horizontals, y) - 1
+    col_index = max(0, min(columns - 1, col_index))
+    row_index = max(0, min(rows - 1, row_index))
+    row_label = chr(ord("A") + row_index)
+    return f"{row_label}{col_index + 1}"
 
 
 def _rotated_rect_corners(x: float, y: float, w: float, h: float, rotation: float) -> list[tuple[float, float]]:

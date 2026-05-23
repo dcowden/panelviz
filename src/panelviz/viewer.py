@@ -23,6 +23,74 @@ from panelviz.visualization import (
 
 
 VIEWER_FILES = ("viewer.html", "viewer.css", "viewer.js", "panel-data.json")
+_SIDE_ORDER = ("top", "right", "bottom", "left")
+
+
+def normalize_text_rotation(rotation: float) -> int:
+    """Normalize a text rotation to SVG's compact -180..180 range."""
+
+    normalized = int(round(rotation)) % 360
+    if normalized > 180:
+        normalized -= 360
+    return normalized
+
+
+def rotated_pin_side(side: PinSide | str, component_rotation: float) -> str:
+    """Return the screen side a local pin side lands on after component rotation."""
+
+    side_value = side.value if isinstance(side, PinSide) else str(side)
+    if side_value not in _SIDE_ORDER:
+        return side_value
+    turns = (int(round(component_rotation / 90)) % 4 + 4) % 4
+    return _SIDE_ORDER[(_SIDE_ORDER.index(side_value) + turns) % len(_SIDE_ORDER)]
+
+
+def readable_screen_text_rotation_for_side(side: PinSide | str, component_rotation: float) -> int:
+    """Choose the only allowed screen angle for side-attached labels."""
+
+    screen_side = rotated_pin_side(side, component_rotation)
+    return -90 if screen_side in {"top", "bottom"} else 0
+
+
+def readable_local_text_rotation(target_screen_rotation: float, component_rotation: float) -> int:
+    """Compute local SVG text rotation that renders at the target screen angle."""
+
+    return normalize_text_rotation(target_screen_rotation - component_rotation)
+
+
+def readable_local_text_rotation_for_side(side: PinSide | str, component_rotation: float) -> int:
+    """Local rotation for terminal and wire labels attached to a pin side."""
+
+    return readable_local_text_rotation(
+        readable_screen_text_rotation_for_side(side, component_rotation),
+        component_rotation,
+    )
+
+
+def readable_center_text_rotation(center_orientation: str, component_rotation: float) -> int:
+    """Local rotation for component name/type labels."""
+
+    target = -90 if center_orientation == "vertical" else 0
+    return readable_local_text_rotation(target, component_rotation)
+
+
+def screen_center_text_orientation(
+    center_width: float,
+    center_height: float,
+    text: str,
+    preferred_size: float,
+    component_rotation: float,
+) -> str:
+    """Choose center-label orientation from the center dimensions visible on screen."""
+
+    normalized = normalize_text_rotation(component_rotation)
+    screen_width, screen_height = (
+        (center_height, center_width) if abs(normalized) == 90 else (center_width, center_height)
+    )
+    estimated_width = max(1.0, len(str(text)) * preferred_size * 0.58)
+    if screen_width < screen_height * 0.62 or estimated_width > max(1.0, screen_width - 8):
+        return "vertical"
+    return "horizontal"
 
 
 def write_static_viewer(
@@ -1097,8 +1165,8 @@ function updateReferenceGrid(svg, visible = false) {
 
 function referenceGridFromBounds(bounds, fallbackGrid = {}) {
   const normalized = normalizeBounds(bounds);
-  const columns = Math.max(8, Math.min(80, Math.ceil(normalized.width / 90)));
-  const rows = Math.max(4, Math.min(26, Math.ceil(normalized.height / 90)));
+  const columns = Math.max(8, Math.min(80, Number(fallbackGrid?.columns) || Math.ceil(normalized.width / 90)));
+  const rows = Math.max(4, Math.min(26, Number(fallbackGrid?.rows) || Math.ceil(normalized.height / 90)));
   const verticals = [];
   const horizontals = [];
   for (let index = 0; index <= columns; index += 1) {
@@ -1201,12 +1269,16 @@ function renderComponent(layer, component) {
   const centerX = component.center.x + component.center.width / 2;
   const centerY = component.center.y + component.center.height / 2;
   const preferredNameSize = Math.max(component.font.name * 2.2, Math.min(22, Math.max(12, component.center.height * 0.16)));
-  const fittedNameSize = fitTextSize(component.name, preferredNameSize, component.center.width - 8, 8);
+  const thinCenterText = centerTextOrientation(component, component.rotation || 0, component.name, preferredNameSize) === 'vertical';
+  const centerFitWidth = centerTextFitWidth(component, component.rotation || 0, thinCenterText ? 'vertical' : 'horizontal');
+  const fittedNameSize = fitTextSize(component.name, preferredNameSize, centerFitWidth, 8);
   const preferredTypeSize = Math.max(5, fittedNameSize * 0.62);
-  const typeFontSize = Math.min(fittedNameSize * 0.72, fitTextSize(component.type, preferredTypeSize, component.center.width - 8, 4.5));
+  const typeFontSize = Math.min(fittedNameSize * 0.72, fitTextSize(component.type, preferredTypeSize, centerFitWidth, 4.5));
   group.appendChild(textEl(component.name, {
     class: 'component-name',
     'data-text-role': 'name',
+    'data-preferred-size': preferredNameSize,
+    'data-center-orientation': thinCenterText ? 'vertical' : 'horizontal',
     'data-center-x': centerX,
     'data-center-y': centerY,
     x: centerX,
@@ -1216,6 +1288,8 @@ function renderComponent(layer, component) {
   group.appendChild(textEl(component.type, {
     class: 'component-type',
     'data-text-role': 'type',
+    'data-preferred-size': preferredTypeSize,
+    'data-center-orientation': thinCenterText ? 'vertical' : 'horizontal',
     'data-center-x': centerX,
     'data-center-y': centerY,
     x: centerX,
@@ -1896,6 +1970,7 @@ function componentTransform(component) {
 
 function updateReadableComponentText(group, rotation) {
   const normalized = ((rotation % 360) + 360) % 360;
+  updateCenterTextMetrics(group, rotation);
   group.querySelectorAll('.pin-label,.component-name,.component-type').forEach((text) => {
     let x = Number(text.getAttribute('x'));
     let y = Number(text.getAttribute('y'));
@@ -1903,18 +1978,41 @@ function updateReadableComponentText(group, rotation) {
     if (role === 'name' || role === 'type') {
       const centerX = Number(text.dataset.centerX);
       const centerY = Number(text.dataset.centerY);
-      const offset = role === 'name' ? -Number(text.getAttribute('font-size')) * 0.45 : Number(text.getAttribute('font-size')) * 1.15;
-      const localOffset = inverseRotateVector(0, offset, normalized);
+      const centerOrientation = text.dataset.centerOrientation === 'vertical' ? 'vertical' : 'horizontal';
+      const offsetMagnitude = role === 'name' ? -Number(text.getAttribute('font-size')) * 0.45 : Number(text.getAttribute('font-size')) * 1.15;
+      const offsetVector = centerOrientation === 'vertical'
+        ? { x: offsetMagnitude, y: 0 }
+        : { x: 0, y: offsetMagnitude };
+      const localOffset = inverseRotateVector(offsetVector.x, offsetVector.y, normalized);
       x = centerX + localOffset.x;
       y = centerY + localOffset.y;
       text.setAttribute('x', x);
       text.setAttribute('y', y);
     }
     const textRotation = role === 'name' || role === 'type'
-      ? -rotation
+      ? readableCenterTextLocalRotation(text.dataset.centerOrientation, rotation)
       : readableLabelLocalRotation(text.dataset.side, rotation);
     text.setAttribute('transform', `rotate(${textRotation} ${x} ${y})`);
   });
+}
+
+function updateCenterTextMetrics(group, rotation) {
+  const component = state.components.get(group.dataset.component);
+  if (!component) return;
+  const nameText = group.querySelector('.component-name');
+  const typeText = group.querySelector('.component-type');
+  if (!nameText || !typeText) return;
+  const preferredNameSize = Number(nameText.dataset.preferredSize || nameText.getAttribute('font-size') || component.font.name || 10);
+  const centerOrientation = centerTextOrientation(component, rotation, nameText.textContent, preferredNameSize);
+  const fitWidth = centerTextFitWidth(component, rotation, centerOrientation);
+  const fittedNameSize = fitTextSize(nameText.textContent, preferredNameSize, fitWidth, 8);
+  const preferredTypeSize = Math.max(5, fittedNameSize * 0.62);
+  const typeFontSize = Math.min(fittedNameSize * 0.72, fitTextSize(typeText.textContent, preferredTypeSize, fitWidth, 4.5));
+  [nameText, typeText].forEach((text) => {
+    text.dataset.centerOrientation = centerOrientation;
+  });
+  nameText.setAttribute('font-size', fittedNameSize);
+  typeText.setAttribute('font-size', typeFontSize);
 }
 
 function inverseRotateVector(x, y, rotation) {
@@ -1987,14 +2085,50 @@ function fanOffset(side, slot, slotCount, spacing) {
 }
 
 function readableScreenRotation(side) {
-  if (side === 'top') return 90;
-  if (side === 'bottom') return -90;
-  return 0;
+  return readableScreenTextRotationForSide(side, 0);
 }
 
 function readableLabelLocalRotation(localSide, componentRotation) {
+  return readableLocalTextRotation(
+    readableScreenTextRotationForSide(localSide, componentRotation || 0),
+    componentRotation || 0,
+  );
+}
+
+function readableCenterTextLocalRotation(centerOrientation, componentRotation) {
+  return readableLocalTextRotation(centerOrientation === 'vertical' ? -90 : 0, componentRotation || 0);
+}
+
+function centerTextOrientation(component, componentRotation, text, preferredSize) {
+  const screenSize = centerScreenSize(component, componentRotation || 0);
+  const screenWidth = Math.max(1, screenSize.width);
+  const screenHeight = Math.max(1, screenSize.height);
+  if (screenWidth < screenHeight * 0.62) return 'vertical';
+  if (estimateTextWidth(text, preferredSize) > Math.max(1, screenWidth - 8)) return 'vertical';
+  return 'horizontal';
+}
+
+function centerTextFitWidth(component, componentRotation, centerOrientation) {
+  const screenSize = centerScreenSize(component, componentRotation || 0);
+  const fitSpan = centerOrientation === 'vertical' ? screenSize.height : screenSize.width;
+  return Math.max(8, fitSpan - 8);
+}
+
+function centerScreenSize(component, componentRotation) {
+  const rotation = normalizeRotation(componentRotation || 0);
+  if (Math.abs(rotation) === 90) {
+    return { width: component.center.height, height: component.center.width };
+  }
+  return { width: component.center.width, height: component.center.height };
+}
+
+function readableScreenTextRotationForSide(localSide, componentRotation) {
   const screenSide = rotateSide(localSide, componentRotation || 0);
-  return normalizeRotation(readableScreenRotation(screenSide) - (componentRotation || 0));
+  return screenSide === 'top' || screenSide === 'bottom' ? -90 : 0;
+}
+
+function readableLocalTextRotation(targetScreenRotation, componentRotation) {
+  return normalizeRotation(targetScreenRotation - (componentRotation || 0));
 }
 
 function normalizeRotation(rotation) {
@@ -2246,6 +2380,10 @@ function fitTextSize(text, preferredSize, maxWidth, minimumSize) {
   const estimatedWidth = Math.max(1, String(text).length * preferredSize * 0.58);
   if (estimatedWidth <= maxWidth) return preferredSize;
   return Math.max(minimumSize, preferredSize * (maxWidth / estimatedWidth));
+}
+
+function estimateTextWidth(text, fontSize) {
+  return Math.max(1, String(text).length * fontSize * 0.58);
 }
 
 function cssEscape(value) {

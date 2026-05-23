@@ -156,9 +156,9 @@ components:
     y: 1010.902
     rotation: 90
   24V_bus:
-    x: 1497.113
+    x: 1498.324
     y: 37.968
-    rotation: 90
+    rotation: 270
   24V0_bus:
     x: 1561.967
     y: 63.605
