@@ -715,7 +715,6 @@ connections:
     - [ulimit_relay.NC, axbb-e.UL1]
     - [driver_relay.NC, 5V_bus.5V]
     - [driver_relay.COM, 5V_switched_bus.5V]
-    - [estop_relay.NC, 24V0_bus.24V0]
     - [estop_relay.COM, coil_t.COIL-]
 
   #opto board

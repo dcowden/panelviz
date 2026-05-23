@@ -1,7 +1,7 @@
 components:
   axbb-e:
-    x: 1566.017
-    y: -60.035
+    x: 1635.597
+    y: -57.79
     rotation: 270
   Z_cl57s:
     x: 2012.473
@@ -44,12 +44,12 @@ components:
     y: 831.55
     rotation: 0
   alarm_limit_board:
-    x: 2100.279
-    y: 586.393
+    x: 2057.633
+    y: 592.004
     rotation: 0
   opto_board:
-    x: 1837.19
-    y: 515.506
+    x: 1796.002
+    y: 522.575
     rotation: 90
   cnc_terminals:
     x: 1845.959
@@ -120,66 +120,66 @@ components:
     y: -716.845
     rotation: 0
   reset_relay:
-    x: 1718.473
-    y: 562.179
+    x: 1747.652
+    y: 568.913
     rotation: 0
   driver_relay:
-    x: 1644.896
-    y: 563.253
+    x: 1672.952
+    y: 571.109
     rotation: 180
   estop_relay:
-    x: 1571.177
-    y: 562.404
+    x: 1594.744
+    y: 572.504
     rotation: 0
   ulimit_relay:
-    x: 1494.706
-    y: 560.985
+    x: 1516.029
+    y: 573.33
     rotation: 0
   vfd:
     x: 1847.511
     y: 1297.813
     rotation: 180
   live_power_t:
-    x: 1759.96
-    y: 613.541
+    x: 1491.741
+    y: 1001.84
     rotation: 270
   wall_plug:
     x: 1199.329
     y: 1310.699
     rotation: 270
   switched_110N:
-    x: 1407.215
-    y: 996.961
+    x: 1400.481
+    y: 1011.55
     rotation: 90
   switched_110L:
-    x: 1492.34
-    y: 1000.802
+    x: 1441.838
+    y: 1010.902
     rotation: 90
   24V_bus:
-    x: 1413.28
-    y: 32.357
+    x: 1497.113
+    y: 37.968
     rotation: 90
   24V0_bus:
-    x: 1483.409
-    y: 59.116
+    x: 1561.967
+    y: 63.605
     rotation: 90
   5V_bus:
-    x: 1378.545
-    y: 592.551
+    x: 1403.235
+    y: 612.522
     rotation: 90
   5V_switched_bus:
-    x: 1450.406
-    y: 1005.271
+    x: 1352.77
+    y: 638.294
     rotation: 90
   5V0_bus:
-    x: 1313.952
-    y: 22.549
+    x: 1401.488
+    y: 29.283
     rotation: 90
   coil_t:
-    x: 2118.439
-    y: 1002.041
+    x: 2111.255
+    y: 989.696
     rotation: 90
   earth:
-    x: 1358.616
-    y: 1007.077
+    x: 1354.127
+    y: 1012.688
     rotation: 90
