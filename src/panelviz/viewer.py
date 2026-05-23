@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,6 +12,7 @@ from typing import Any
 
 from panelviz.components import PinSide
 from panelviz.parser import UnitsConfig
+from panelviz.pdf_export import diagram_reference_grid
 from panelviz.routing import RoutedWire, WireRouter
 from panelviz.visualization import (
     ApproximateTextMeasurer,
@@ -79,6 +82,7 @@ def viewer_data(
         for box in layout.pin_boxes:
             anchor = _pin_anchor(box, x, y)
             node = f"{layout.component_name}.{box.pin}"
+            node_attrs = router.physical_graph.nodes.get(node, {})
             anchors[node] = anchor
             pins.append(
                 {
@@ -90,6 +94,8 @@ def viewer_data(
                     "width": box.width,
                     "height": box.height,
                     "anchor": {"x": anchor.x, "y": anchor.y},
+                    "nets": list(node_attrs.get("exposed_nets", [])),
+                    "no_connect": node in router.no_connects,
                 }
             )
 
@@ -117,7 +123,7 @@ def viewer_data(
 
     endpoint_slots = _endpoint_slots(router.routed_wires)
     wires = [_wire_view(wire, anchors, router, visual_config, endpoint_slots) for wire in router.routed_wires]
-    return {
+    data = {
         "canvas": {
             "width": sheet.width_pt + margin * 2,
             "height": sheet.height_pt + margin * 2,
@@ -130,6 +136,103 @@ def viewer_data(
         "wires": wires,
         "diagnostics": _diagnostics(router),
     }
+    update_scene_bounds(data)
+    data["reference_grid"] = diagram_reference_grid(data)
+    return data
+
+
+def update_scene_bounds(data: dict[str, Any], padding: float = 96.0) -> None:
+    """Update canvas and scene bounds from rendered component and endpoint geometry."""
+
+    min_x, min_y, max_x, max_y = _scene_content_bounds(data)
+    if not math.isfinite(min_x):
+        width = float(data.get("canvas", {}).get("width", 1))
+        height = float(data.get("canvas", {}).get("height", 1))
+        data["scene"] = {"x": 0.0, "y": 0.0, "width": width, "height": height}
+        data["canvas"] = {"x": 0.0, "y": 0.0, "width": width, "height": height}
+        return
+
+    scene = {
+        "x": min_x,
+        "y": min_y,
+        "width": max(1.0, max_x - min_x),
+        "height": max(1.0, max_y - min_y),
+    }
+    canvas = {
+        "x": min_x - padding,
+        "y": min_y - padding,
+        "width": max(1.0, max_x - min_x + padding * 2),
+        "height": max(1.0, max_y - min_y + padding * 2),
+    }
+    data["scene"] = scene
+    data["canvas"] = canvas
+
+
+def _scene_content_bounds(data: dict[str, Any]) -> tuple[float, float, float, float]:
+    min_x = math.inf
+    min_y = math.inf
+    max_x = -math.inf
+    max_y = -math.inf
+
+    def include_rect(x: float, y: float, width: float, height: float) -> None:
+        nonlocal min_x, min_y, max_x, max_y
+        min_x = min(min_x, x)
+        min_y = min(min_y, y)
+        max_x = max(max_x, x + width)
+        max_y = max(max_y, y + height)
+
+    def include_point(x: float, y: float, pad: float = 0.0) -> None:
+        include_rect(x - pad, y - pad, pad * 2, pad * 2)
+
+    for component in data.get("components", []):
+        for x, y in _rotated_rect_corners(
+            float(component["x"]),
+            float(component["y"]),
+            float(component["width"]),
+            float(component["height"]),
+            float(component.get("rotation", 0)),
+        ):
+            include_point(x, y)
+        for pin in component.get("pins", []):
+            if pin.get("no_connect"):
+                anchor = pin.get("anchor", {})
+                include_point(float(anchor.get("x", 0)), float(anchor.get("y", 0)), 34.0)
+
+    for wire in data.get("wires", []):
+        for endpoint in wire.get("endpoints", []):
+            for point_name in ("anchor", "stub"):
+                point = endpoint.get(point_name, {})
+                if "x" in point and "y" in point:
+                    include_point(float(point["x"]), float(point["y"]), 8.0)
+            label = endpoint.get("label", {})
+            if "x" not in label or "y" not in label:
+                continue
+            label_width = float(label.get("width", 44))
+            label_height = float(label.get("height", 17))
+            if int(label.get("rotation", 0)) % 180:
+                label_width, label_height = label_height, label_width
+            include_rect(
+                float(label["x"]) - label_width / 2,
+                float(label["y"]) - label_height / 2,
+                label_width,
+                label_height,
+            )
+
+    return min_x, min_y, max_x, max_y
+
+
+def _rotated_rect_corners(x: float, y: float, width: float, height: float, rotation: float) -> list[tuple[float, float]]:
+    center = (x + width / 2, y + height / 2)
+    corners = [(x, y), (x + width, y), (x + width, y + height), (x, y + height)]
+    return [_rotate_point(point, center, rotation) for point in corners]
+
+
+def _rotate_point(point: tuple[float, float], center: tuple[float, float], rotation: float) -> tuple[float, float]:
+    radians = math.radians(rotation)
+    px, py = point
+    cx, cy = center
+    dx, dy = px - cx, py - cy
+    return (cx + dx * math.cos(radians) - dy * math.sin(radians), cy + dx * math.sin(radians) + dy * math.cos(radians))
 
 
 @dataclass(frozen=True)
@@ -178,6 +281,11 @@ def _wire_view(
         "from_pin": wire.from_pin.pin,
         "to_component": wire.to_pin.component,
         "to_pin": wire.to_pin.pin,
+        "source": {
+            "row": wire.source_row_index,
+            "segment": wire.source_segment_index,
+            "route_length": wire.source_route_length,
+        },
         "style": style,
         "endpoints": [
             _endpoint_view(
@@ -212,19 +320,20 @@ def _endpoint_view(
     slot: _EndpointSlot,
 ) -> dict[str, Any]:
     dx, dy = _side_vector(anchor.side)
-    fan_x, fan_y = _fan_offset(anchor.side, slot, 20.0)
+    label_width = _wire_label_width(wire_label, config)
+    stub_distance = config.wire_stub_pt + slot.index * (label_width + config.wire_stub_pt)
     stub = {
-        "x": anchor.x + dx * config.wire_stub_pt + fan_x,
-        "y": anchor.y + dy * config.wire_stub_pt + fan_y,
+        "x": anchor.x + dx * stub_distance,
+        "y": anchor.y + dy * stub_distance,
     }
-    label_width = max(44.0, len(wire_label) * 7.2 + 12)
-    label_height = 17.0
+    label_height = max(config.wire_label_font_size_pt * 1.35, config.terminal_width_pt)
     label_offset = config.wire_label_gap_pt + label_width / 2
     label_position = {
         "x": stub["x"] + dx * label_offset,
         "y": stub["y"] + dy * label_offset,
         "width": label_width,
         "height": label_height,
+        "font_size": config.wire_label_font_size_pt,
         "rotation": 0,
         "side": anchor.side.value,
         "slot": slot.index,
@@ -241,7 +350,9 @@ def _endpoint_view(
         "anchor": {"x": anchor.x, "y": anchor.y},
         "stub": stub,
         "stub_length": config.wire_stub_pt,
+        "stub_distance": stub_distance,
         "label_gap": config.wire_label_gap_pt,
+        "dot_radius": config.wire_endpoint_radius_pt,
         "label": label_position,
     }
 
@@ -272,6 +383,17 @@ def _fan_offset(side: PinSide, slot: _EndpointSlot, spacing: float) -> tuple[flo
     if side in {PinSide.LEFT, PinSide.RIGHT}:
         return 0.0, offset
     return offset, 0.0
+
+
+def _wire_label_padding(config: ComponentVisualConfig) -> float:
+    return max(1.5, config.wire_label_font_size_pt * 0.62)
+
+
+def _wire_label_width(label: str, config: ComponentVisualConfig) -> float:
+    return max(
+        config.terminal_width_pt * 1.1,
+        len(label) * config.wire_label_font_size_pt * 0.62 + _wire_label_padding(config) * 2,
+    )
 
 
 def _endpoint_slots(wires: list[RoutedWire]) -> dict[tuple[int, str], _EndpointSlot]:
@@ -319,13 +441,14 @@ def _diagnostics(router: WireRouter) -> dict[str, list[dict[str, Any]]]:
 
 
 def _viewer_html() -> str:
-    return """<!doctype html>
+    asset_version = hashlib.sha1((_viewer_css() + _viewer_js()).encode("utf-8")).hexdigest()[:12]
+    return f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PanelViz Viewer</title>
-  <link rel="stylesheet" href="viewer.css">
+  <link rel="stylesheet" href="viewer.css?v={asset_version}">
   <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.2.4/dist/svg.min.js"></script>
 </head>
 <body>
@@ -337,6 +460,7 @@ def _viewer_html() -> str:
       </div>
       <div class="help-strip">
         <span>Drag canvas: pan</span>
+        <span>Shift-drag canvas: select components</span>
         <span>Wheel: zoom</span>
         <span>Right-click canvas: clear</span>
         <span>Right-click component: rotate</span>
@@ -349,6 +473,7 @@ def _viewer_html() -> str:
       <div class="controls" role="group" aria-label="Highlight mode">
         <label><input type="radio" name="highlight-mode" value="wire" checked> Wire</label>
         <label><input type="radio" name="highlight-mode" value="net"> Net</label>
+        <button id="toggle-reference-grid" type="button" aria-pressed="false">Ref Grid</button>
         <button id="toggle-wire-table" type="button">Hide Wires</button>
         <button id="clear-selection" type="button">Clear</button>
       </div>
@@ -372,7 +497,7 @@ def _viewer_html() -> str:
       </aside>
     </section>
   </main>
-  <script src="viewer.js"></script>
+  <script src="viewer.js?v={asset_version}"></script>
 </body>
 </html>
 """
@@ -567,18 +692,23 @@ svg {
   cursor: grabbing;
 }
 .component.selected .component-body {
-  stroke-width: 2.4;
+  stroke-width: 1.4;
+}
+.component.group-selected .component-body,
+.component.group-selected .component-outline-overlay {
+  stroke: #2563eb;
+  stroke-width: 1.4;
 }
 .component-body {
   fill: #ffffff;
   stroke: #1f2937;
-  stroke-width: 1.8;
+  stroke-width: 0.9;
   filter: drop-shadow(0 3px 6px rgb(15 23 42 / 0.14));
 }
 .component-outline-overlay {
   fill: none;
   stroke: #1f2937;
-  stroke-width: 1.8;
+  stroke-width: 0.9;
   pointer-events: none;
 }
 .component-center {
@@ -601,13 +731,38 @@ svg {
 .pin-box {
   fill: #f8fafc;
   stroke: #94a3b8;
-  stroke-width: 0.75;
+  stroke-width: 0.4;
   cursor: pointer;
 }
 .pin-label {
   text-anchor: middle;
   dominant-baseline: middle;
   fill: #0f172a;
+  pointer-events: none;
+}
+.no-connect-stub {
+  stroke: #dc2626;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.no-connect-dot {
+  fill: #dc2626;
+  stroke: #ffffff;
+  stroke-width: 0.45;
+  pointer-events: none;
+}
+.no-connect-x {
+  stroke: #dc2626;
+  stroke-width: 1.0;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.scene-layer {
+  isolation: isolate;
+}
+.debug-layer,
+.interaction-layer {
   pointer-events: none;
 }
 .wire-stub {
@@ -620,17 +775,16 @@ svg {
 .wire-dot {
   fill: var(--net-color, #475569);
   stroke: #ffffff;
-  stroke-width: 1.2;
+  stroke-width: 0.45;
 }
 .wire-label-bg {
   fill: #ffffff;
   stroke: var(--net-color, #475569);
-  stroke-width: 0.8;
+  stroke-width: 0.45;
 }
 .wire-label-text {
   text-anchor: middle;
   dominant-baseline: middle;
-  font-size: 11px;
   font-weight: 800;
   fill: #0f172a;
   pointer-events: none;
@@ -648,23 +802,70 @@ svg {
 .selected .wire-dot,
 .selected.wire-dot {
   stroke: var(--net-color, #475569);
-  stroke-width: 3;
+  stroke-width: 1;
 }
 .selected .wire-label-bg,
 .selected.wire-label-bg,
 .selected.pin-box,
 .diagnostic-selected.pin-box {
   stroke: var(--net-color, #475569);
-  stroke-width: 2.4;
+  stroke-width: 1.2;
   fill: color-mix(in srgb, var(--net-color, #475569) 12%, white);
 }
 .diagnostic-selected.pin-box {
   --net-color: #dc2626;
 }
+.diagnostic-selected .wire-label-bg,
+.diagnostic-selected.wire-label-bg {
+  stroke: #dc2626;
+  stroke-width: 1.2;
+  fill: color-mix(in srgb, #dc2626 10%, white);
+}
+.diagnostic-selected .wire-stub {
+  stroke: #dc2626;
+  stroke-width: 1.8;
+}
+.diagnostic-selected .wire-dot {
+  fill: #dc2626;
+}
 .diagnostic-selected.component .component-body,
 .diagnostic-selected.component .component-outline-overlay {
   stroke: #dc2626;
-  stroke-width: 2.8;
+  stroke-width: 1.6;
+}
+.selection-marquee {
+  fill: rgb(37 99 235 / 0.12);
+  stroke: #2563eb;
+  stroke-width: 1.5;
+  stroke-dasharray: 7 4;
+  pointer-events: none;
+}
+.reference-grid-layer {
+  display: none;
+  pointer-events: none;
+}
+.reference-grid-layer.visible {
+  display: block;
+}
+.reference-grid-line {
+  stroke: #f97316;
+  stroke-width: 0.85;
+  stroke-dasharray: 8 6;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.6;
+}
+.reference-grid-label {
+  fill: #c2410c;
+  font-family: Inter, Segoe UI, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  opacity: 0.48;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+  vector-effect: non-scaling-stroke;
 }
 """
 
@@ -680,8 +881,10 @@ const state = {
   selectedNets: [],
   selectedNode: null,
   selectedComponent: null,
+  selectedComponents: [],
   viewBox: null,
   canvas: null,
+  scene: null,
   data: null,
   components: new Map(),
   tableMode: 'combined',
@@ -698,6 +901,7 @@ const wireTableHead = document.getElementById('wire-table-head');
 const wireTableBody = document.getElementById('wire-table-body');
 const toggleWireColumnsButton = document.getElementById('toggle-wire-columns');
 const toggleWireTableButton = document.getElementById('toggle-wire-table');
+const toggleReferenceGridButton = document.getElementById('toggle-reference-grid');
 const wireTableResizer = document.getElementById('wire-table-resizer');
 
 document.querySelectorAll('input[name="highlight-mode"]').forEach((input) => {
@@ -744,34 +948,58 @@ toggleWireTableButton.addEventListener('click', () => {
   toggleWireTableButton.textContent = workspace.classList.contains('table-collapsed') ? 'Show Wires' : 'Hide Wires';
 });
 
+toggleReferenceGridButton.addEventListener('click', () => {
+  const svg = host.querySelector('svg');
+  const layer = host.querySelector('.reference-grid-layer');
+  const visible = !(layer?.classList.contains('visible') ?? false);
+  updateReferenceGrid(svg, visible);
+});
+
 fetch('panel-data.json')
-  .then((response) => response.json())
+  .then((response) => response.json().then((data) => {
+    if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
+    return data;
+  }))
   .then((data) => render(data))
   .catch((error) => {
     statusEl.textContent = `Could not load panel-data.json: ${error}`;
   });
 
-function render(data) {
+function render(data, options = {}) {
   host.textContent = '';
+  if (data.error) {
+    statusEl.textContent = `Could not load panel-data.json: ${data.error}`;
+    return;
+  }
+  const preservedViewBox = options.preserveViewBox && state.viewBox ? { ...state.viewBox } : null;
   state.data = data;
   state.components = new Map(data.components.map((component) => [component.name, {
     ...component,
     baseX: component.x,
     baseY: component.y,
-    rotation: 0,
+    endpointOriginX: component.x,
+    endpointOriginY: component.y,
+    rotation: component.rotation || 0,
   }]));
-  state.canvas = data.canvas;
-  state.viewBox = { x: 0, y: 0, width: data.canvas.width, height: data.canvas.height };
-  const svg = createCanvas(data.canvas);
+  state.canvas = normalizeBounds(data.canvas);
+  state.scene = normalizeBounds(data.scene || data.canvas);
+  state.viewBox = preservedViewBox || fitBoundsToViewport(state.scene, 72);
+  const svg = createCanvas(state.canvas);
+  const layers = createSceneLayers(svg);
 
-  const componentsLayer = el('g', { class: 'components-layer' });
-  svg.appendChild(componentsLayer);
-
-  data.components.forEach((component) => renderComponent(componentsLayer, component));
-  data.wires.forEach((wire) => renderWireEndpointGroups(wire));
+  data.components.forEach((component) => renderComponent(layers.physical, component));
+  data.wires.forEach((wire) => renderWireEndpointGroups(wire, layers.labels));
+  sortEndpointLayers();
+  state.scene = renderedSceneBounds(svg, state.scene);
+  updateReferenceGrid(svg, false);
+  if (!preservedViewBox) {
+    state.viewBox = fitBoundsToViewport(state.scene, 72);
+  }
+  setViewBox(svg);
   renderWireTable(data.wires);
 
   enableDrag(svg);
+  enableMarqueeSelect(svg);
   enablePan(svg);
   enableZoom(svg);
   enableContextMenu(svg);
@@ -779,21 +1007,164 @@ function render(data) {
   statusEl.textContent = `${data.components.length} components, ${data.wires.length} wires. SVG.js ${window.SVG ? 'loaded' : 'fallback renderer active'}.`;
 }
 
+window.PanelVizRender = render;
+window.PanelVizRefreshData = refreshData;
+
+function refreshData(data, options = {}) {
+  if (data.error) {
+    statusEl.textContent = `Could not load panel-data.json: ${data.error}`;
+    return;
+  }
+  const componentNames = new Set(data.components.map((component) => component.name));
+  const existingNames = new Set([...state.components.keys()]);
+  const componentSetChanged = componentNames.size !== existingNames.size
+    || [...componentNames].some((name) => !existingNames.has(name));
+  if (!host.querySelector('svg') || componentSetChanged) {
+    render(data, options);
+    return;
+  }
+
+  state.data = data;
+  state.canvas = normalizeBounds(data.canvas);
+  state.scene = normalizeBounds(data.scene || data.canvas);
+  data.components.forEach((component) => {
+    const existing = state.components.get(component.name) || {};
+    state.components.set(component.name, {
+      ...component,
+      x: existing.x ?? component.x,
+      y: existing.y ?? component.y,
+      baseX: existing.baseX ?? component.x,
+      baseY: existing.baseY ?? component.y,
+      endpointOriginX: component.x,
+      endpointOriginY: component.y,
+      rotation: existing.rotation ?? component.rotation ?? 0,
+    });
+  });
+
+  const labelsLayer = host.querySelector('.wire-label-layer');
+  if (labelsLayer) labelsLayer.textContent = '';
+  data.wires.forEach((wire) => renderWireEndpointGroups(wire, labelsLayer));
+  const svg = host.querySelector('svg');
+  const oldGrid = host.querySelector('.reference-grid-layer');
+  const gridVisible = oldGrid?.classList.contains('visible') ?? false;
+  sortEndpointLayers();
+  state.scene = renderedSceneBounds(svg, state.scene);
+  updateReferenceGrid(svg, gridVisible);
+  renderWireTable(data.wires);
+  applyHighlight();
+  statusEl.textContent = `${data.components.length} components, ${data.wires.length} wires. SVG.js ${window.SVG ? 'loaded' : 'fallback renderer active'}.`;
+}
+
 function createCanvas(canvas) {
   if (window.SVG) {
-    const draw = SVG().addTo(host).viewbox(0, 0, canvas.width, canvas.height).attr({
+    const draw = SVG().addTo(host).viewbox(canvas.x, canvas.y, canvas.width, canvas.height).attr({
       role: 'img',
       'aria-label': 'PanelViz interactive wiring viewer',
     });
     return draw.node;
   }
   const svg = el('svg', {
-    viewBox: `0 0 ${canvas.width} ${canvas.height}`,
+    viewBox: `${canvas.x} ${canvas.y} ${canvas.width} ${canvas.height}`,
     role: 'img',
     'aria-label': 'PanelViz interactive wiring viewer',
   });
   host.appendChild(svg);
   return svg;
+}
+
+function createSceneLayers(svg) {
+  const physical = el('g', { class: 'scene-layer physical-layer components-layer' });
+  const labels = el('g', { class: 'scene-layer wire-label-layer' });
+  const interaction = el('g', { class: 'scene-layer interaction-layer' });
+  const debug = el('g', { class: 'scene-layer debug-layer' });
+  svg.appendChild(physical);
+  svg.appendChild(labels);
+  svg.appendChild(interaction);
+  svg.appendChild(debug);
+  return { physical, labels, interaction, debug };
+}
+
+function updateReferenceGrid(svg, visible = false) {
+  const debugLayer = host.querySelector('.debug-layer');
+  if (!debugLayer) return;
+  debugLayer.textContent = '';
+  if (!svg) return;
+  const bounds = renderedSceneBounds(svg, state.scene || state.canvas);
+  const grid = referenceGridFromBounds(bounds, state.data?.reference_grid);
+  if (state.data) state.data.reference_grid = grid;
+  renderReferenceGrid(debugLayer, grid, visible);
+}
+
+function referenceGridFromBounds(bounds, fallbackGrid = {}) {
+  const normalized = normalizeBounds(bounds);
+  const columns = Math.max(8, Math.min(80, Math.ceil(normalized.width / 90)));
+  const rows = Math.max(4, Math.min(26, Math.ceil(normalized.height / 90)));
+  const verticals = [];
+  const horizontals = [];
+  for (let index = 0; index <= columns; index += 1) {
+    verticals.push(normalized.x + (normalized.width * index) / columns);
+  }
+  for (let index = 0; index <= rows; index += 1) {
+    horizontals.push(normalized.y + (normalized.height * index) / rows);
+  }
+  const labels = [];
+  for (let row = 0; row < rows; row += 1) {
+    const rowLabel = String.fromCharCode('A'.charCodeAt(0) + row);
+    for (let col = 0; col < columns; col += 1) {
+      labels.push({
+        ref: `${rowLabel}${col + 1}`,
+        x: (verticals[col] + verticals[col + 1]) / 2,
+        y: (horizontals[row] + horizontals[row + 1]) / 2,
+      });
+    }
+  }
+  return {
+    columns: columns || fallbackGrid.columns || 8,
+    rows: rows || fallbackGrid.rows || 4,
+    verticals,
+    horizontals,
+    labels,
+  };
+}
+
+function renderReferenceGrid(parentLayer, grid, visible = false) {
+  if (!parentLayer || !grid || !grid.verticals?.length || !grid.horizontals?.length) return;
+  const gridGroup = el('g', {
+    class: `reference-grid-layer${visible ? ' visible' : ''}`,
+    'data-columns': grid.columns,
+    'data-rows': grid.rows,
+  });
+  const minY = grid.horizontals[0];
+  const maxY = grid.horizontals[grid.horizontals.length - 1];
+  const minX = grid.verticals[0];
+  const maxX = grid.verticals[grid.verticals.length - 1];
+  grid.verticals.forEach((x) => {
+    gridGroup.appendChild(el('line', {
+      class: 'reference-grid-line',
+      x1: x,
+      y1: minY,
+      x2: x,
+      y2: maxY,
+    }));
+  });
+  grid.horizontals.forEach((y) => {
+    gridGroup.appendChild(el('line', {
+      class: 'reference-grid-line',
+      x1: minX,
+      y1: y,
+      x2: maxX,
+      y2: y,
+    }));
+  });
+  grid.labels.forEach((label) => {
+    gridGroup.appendChild(textEl(label.ref, {
+      class: 'reference-grid-label',
+      x: label.x,
+      y: label.y,
+    }));
+  });
+  parentLayer.appendChild(gridGroup);
+  toggleReferenceGridButton.setAttribute('aria-pressed', String(visible));
 }
 
 function renderComponent(layer, component) {
@@ -804,7 +1175,7 @@ function renderComponent(layer, component) {
   });
   group.dataset.x = component.x;
   group.dataset.y = component.y;
-  group.dataset.rotation = 0;
+  group.dataset.rotation = component.rotation || 0;
 
   const body = el('rect', {
     class: 'component-body component-drag-surface',
@@ -829,8 +1200,10 @@ function renderComponent(layer, component) {
   group.appendChild(center);
   const centerX = component.center.x + component.center.width / 2;
   const centerY = component.center.y + component.center.height / 2;
-  const fittedNameSize = fitTextSize(component.name, component.font.name, component.center.width - 8, 7);
-  const typeFontSize = fitTextSize(component.type, Math.max(6, fittedNameSize * 0.58), component.center.width - 8, 5.5);
+  const preferredNameSize = Math.max(component.font.name * 2.2, Math.min(22, Math.max(12, component.center.height * 0.16)));
+  const fittedNameSize = fitTextSize(component.name, preferredNameSize, component.center.width - 8, 8);
+  const preferredTypeSize = Math.max(5, fittedNameSize * 0.62);
+  const typeFontSize = Math.min(fittedNameSize * 0.72, fitTextSize(component.type, preferredTypeSize, component.center.width - 8, 4.5));
   group.appendChild(textEl(component.name, {
     class: 'component-name',
     'data-text-role': 'name',
@@ -851,6 +1224,7 @@ function renderComponent(layer, component) {
   }));
 
   component.pins.forEach((pin) => {
+    const terminalFontSize = terminalTextFontSize(component, pin);
     const pinBox = el('rect', {
       class: 'pin-box',
       'data-node': pin.node,
@@ -865,12 +1239,14 @@ function renderComponent(layer, component) {
       selectPin(pin.node);
     });
     group.appendChild(pinBox);
-    group.appendChild(textEl(pin.pin, {
+    const pinLabel = textEl(pin.pin, {
       class: 'pin-label',
+      'data-side': pin.side,
       x: pin.x + pin.width / 2,
       y: pin.y + pin.height / 2,
-      'font-size': component.font.pin,
-    }));
+      'font-size': terminalFontSize,
+    });
+    group.appendChild(pinLabel);
   });
   group.appendChild(el('rect', {
     class: 'component-outline-overlay',
@@ -885,8 +1261,65 @@ function renderComponent(layer, component) {
     class: 'component-endpoint-layer',
     'data-component': component.name,
   }));
+  const markerLayer = el('g', { class: 'component-marker-layer' });
+  component.pins.forEach((pin) => renderNoConnectMarker(markerLayer, pin));
+  group.appendChild(markerLayer);
   updateComponentTransform(group, storedComponent);
   layer.appendChild(group);
+}
+
+function terminalTextFontSize(component, pin) {
+  const terminalDepth = Math.max(pin.width, pin.height);
+  return Math.max(component.font.pin, Math.min(4.2, terminalDepth * 0.32));
+}
+
+function renderNoConnectMarker(group, pin) {
+  if (!pin.no_connect) return;
+  const vector = sideVector(pin.side);
+  const anchor = pinBoundaryPoint(pin);
+  const stubLength = 20;
+  const markerGap = 5;
+  const stub = {
+    x: anchor.x + vector.x * stubLength,
+    y: anchor.y + vector.y * stubLength,
+  };
+  const center = {
+    x: stub.x + vector.x * markerGap,
+    y: stub.y + vector.y * markerGap,
+  };
+  const size = Math.max(3.6, Math.min(6.2, Math.max(pin.width, pin.height) * 0.24));
+  group.appendChild(el('path', {
+    class: 'no-connect-stub',
+    'data-node': pin.node,
+    d: `M ${anchor.x} ${anchor.y} L ${stub.x} ${stub.y}`,
+  }));
+  group.appendChild(el('circle', {
+    class: 'no-connect-dot',
+    'data-node': pin.node,
+    cx: anchor.x,
+    cy: anchor.y,
+    r: Math.max(0.8, Math.min(1.25, Math.max(pin.width, pin.height) * 0.16)),
+  }));
+  [
+    [center.x - size, center.y - size, center.x + size, center.y + size],
+    [center.x + size, center.y - size, center.x - size, center.y + size],
+  ].forEach(([x1, y1, x2, y2]) => {
+    group.appendChild(el('line', {
+      class: 'no-connect-x no-connect-marker',
+      'data-node': pin.node,
+      x1,
+      y1,
+      x2,
+      y2,
+    }));
+  });
+}
+
+function pinBoundaryPoint(pin) {
+  if (pin.side === 'left') return { x: pin.x, y: pin.y + pin.height / 2 };
+  if (pin.side === 'right') return { x: pin.x + pin.width, y: pin.y + pin.height / 2 };
+  if (pin.side === 'top') return { x: pin.x + pin.width / 2, y: pin.y };
+  return { x: pin.x + pin.width / 2, y: pin.y + pin.height };
 }
 
 function bindComponentSelectTarget(target, group, componentName) {
@@ -1004,10 +1437,9 @@ function wireSortValue(wire, key) {
   return String(wire[key] || '').toLowerCase();
 }
 
-function renderWireEndpointGroups(wire) {
+function renderWireEndpointGroups(wire, endpointLayer = host.querySelector('.wire-label-layer')) {
   wire.endpoints.forEach((endpoint) => {
     const component = state.components.get(endpoint.component);
-    const endpointLayer = document.querySelector(`.component-endpoint-layer[data-component="${cssEscape(endpoint.component)}"]`);
     if (!component || !endpointLayer) return;
     const localEndpoint = endpointToLocal(endpoint, component);
     const group = el('g', {
@@ -1025,11 +1457,13 @@ function renderWireEndpointGroups(wire) {
     group.dataset.anchorY = localEndpoint.anchor.y;
     group.dataset.side = endpoint.side;
     group.dataset.stubLength = endpoint.stub_length;
+    group.dataset.stubDistance = localEndpoint.stub_distance || endpoint.stub_distance || endpoint.stub_length;
     group.dataset.labelGap = endpoint.label_gap;
-    group.dataset.labelWidth = endpoint.label.width || Math.max(44, wire.label.length * 7.2 + 12);
+    group.dataset.labelWidth = endpoint.label.width || Math.max(8, wire.label.length * 4 + 1.5);
     group.dataset.labelHeight = endpoint.label.height || 17;
     group.dataset.slot = endpoint.label.slot || 0;
     group.dataset.slotCount = endpoint.label.slot_count || 1;
+    group.setAttribute('transform', componentTransform(component));
     setNetStyle(group, wire.style);
 
     group.appendChild(el('path', {
@@ -1040,7 +1474,7 @@ function renderWireEndpointGroups(wire) {
       class: 'wire-dot',
       cx: localEndpoint.anchor.x,
       cy: localEndpoint.anchor.y,
-      r: 3,
+      r: localEndpoint.dot_radius || endpoint.dot_radius || 1.15,
     }));
 
     group.dataset.labelX = localEndpoint.label.x;
@@ -1051,22 +1485,63 @@ function renderWireEndpointGroups(wire) {
   });
 }
 
+function sortEndpointLayers() {
+  const layer = host.querySelector('.wire-label-layer');
+  if (!layer) return;
+  [...layer.querySelectorAll('.wire-endpoint-group')]
+    .sort((left, right) => Number(right.dataset.slot || 0) - Number(left.dataset.slot || 0))
+    .forEach((group) => layer.appendChild(group));
+}
+
 function endpointToLocal(endpoint, component) {
+  const pin = component.pins.find((item) => item.node === endpoint.node);
+  if (!pin) {
+    return absoluteEndpointToLocal(endpoint, component);
+  }
+  const slot = Number(endpoint.label.slot || 0);
+  const vector = sideVector(endpoint.side);
+  const anchor = pinBoundaryPoint(pin);
+  const stubLength = Number(endpoint.stub_length || 0);
+  const labelWidth = Number(endpoint.label.width || 44);
+  const labelGap = Number(endpoint.label_gap || 0);
+  const stubDistance = stubLength + slot * (labelWidth + stubLength);
+  const labelOffset = labelGap + labelWidth / 2;
+  const stub = {
+    x: anchor.x + vector.x * stubDistance,
+    y: anchor.y + vector.y * stubDistance,
+  };
+  return {
+    ...endpoint,
+    anchor,
+    stub,
+    stub_distance: stubDistance,
+    label: {
+      ...endpoint.label,
+      x: stub.x + vector.x * labelOffset,
+      y: stub.y + vector.y * labelOffset,
+      rotation: readableLabelLocalRotation(endpoint.side, component.rotation || 0),
+    },
+  };
+}
+
+function absoluteEndpointToLocal(endpoint, component) {
+  const originX = component.endpointOriginX ?? component.x;
+  const originY = component.endpointOriginY ?? component.y;
   return {
     ...endpoint,
     anchor: {
-      x: endpoint.anchor.x - component.baseX,
-      y: endpoint.anchor.y - component.baseY,
+      x: endpoint.anchor.x - originX,
+      y: endpoint.anchor.y - originY,
     },
     stub: {
-      x: endpoint.stub.x - component.baseX,
-      y: endpoint.stub.y - component.baseY,
+      x: endpoint.stub.x - originX,
+      y: endpoint.stub.y - originY,
     },
     label: {
       ...endpoint.label,
-      x: endpoint.label.x - component.baseX,
-      y: endpoint.label.y - component.baseY,
-      rotation: labelLocalRotation(endpoint.side, component.rotation || 0),
+      x: endpoint.label.x - originX,
+      y: endpoint.label.y - originY,
+      rotation: readableLabelLocalRotation(endpoint.side, component.rotation || 0),
     },
   };
 }
@@ -1079,7 +1554,7 @@ function renderWireLabel(wire, endpoint) {
     'data-node': endpoint.node,
     'data-component': endpoint.component,
   });
-  const width = endpoint.label.width || Math.max(44, wire.label.length * 7.2 + 12);
+  const width = endpoint.label.width || Math.max(8, wire.label.length * 4 + 1.5);
   const height = endpoint.label.height || 17;
   const transform = endpoint.label.rotation
     ? `rotate(${endpoint.label.rotation} ${endpoint.label.x} ${endpoint.label.y})`
@@ -1100,6 +1575,7 @@ function renderWireLabel(wire, endpoint) {
     class: 'wire-label-text',
     x: endpoint.label.x,
     y: endpoint.label.y,
+    'font-size': endpoint.label.font_size || 5,
   }));
   label.addEventListener('click', (event) => {
     event.stopPropagation();
@@ -1117,17 +1593,30 @@ function enableDrag(svg) {
     const component = dragSurface.closest('.component');
     if (!component) return;
     const start = pointerToSvg(svg, event);
+    const names = dragSelectionNames(component.dataset.component);
+    const items = names
+      .map((name) => {
+        const element = document.querySelector(`.component[data-component="${cssEscape(name)}"]`);
+        const model = state.components.get(name);
+        if (!element || !model) return null;
+        return {
+          element,
+          component: model,
+          name,
+          x: Number(element.dataset.x),
+          y: Number(element.dataset.y),
+        };
+      })
+      .filter(Boolean);
     active = {
-      element: component,
-      component: state.components.get(component.dataset.component),
+      items,
       name: component.dataset.component,
+      names,
       startX: start.x,
       startY: start.y,
-      x: Number(component.dataset.x),
-      y: Number(component.dataset.y),
       moved: false,
     };
-    component.classList.add('dragging');
+    items.forEach((item) => item.element.classList.add('dragging'));
     component.setPointerCapture(event.pointerId);
   });
   svg.addEventListener('pointermove', (event) => {
@@ -1138,36 +1627,135 @@ function enableDrag(svg) {
     if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
       active.moved = true;
     }
-    const x = active.x + dx;
-    const y = active.y + dy;
-    active.element.dataset.x = x;
-    active.element.dataset.y = y;
-    active.component.x = x;
-    active.component.y = y;
-    updateComponentTransform(active.element, active.component);
+    active.items.forEach((item) => {
+      const x = item.x + dx;
+      const y = item.y + dy;
+      item.element.dataset.x = x;
+      item.element.dataset.y = y;
+      item.component.x = x;
+      item.component.y = y;
+      updateComponentTransform(item.element, item.component);
+      updateComponentEndpoints(item.component);
+    });
   });
   svg.addEventListener('pointerup', () => endDrag(true));
   svg.addEventListener('pointercancel', () => endDrag(false));
 
   function endDrag(selectAfterDrag) {
     if (!active) return;
-    active.component.x = Number(active.element.dataset.x);
-    active.component.y = Number(active.element.dataset.y);
-    if (active.moved) {
-      active.element.dataset.ignoreClick = 'true';
-    }
-    active.element.classList.remove('dragging');
+    active.items.forEach((item) => {
+      item.component.x = Number(item.element.dataset.x);
+      item.component.y = Number(item.element.dataset.y);
+      if (active.moved) {
+        item.element.dataset.ignoreClick = 'true';
+      }
+      item.element.classList.remove('dragging');
+    });
     if (selectAfterDrag) {
-      selectComponent(active.name);
+      if (active.names.length > 1) {
+        setComponentGroupSelection(active.names);
+      } else {
+        selectComponent(active.name);
+      }
     }
+    active.items.forEach((item) => dispatchComponentLayout(item.name, item.component));
+    state.scene = renderedSceneBounds(svg, state.scene);
+    updateReferenceGrid(svg, host.querySelector('.reference-grid-layer')?.classList.contains('visible') ?? false);
     active = null;
   }
+}
+
+function dragSelectionNames(componentName) {
+  if (state.selectedComponents.includes(componentName)) {
+    return [...state.selectedComponents];
+  }
+  return [componentName];
+}
+
+function enableMarqueeSelect(svg) {
+  let activeMarquee = null;
+  svg.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0 || !event.shiftKey || event.target.closest('.component') || event.target.closest('.wire-label-group')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const start = pointerToSvg(svg, event);
+    const rect = el('rect', {
+      class: 'selection-marquee',
+      x: start.x,
+      y: start.y,
+      width: 0,
+      height: 0,
+    });
+    const interactionLayer = svg.querySelector('.interaction-layer') || svg;
+    interactionLayer.appendChild(rect);
+    activeMarquee = {
+      pointerId: event.pointerId,
+      start,
+      rect,
+    };
+    svg.setPointerCapture(event.pointerId);
+  });
+  svg.addEventListener('pointermove', (event) => {
+    if (!activeMarquee) return;
+    const current = pointerToSvg(svg, event);
+    updateMarqueeRect(activeMarquee.rect, activeMarquee.start, current);
+  });
+  svg.addEventListener('pointerup', () => endMarquee(true));
+  svg.addEventListener('pointercancel', () => endMarquee(false));
+
+  function endMarquee(selectComponents) {
+    if (!activeMarquee) return;
+    const bounds = normalizedRect(activeMarquee.rect);
+    activeMarquee.rect.remove();
+    activeMarquee = null;
+    if (!selectComponents) return;
+    const names = [...state.components.values()]
+      .filter((component) => rectsIntersect(bounds, componentBounds(component)))
+      .map((component) => component.name);
+    setComponentGroupSelection(names);
+  }
+}
+
+function updateMarqueeRect(rect, start, current) {
+  const x = Math.min(start.x, current.x);
+  const y = Math.min(start.y, current.y);
+  const width = Math.abs(current.x - start.x);
+  const height = Math.abs(current.y - start.y);
+  rect.setAttribute('x', x);
+  rect.setAttribute('y', y);
+  rect.setAttribute('width', width);
+  rect.setAttribute('height', height);
+}
+
+function normalizedRect(rect) {
+  return {
+    x: Number(rect.getAttribute('x')),
+    y: Number(rect.getAttribute('y')),
+    width: Number(rect.getAttribute('width')),
+    height: Number(rect.getAttribute('height')),
+  };
+}
+
+function componentBounds(component) {
+  return {
+    x: component.x,
+    y: component.y,
+    width: component.width,
+    height: component.height,
+  };
+}
+
+function rectsIntersect(left, right) {
+  return left.x <= right.x + right.width
+    && left.x + left.width >= right.x
+    && left.y <= right.y + right.height
+    && left.y + left.height >= right.y;
 }
 
 function enablePan(svg) {
   let activePan = null;
   svg.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0 || event.target.closest('.component') || event.target.closest('.wire-label-group')) return;
+    if (event.button !== 0 || event.shiftKey || event.target.closest('.component') || event.target.closest('.wire-label-group')) return;
     activePan = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -1202,11 +1790,16 @@ function enablePan(svg) {
 function enableZoom(svg) {
   svg.addEventListener('wheel', (event) => {
     event.preventDefault();
-    if (!state.viewBox || !state.canvas) return;
+    if (!state.viewBox || !state.canvas || !state.scene) return;
+    state.scene = renderedSceneBounds(svg, state.scene);
     const pointer = pointerToSvg(svg, event);
     const zoomFactor = event.deltaY > 0 ? 1.12 : 0.89;
-    const nextWidth = clamp(state.viewBox.width * zoomFactor, state.canvas.width / 8, state.canvas.width * 3);
-    const nextHeight = clamp(state.viewBox.height * zoomFactor, state.canvas.height / 8, state.canvas.height * 3);
+    const fitBox = fitBoundsToViewport(state.scene, 96);
+    const aspect = state.viewBox.height / Math.max(state.viewBox.width, 1);
+    const minWidth = Math.max(24, fitBox.width / 80);
+    const maxWidth = fitBox.width * 1.15;
+    const nextWidth = clamp(state.viewBox.width * zoomFactor, minWidth, maxWidth);
+    const nextHeight = nextWidth * aspect;
     const ratioX = (pointer.x - state.viewBox.x) / state.viewBox.width;
     const ratioY = (pointer.y - state.viewBox.y) / state.viewBox.height;
     state.viewBox = {
@@ -1274,17 +1867,31 @@ function rotateComponent(componentName) {
   group.dataset.ignoreClick = 'true';
   updateComponentTransform(group, component);
   updateComponentEndpoints(component);
+  dispatchComponentLayout(componentName, component);
+  updateReferenceGrid(host.querySelector('svg'), host.querySelector('.reference-grid-layer')?.classList.contains('visible') ?? false);
+}
+
+function dispatchComponentLayout(componentName, component) {
+  document.dispatchEvent(new CustomEvent('panelviz:component-layout', {
+    detail: {
+      component: componentName,
+      x: Number(component.x),
+      y: Number(component.y),
+      rotation: Number(component.rotation || 0),
+    },
+  }));
 }
 
 function updateComponentTransform(group, component) {
-  group.setAttribute(
-    'transform',
-    `translate(${component.x} ${component.y}) rotate(${component.rotation || 0} ${component.width / 2} ${component.height / 2})`,
-  );
+  group.setAttribute('transform', componentTransform(component));
   group.dataset.x = component.x;
   group.dataset.y = component.y;
   group.dataset.rotation = component.rotation || 0;
   updateReadableComponentText(group, component.rotation || 0);
+}
+
+function componentTransform(component) {
+  return `translate(${component.x} ${component.y}) rotate(${component.rotation || 0} ${component.width / 2} ${component.height / 2})`;
 }
 
 function updateReadableComponentText(group, rotation) {
@@ -1303,7 +1910,10 @@ function updateReadableComponentText(group, rotation) {
       text.setAttribute('x', x);
       text.setAttribute('y', y);
     }
-    text.setAttribute('transform', `rotate(${-rotation} ${x} ${y})`);
+    const textRotation = role === 'name' || role === 'type'
+      ? -rotation
+      : readableLabelLocalRotation(text.dataset.side, rotation);
+    text.setAttribute('transform', `rotate(${textRotation} ${x} ${y})`);
   });
 }
 
@@ -1316,13 +1926,13 @@ function inverseRotateVector(x, y, rotation) {
 
 function updateComponentEndpoints(component) {
   document.querySelectorAll(`.wire-endpoint-group[data-component="${cssEscape(component.name)}"]`).forEach((group) => {
-    const side = rotateSide(group.dataset.side, component.rotation || 0);
+    group.setAttribute('transform', componentTransform(component));
     const label = {
       x: Number(group.dataset.labelX),
       y: Number(group.dataset.labelY),
       width: Number(group.dataset.labelWidth),
       height: Number(group.dataset.labelHeight),
-      rotation: labelLocalRotation(side, component.rotation || 0),
+      rotation: readableLabelLocalRotation(group.dataset.side, component.rotation || 0),
     };
     setEndpointLabelGeometry(group, label);
   });
@@ -1376,12 +1986,15 @@ function fanOffset(side, slot, slotCount, spacing) {
   return { x: offset, y: 0 };
 }
 
-function labelRotation(side) {
-  return side === 'top' || side === 'bottom' ? 90 : 0;
+function readableScreenRotation(side) {
+  if (side === 'top') return 90;
+  if (side === 'bottom') return -90;
+  return 0;
 }
 
-function labelLocalRotation(screenSide, componentRotation) {
-  return normalizeRotation(labelRotation(screenSide) - componentRotation);
+function readableLabelLocalRotation(localSide, componentRotation) {
+  const screenSide = rotateSide(localSide, componentRotation || 0);
+  return normalizeRotation(readableScreenRotation(screenSide) - (componentRotation || 0));
 }
 
 function normalizeRotation(rotation) {
@@ -1401,6 +2014,70 @@ function pointerToSvg(svg, event) {
   return {
     x: viewBox.x + ((event.clientX - rect.left) / Math.max(rect.width, 1)) * viewBox.width,
     y: viewBox.y + ((event.clientY - rect.top) / Math.max(rect.height, 1)) * viewBox.height,
+  };
+}
+
+function normalizeBounds(bounds) {
+  return {
+    x: Number(bounds?.x ?? 0),
+    y: Number(bounds?.y ?? 0),
+    width: Math.max(1, Number(bounds?.width ?? 1)),
+    height: Math.max(1, Number(bounds?.height ?? 1)),
+  };
+}
+
+function fitBoundsToViewport(bounds, padding = 48) {
+  const normalized = normalizeBounds(bounds);
+  const rect = host.getBoundingClientRect();
+  const viewportAspect = Math.max(rect.width, 1) / Math.max(rect.height, 1);
+  let width = normalized.width + padding * 2;
+  let height = normalized.height + padding * 2;
+  if (width / height < viewportAspect) {
+    width = height * viewportAspect;
+  } else {
+    height = width / viewportAspect;
+  }
+  const centerX = normalized.x + normalized.width / 2;
+  const centerY = normalized.y + normalized.height / 2;
+  return {
+    x: centerX - width / 2,
+    y: centerY - height / 2,
+    width,
+    height,
+  };
+}
+
+function renderedSceneBounds(svg, fallbackBounds) {
+  if (!svg || !svg.getScreenCTM) return normalizeBounds(fallbackBounds);
+  const inverse = svg.getScreenCTM()?.inverse();
+  if (!inverse) return normalizeBounds(fallbackBounds);
+  const items = [...svg.querySelectorAll('.component,.wire-endpoint-group,.no-connect-marker,.no-connect-stub,.no-connect-dot')];
+  const points = [];
+  items.forEach((item) => {
+    const rect = item.getBoundingClientRect();
+    if (!rect.width && !rect.height) return;
+    [
+      [rect.left, rect.top],
+      [rect.right, rect.top],
+      [rect.right, rect.bottom],
+      [rect.left, rect.bottom],
+    ].forEach(([x, y]) => {
+      const point = svg.createSVGPoint();
+      point.x = x;
+      point.y = y;
+      points.push(point.matrixTransform(inverse));
+    });
+  });
+  if (!points.length) return normalizeBounds(fallbackBounds);
+  const minX = Math.min(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const maxY = Math.max(...points.map((point) => point.y));
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(1, maxX - minX),
+    height: Math.max(1, maxY - minY),
   };
 }
 
@@ -1448,6 +2125,12 @@ function selectComponent(componentName) {
   applyHighlight();
 }
 
+function setComponentGroupSelection(componentNames) {
+  clearSelectionState();
+  state.selectedComponents = uniqueValues(componentNames);
+  applyHighlight();
+}
+
 function selectDiagnosticNodes(nodes) {
   clearSelectionState();
   state.diagnosticNodes = nodes;
@@ -1461,8 +2144,12 @@ function clearSelectionState() {
   state.selectedNets = [];
   state.selectedNode = null;
   state.selectedComponent = null;
+  state.selectedComponents = [];
   state.diagnosticNodes = [];
   state.diagnosticComponents = [];
+  document.querySelectorAll('.component.group-selected').forEach((component) => {
+    component.classList.remove('group-selected');
+  });
 }
 
 function uniqueValues(values) {
@@ -1487,10 +2174,16 @@ function applyHighlight() {
   state.diagnosticNodes.forEach((node) => {
     const pin = document.querySelector(`.pin-box[data-node="${cssEscape(node)}"]`);
     if (pin) pin.classList.add('diagnostic-selected');
+    document.querySelectorAll(`.wire-endpoint-group[data-node="${cssEscape(node)}"]`).forEach((endpoint) => {
+      endpoint.classList.add('diagnostic-selected');
+    });
   });
   state.diagnosticComponents.forEach((componentName) => {
     const component = document.querySelector(`.component[data-component="${cssEscape(componentName)}"]`);
     if (component) component.classList.add('diagnostic-selected');
+  });
+  document.querySelectorAll('.component').forEach((component) => {
+    component.classList.toggle('group-selected', state.selectedComponents.includes(component.dataset.component));
   });
   if (!hasSelection) return;
 

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PanelViz Viewer</title>
+  <link rel="stylesheet" href="viewer.css?v=9cd8d420c201">
+  <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.2.4/dist/svg.min.js"></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="toolbar">
+      <div>
+        <h1>PanelViz</h1>
+        <p id="status">Loading panel...</p>
+      </div>
+      <div class="help-strip">
+        <span>Drag canvas: pan</span>
+        <span>Shift-drag canvas: select components</span>
+        <span>Wheel: zoom</span>
+        <span>Right-click canvas: clear</span>
+        <span>Right-click component: rotate</span>
+      </div>
+      <div class="diagnostic-actions" role="group" aria-label="Diagnostic highlighting">
+        <button id="show-unconnected" type="button">Unconnected</button>
+        <button id="show-multiconnected" type="button">Multi-connected</button>
+        <button id="show-isolated" type="button">No Connections</button>
+      </div>
+      <div class="controls" role="group" aria-label="Highlight mode">
+        <label><input type="radio" name="highlight-mode" value="wire" checked> Wire</label>
+        <label><input type="radio" name="highlight-mode" value="net"> Net</label>
+        <button id="toggle-wire-table" type="button">Hide Wires</button>
+        <button id="clear-selection" type="button">Clear</button>
+      </div>
+    </header>
+    <section class="workspace">
+      <section id="canvas-host" aria-label="Interactive PanelViz wiring canvas"></section>
+      <div id="wire-table-resizer" aria-hidden="true"></div>
+      <aside class="wire-table-panel" aria-label="Wire list">
+        <div class="wire-table-header">
+          <h2>Wire List</h2>
+          <div class="wire-table-actions">
+            <button id="toggle-wire-columns" type="button">Split Columns</button>
+          </div>
+        </div>
+        <div class="wire-table-scroll">
+          <table class="wire-table">
+            <thead id="wire-table-head"></thead>
+            <tbody id="wire-table-body"></tbody>
+          </table>
+        </div>
+      </aside>
+    </section>
+  </main>
+  <script src="viewer.js?v=9cd8d420c201"></script>
+</body>
+</html>

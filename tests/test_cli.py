@@ -6,12 +6,13 @@ from panelviz.cli import main, run
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_OUTPUTS = Path(__file__).resolve().parent / "outputs"
+VALID_PANEL = Path(__file__).resolve().parent / "fixtures" / "mycnc_valid.yml"
 
 
 def test_cli_run_writes_required_outputs_to_selected_directory():
     output_dir = TEST_OUTPUTS / "cli_selected"
 
-    outputs = run(PROJECT_ROOT / "mycnc.yml", output_dir)
+    outputs = run(VALID_PANEL, output_dir)
 
     assert outputs == [
         output_dir / "wire_list.csv",
@@ -36,7 +37,7 @@ def test_cli_main_uses_current_directory_when_output_dir_is_omitted(monkeypatch,
     output_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.chdir(output_dir)
 
-    exit_code = main([str(PROJECT_ROOT / "mycnc.yml")])
+    exit_code = main([str(VALID_PANEL)])
 
     assert exit_code == 0
     assert (output_dir / "wire_list.csv").exists()
@@ -51,10 +52,32 @@ def test_cli_view_writes_static_viewer_and_serves_selected_output_dir(monkeypatc
 
     monkeypatch.setattr(cli, "serve_viewer", lambda path: served.append(path))
 
-    exit_code = main(["--view", str(PROJECT_ROOT / "mycnc.yml"), str(output_dir)])
+    exit_code = main(["--view", str(VALID_PANEL), str(output_dir)])
 
     assert exit_code == 0
     assert served == [output_dir]
     assert (output_dir / "viewer.html").exists()
     assert (output_dir / "viewer.js").exists()
     assert (output_dir / "panel-data.json").exists()
+
+
+def test_cli_edit_launches_editor_without_generating_outputs(monkeypatch):
+    launched = []
+
+    monkeypatch.setattr(cli, "run_editor", lambda path, port, open_browser: launched.append((path, port, open_browser)))
+
+    exit_code = main(["--edit", "--edit-port", "8768", "--no-open", str(VALID_PANEL)])
+
+    assert exit_code == 0
+    assert launched == [(str(VALID_PANEL), 8768, False)]
+
+
+def test_cli_edit_defaults_to_editor_port(monkeypatch):
+    launched = []
+
+    monkeypatch.setattr(cli, "run_editor", lambda path, port, open_browser: launched.append((path, port, open_browser)))
+
+    exit_code = main(["--edit", "--no-open", str(VALID_PANEL)])
+
+    assert exit_code == 0
+    assert launched == [(str(VALID_PANEL), 8769, False)]

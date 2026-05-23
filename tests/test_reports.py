@@ -12,10 +12,11 @@ from panelviz.routing import WireRouter
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_OUTPUTS = Path(__file__).resolve().parent / "outputs"
+VALID_PANEL = Path(__file__).resolve().parent / "fixtures" / "mycnc_valid.yml"
 
 
 def test_component_summary_rows_report_unconnected_nc_and_multi_connected_pins():
-    parsed = parse_panel_yaml((PROJECT_ROOT / "mycnc.yml").read_text(encoding="utf-8"))
+    parsed = parse_panel_yaml(VALID_PANEL.read_text(encoding="utf-8"))
     router = WireRouter.route_parse_result(parsed)
 
     rows = {row.component: row for row in component_summary_rows(router)}
@@ -29,7 +30,7 @@ def test_component_summary_rows_report_unconnected_nc_and_multi_connected_pins()
 
 
 def test_component_summary_table_is_pretty_printed():
-    parsed = parse_panel_yaml((PROJECT_ROOT / "mycnc.yml").read_text(encoding="utf-8"))
+    parsed = parse_panel_yaml(VALID_PANEL.read_text(encoding="utf-8"))
     router = WireRouter.route_parse_result(parsed)
 
     table = component_summary_table(router)
@@ -40,7 +41,7 @@ def test_component_summary_table_is_pretty_printed():
 
 
 def test_report_csv_writers_write_expected_files():
-    parsed = parse_panel_yaml((PROJECT_ROOT / "mycnc.yml").read_text(encoding="utf-8"))
+    parsed = parse_panel_yaml(VALID_PANEL.read_text(encoding="utf-8"))
     router = WireRouter.route_parse_result(parsed)
     TEST_OUTPUTS.mkdir(exist_ok=True)
     wire_csv = TEST_OUTPUTS / "wire_list_from_report_test.csv"

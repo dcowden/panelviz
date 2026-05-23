@@ -6,10 +6,11 @@ from panelviz.routing import WireRouter
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+VALID_PANEL = Path(__file__).resolve().parent / "fixtures" / "mycnc_valid.yml"
 
 
 def test_myncnc_file_routes_expected_wires_and_labels():
-    parsed = parse_panel_yaml((PROJECT_ROOT / "mycnc.yml").read_text())
+    parsed = parse_panel_yaml(VALID_PANEL.read_text())
     router = WireRouter.route_parse_result(parsed)
 
     assert parsed.config.wire_label_format == "%netname-%seq"
@@ -20,8 +21,8 @@ def test_myncnc_file_routes_expected_wires_and_labels():
     assert parsed.wires[0].net_name == "earth"
     assert parsed.wires[0].awg == 12
     assert set(parsed.no_connects) >= {"axbb-e.O1", "axbb-e.O17", "estop_relay.NC"}
-    assert len(router.routed_wires) == 133
-    assert router.physical_graph.number_of_edges() == 133
+    assert len(router.routed_wires) == 137
+    assert router.physical_graph.number_of_edges() == 137
     assert router.no_connects >= {"axbb-e.O1", "axbb-e.O17", "estop_relay.NC"}
 
     wire_by_index = {wire.index: wire for wire in router.routed_wires}
@@ -33,7 +34,7 @@ def test_myncnc_file_routes_expected_wires_and_labels():
     assert str(wire_by_index[31].to_pin) == "coil_t.3A"
     assert str(wire_by_index[32].to_pin) == "coil_t.1A"
     assert str(wire_by_index[40].to_pin) == "cnc_terminals.5A"
-    assert str(wire_by_index[110].to_pin) == "connector_earth.6B"
+    assert str(wire_by_index[114].to_pin) == "connector_earth.6B"
 
     expected_labels = {
         1: ("earth-1", "earth"),
@@ -57,7 +58,7 @@ def test_myncnc_file_routes_expected_wires_and_labels():
         35: ("z_motor.zma+-2", "z_motor.zma+"),
         39: ("shield-1", "shield"),
         40: ("z_control.eb+-1", "z_control.eb+"),
-        110: ("shield-12", "shield"),
+        114: ("shield-12", "shield"),
     }
     assert {
         index: (wire_by_index[index].wire_label, wire_by_index[index].net_name)
@@ -94,11 +95,11 @@ def test_myncnc_file_routes_expected_wires_and_labels():
 
 
 def test_myncnc_wire_list_report_is_grouped_by_netname():
-    parsed = parse_panel_yaml((PROJECT_ROOT / "mycnc.yml").read_text())
+    parsed = parse_panel_yaml(VALID_PANEL.read_text())
     router = WireRouter.route_parse_result(parsed)
 
     rows = wire_list_rows(router)
-    assert len(rows) == 133
+    assert len(rows) == 137
     assert [row.netname for row in rows] == sorted(row.netname for row in rows)
     assert rows[0].model_dump() == {
         "wirenumber": "110L-1",

@@ -11,9 +11,15 @@ config:
   wiring_mode: labels
   defaults:
     awg: 20
+  drawing:
+    company: Example Controls
+    author: Dave
+    title: Example Drawing
   units:
     length: mm
   visualization:
+    terminal_width: 0.125
+    terminal_width_unit: in
     default_net_style:
       color: "#475569"
       line_weight: 1.6
@@ -65,8 +71,13 @@ def test_parse_panel_yaml_builds_typed_components_from_components_tree():
     assert result.config.wire_label_format == "%netname-%seq"
     assert result.config.wiring_mode == "labels"
     assert result.config.defaults.awg == 20
+    assert result.config.drawing.company == "Example Controls"
+    assert result.config.drawing.author == "Dave"
+    assert result.config.drawing.title == "Example Drawing"
     assert result.config.units.length == "mm"
     assert result.config.visualization.default_net_style.line_style == "dashed"
+    assert result.config.visualization.terminal_width == 0.125
+    assert result.config.visualization.terminal_width_unit == "in"
     assert result.config.visualization.style_for_net("110L").color == "#1d4ed8"
     assert result.config.visualization.style_for_net("earth").color == "#16a34a"
     assert result.config.visualization.style_for_net("unknown").color == "#475569"

@@ -69,10 +69,10 @@ class FontConfig(BaseModel):
     """Global typography guardrails for visual output."""
 
     family: str = "Arial"
-    min_pin_size: float = 6.0
-    max_pin_size: float = 10.0
-    min_component_name_size: float = 7.0
-    max_component_name_size: float = 14.0
+    min_pin_size: float = 2.0
+    max_pin_size: float = 3.8
+    min_component_name_size: float = 2.5
+    max_component_name_size: float = 6.6
 
 
 class ComponentVisualConfig(BaseModel):
@@ -80,24 +80,49 @@ class ComponentVisualConfig(BaseModel):
 
     font: FontConfig = Field(default_factory=FontConfig)
     margin_pt: float = 12.0
-    pin_padding_x_pt: float = 3.0
-    pin_padding_y_pt: float = 2.0
+    pin_padding_x_pt: float = 0.75
+    pin_padding_y_pt: float = 0.5
+    terminal_width_pt: float = 7.2
     pin_band_fraction: float = 0.22
-    min_pin_band_pt: float = 22.0
-    max_pin_band_pt: float = 32.0
+    min_pin_band_pt: float = 7.2
+    max_pin_band_pt: float = 7.2
     min_component_center_width_pt: float = 72.0
     min_component_center_height_pt: float = 32.0
-    min_terminal_pin_band_pt: float = 28.0
+    min_terminal_pin_band_pt: float = 7.2
     min_terminal_center_width_pt: float = 96.0
-    min_terminal_row_height_pt: float = 16.0
+    min_terminal_row_height_pt: float = 7.2
     component_gap_pt: float = 28.0
-    wire_label_font_size_pt: float = 7.0
+    wire_label_font_size_pt: float = 4.0
     wire_stroke_width_pt: float = 1.0
     wire_stub_pt: float = 20.0
     wire_lane_spacing_pt: float = 3.0
-    wire_endpoint_radius_pt: float = 2.2
-    wire_label_gap_pt: float = 6.0
+    wire_endpoint_radius_pt: float = 1.15
+    wire_label_gap_pt: float = 0.0
     wiring_label_margin_pt: float = 96.0
+    terminal_depth_factor: float = 2.6
+
+
+def component_visual_config_from_visualization(visualization: VisualizationConfig) -> ComponentVisualConfig:
+    """Build physical drawing defaults from parsed visualization config."""
+
+    terminal_width_pt = length_to_points(
+        visualization.terminal_width,
+        UnitsConfig(length=visualization.terminal_width_unit),
+    )
+    font = FontConfig(
+        max_pin_size=max(2.2, terminal_width_pt * 0.7),
+        max_component_name_size=max(3.0, terminal_width_pt * 0.9),
+    )
+    return ComponentVisualConfig(
+        font=font,
+        terminal_width_pt=terminal_width_pt,
+        min_pin_band_pt=terminal_width_pt * 1.35,
+        max_pin_band_pt=terminal_width_pt * 1.35,
+        min_terminal_pin_band_pt=terminal_width_pt * 1.35,
+        min_terminal_row_height_pt=terminal_width_pt,
+        wire_label_font_size_pt=max(2.8, terminal_width_pt * 0.52),
+        wire_endpoint_radius_pt=max(0.9, terminal_width_pt * 0.16),
+    )
 
 
 class TypographyPlan(BaseModel):
@@ -185,12 +210,15 @@ def plan_typography(
             pins = visual_pins.get(side, [])
             if not pins:
                 continue
-            box_width, box_height = _pin_box_size_for_side(side, len(pins), metrics)
+            box_width, box_height, _ = _pin_box_size_for_side(side, len(pins), metrics, visual_config)
+            text_box_width, text_box_height = (
+                (box_height, box_width) if side in {PinSide.TOP, PinSide.BOTTOM} else (box_width, box_height)
+            )
             pin_limits.extend(
                 _max_font_size_for_text(
                     pin,
-                    box_width,
-                    box_height,
+                    text_box_width,
+                    text_box_height,
                     visual_config,
                     text_measurer,
                 )
@@ -214,8 +242,8 @@ def plan_typography(
     pin_size = min(raw_pin_size, visual_config.font.max_pin_size)
     name_size = min(raw_name_size, visual_config.font.max_component_name_size)
     return TypographyPlan(
-        pin_font_size_pt=max(pin_size, visual_config.font.min_pin_size),
-        component_name_font_size_pt=max(name_size, visual_config.font.min_component_name_size),
+        pin_font_size_pt=max(pin_size, 1.5),
+        component_name_font_size_pt=max(name_size, 1.5),
         pin_font_fits=raw_pin_size >= visual_config.font.min_pin_size,
         component_name_font_fits=raw_name_size >= visual_config.font.min_component_name_size,
     )
@@ -238,9 +266,9 @@ def plan_component_layout(
         pins = visual_pins.get(side, [])
         if not pins:
             continue
-        box_width, box_height = _pin_box_size_for_side(side, len(pins), metrics)
+        box_width, box_height, start_offset = _pin_box_size_for_side(side, len(pins), metrics, visual_config)
         for index, pin in enumerate(pins):
-            pin_boxes.append(_pin_box(side, pin, index, box_width, box_height, metrics))
+            pin_boxes.append(_pin_box(side, pin, index, box_width, box_height, start_offset, metrics))
 
     return ComponentLayout(
         component_name=component.name,
@@ -500,15 +528,15 @@ def _svg_style() -> str:
         [
             "<style>",
             ".sheet-background{fill:#fff}",
-            ".component-outline{fill:#ffffff;stroke:#334155;stroke-width:1.25}",
+            ".component-outline{fill:#ffffff;stroke:#334155;stroke-width:.9}",
             ".component-center{fill:#ffffff;stroke:none}",
-            ".pin-box{fill:#f8fafc;stroke:#475569;stroke-width:0.75}",
+            ".pin-box{fill:#f8fafc;stroke:#475569;stroke-width:.45}",
             ".pin-label,.component-name{font-family:Arial,Helvetica,sans-serif;dominant-baseline:middle;text-anchor:middle;fill:#0f172a}",
             ".component-name{font-weight:700}",
             ".component-type{font-family:Arial,Helvetica,sans-serif;dominant-baseline:middle;text-anchor:middle;fill:#64748b;font-weight:600}",
             ".wire-line{fill:none;stroke:var(--net-color,#475569);stroke-width:var(--net-weight,1.6);stroke-dasharray:var(--net-dasharray,none);stroke-linecap:round;stroke-linejoin:round;stroke-opacity:.92}",
-            ".wire-endpoint{fill:var(--net-color,#475569);stroke:#fff;stroke-width:1.1}",
-            ".wire-label-bg{fill:#fff;stroke:var(--net-color,#475569);stroke-width:0.75}",
+            ".wire-endpoint{fill:var(--net-color,#475569);stroke:#fff;stroke-width:.45}",
+            ".wire-label-bg{fill:#fff;stroke:var(--net-color,#475569);stroke-width:.45}",
             ".wire-label{font-family:Arial,Helvetica,sans-serif;dominant-baseline:middle;text-anchor:middle;fill:#0f172a;font-weight:700}",
             "</style>",
         ]
@@ -567,12 +595,12 @@ def _component_svg_body(layout: ComponentLayout, offset_x: float, offset_y: floa
             )
         )
         body.append(
-            _text(
+            _pin_label_text(
                 offset_x + layout.margin_pt + box.x + box.width / 2,
                 offset_y + layout.margin_pt + box.y + box.height / 2,
                 box.pin,
                 layout.typography.pin_font_size_pt,
-                f"pin-label pin-label-{box.side.value}",
+                box.side,
             )
         )
     return body
@@ -618,18 +646,21 @@ def _config_for_wiring_mode(
 
 
 def _max_wire_label_projection(router: WireRouter, config: ComponentVisualConfig) -> float:
-    max_label_width = max(
-        (
-            _estimated_text_width(
-                wire.wire_label or f"wire-{wire.index}",
-                config.wire_label_font_size_pt,
-                2.5,
+    slots = _endpoint_slots(router.routed_wires)
+    max_projection = 0.0
+    for wire in router.routed_wires:
+        label = wire.wire_label or f"wire-{wire.index}"
+        label_width = _wire_label_width(label, config)
+        for key in ((wire.index, "from"), (wire.index, "to")):
+            slot = slots[key]
+            projection = (
+                config.wire_stub_pt
+                + slot.index * (label_width + config.wire_stub_pt)
+                + config.wire_label_gap_pt
+                + label_width
             )
-            for wire in router.routed_wires
-        ),
-        default=0.0,
-    )
-    return config.wire_stub_pt + config.wire_label_gap_pt + max_label_width
+            max_projection = max(max_projection, projection)
+    return max_projection
 
 
 @dataclass(frozen=True)
@@ -728,8 +759,8 @@ def _wire_svg(
         f'r="{config.wire_endpoint_radius_pt:.2f}"/>'
     )
     mid_x, mid_y = _path_label_point(points)
-    label_width = _estimated_text_width(label, config.wire_label_font_size_pt, 2.5)
-    label_height = config.wire_label_font_size_pt * 1.35
+    label_width = _wire_label_width(label, config)
+    label_height = max(config.wire_label_font_size_pt * 1.35, config.terminal_width_pt)
     label_svg = "\n".join(
         [
             f'<g class="wire-label-group {_net_class(wire.net_name)}" data-wire="{wire.index}" '
@@ -758,8 +789,8 @@ def _wire_label_mode_svg(
     start_slot: _EndpointSlot,
     end_slot: _EndpointSlot,
 ) -> tuple[str, str]:
-    start_stub = _stub_point(start, config.wire_stub_pt, start_slot)
-    end_stub = _stub_point(end, config.wire_stub_pt, end_slot)
+    start_stub = _stub_point(start, _endpoint_stub_distance(start, label, config, start_slot))
+    end_stub = _stub_point(end, _endpoint_stub_distance(end, label, config, end_slot))
     style_attr = _net_style_attr(net_style)
     net_class = _net_class(wire.net_name)
     net_attr = escape(wire.net_name or "")
@@ -798,8 +829,8 @@ def _endpoint_wire_label_svg(
     net_style: NetStyle,
     slot: _EndpointSlot,
 ) -> str:
-    label_width = _estimated_text_width(label, config.wire_label_font_size_pt, 2.5)
-    label_height = config.wire_label_font_size_pt * 1.35
+    label_width = _wire_label_width(label, config)
+    label_height = max(config.wire_label_font_size_pt * 1.35, config.terminal_width_pt)
     rotate_vertical = anchor.side in {PinSide.TOP, PinSide.BOTTOM}
     rotation = 90 if rotate_vertical else 0
 
@@ -851,6 +882,27 @@ def _wire_line_weight(base_weight: float, awg: int | None) -> float:
     if awg <= 12:
         weight *= 2
     return max(base_weight, weight)
+
+
+def _wire_label_padding(config: ComponentVisualConfig) -> float:
+    return max(1.5, config.wire_label_font_size_pt * 0.62)
+
+
+def _wire_label_width(label: str, config: ComponentVisualConfig) -> float:
+    return max(
+        config.terminal_width_pt * 1.1,
+        _estimated_text_width(label, config.wire_label_font_size_pt, _wire_label_padding(config)),
+    )
+
+
+def _endpoint_stub_distance(
+    anchor: _WireAnchor,
+    label: str,
+    config: ComponentVisualConfig,
+    slot: _EndpointSlot,
+) -> float:
+    del anchor
+    return config.wire_stub_pt + slot.index * (_wire_label_width(label, config) + config.wire_stub_pt)
 
 
 def _endpoint_slots(wires: list[RoutedWire]) -> dict[tuple[int, str], _EndpointSlot]:
@@ -1002,6 +1054,7 @@ def _path_label_point(points: list[tuple[float, float]]) -> tuple[float, float]:
 class _ComponentMetrics:
     width: float
     height: float
+    terminal_width: float
     top_band: float
     bottom_band: float
     left_band: float
@@ -1020,44 +1073,23 @@ def _component_metrics(
 
     width = length_to_points(component.size.width, units)
     height = length_to_points(component.size.height, units)
+    terminal_width = _component_terminal_width(component, units, config)
     if isinstance(component, TerminalBlock):
         height *= component.position_count()
 
     visual_pins = _visual_pins_by_side(component)
-    vertical_pin_count = max(len(visual_pins.get(PinSide.LEFT, [])), len(visual_pins.get(PinSide.RIGHT, [])))
-    horizontal_pin_count = max(len(visual_pins.get(PinSide.TOP, [])), len(visual_pins.get(PinSide.BOTTOM, [])))
-    min_pin_box_height = config.font.min_pin_size * 1.2 + config.pin_padding_y_pt * 2
-    min_pin_box_width = config.font.min_pin_size * 2.8 + config.pin_padding_x_pt * 2
-    if vertical_pin_count:
-        height = max(height, vertical_pin_count * min_pin_box_height)
-        if isinstance(component, TerminalBlock):
-            height = max(height, vertical_pin_count * config.min_terminal_row_height_pt)
-    if horizontal_pin_count:
-        width = max(width, horizontal_pin_count * min_pin_box_width)
-
     terminal = isinstance(component, TerminalBlock)
-    top_band = _band_depth(height, config, terminal) if component.pins.get(PinSide.TOP) else 0.0
-    bottom_band = _band_depth(height, config, terminal) if component.pins.get(PinSide.BOTTOM) else 0.0
-    left_band = _band_depth(width, config, terminal) if component.pins.get(PinSide.LEFT) else 0.0
-    right_band = _band_depth(width, config, terminal) if component.pins.get(PinSide.RIGHT) else 0.0
+    top_band = _band_depth(terminal_width, config, terminal) if component.pins.get(PinSide.TOP) else 0.0
+    bottom_band = _band_depth(terminal_width, config, terminal) if component.pins.get(PinSide.BOTTOM) else 0.0
+    left_band = _band_depth(terminal_width, config, terminal) if component.pins.get(PinSide.LEFT) else 0.0
+    right_band = _band_depth(terminal_width, config, terminal) if component.pins.get(PinSide.RIGHT) else 0.0
 
-    name_min_width = _estimated_text_width(
-        component.name,
-        config.font.max_component_name_size,
-        config.pin_padding_x_pt,
-    )
-    min_center_width = config.min_terminal_center_width_pt if terminal else config.min_component_center_width_pt
-    horizontal_pin_width = horizontal_pin_count * min_pin_box_width if horizontal_pin_count else 0.0
-    vertical_pin_height = vertical_pin_count * (
-        config.min_terminal_row_height_pt if terminal else min_pin_box_height
-    )
-    center_width = max(width - left_band - right_band, min_center_width, name_min_width, horizontal_pin_width)
-    center_height = max(height - top_band - bottom_band, config.min_component_center_height_pt, vertical_pin_height)
-    width = max(width, left_band + center_width + right_band)
-    height = max(height, top_band + center_height + bottom_band)
+    center_width = max(1.0, width - left_band - right_band)
+    center_height = max(1.0, height - top_band - bottom_band)
     return _ComponentMetrics(
         width=width,
         height=height,
+        terminal_width=terminal_width,
         top_band=top_band,
         bottom_band=bottom_band,
         left_band=left_band,
@@ -1065,6 +1097,13 @@ def _component_metrics(
         center_width=center_width,
         center_height=center_height,
     )
+
+
+def _component_terminal_width(component: Component, units: UnitsConfig, config: ComponentVisualConfig) -> float:
+    if component.size and component.size.terminal_width is not None:
+        terminal_units = UnitsConfig(length=component.size.terminal_width_unit or units.length)
+        return length_to_points(component.size.terminal_width, terminal_units)
+    return config.terminal_width_pt
 
 
 def _visual_pins_by_side(component: Component) -> dict[PinSide, list[str]]:
@@ -1082,19 +1121,30 @@ def _visual_pins_by_side(component: Component) -> dict[PinSide, list[str]]:
     return visual_pins
 
 
-def _band_depth(total: float, config: ComponentVisualConfig, terminal: bool = False) -> float:
-    min_band = config.min_terminal_pin_band_pt if terminal else config.min_pin_band_pt
-    return min(max(total * config.pin_band_fraction, min_band), config.max_pin_band_pt)
+def _band_depth(terminal_width: float, config: ComponentVisualConfig, terminal: bool = False) -> float:
+    del terminal
+    return terminal_width * config.terminal_depth_factor
 
 
 def _estimated_text_width(text: str, font_size_pt: float, padding_x: float) -> float:
     return len(text) * font_size_pt * 0.62 + padding_x * 2
 
 
-def _pin_box_size_for_side(side: PinSide, count: int, metrics: _ComponentMetrics) -> tuple[float, float]:
+def _pin_box_size_for_side(
+    side: PinSide,
+    count: int,
+    metrics: _ComponentMetrics,
+    config: ComponentVisualConfig,
+) -> tuple[float, float, float]:
     if side in {PinSide.TOP, PinSide.BOTTOM}:
-        return metrics.center_width / count, metrics.top_band if side == PinSide.TOP else metrics.bottom_band
-    return metrics.left_band if side == PinSide.LEFT else metrics.right_band, metrics.center_height / count
+        band = metrics.top_band if side == PinSide.TOP else metrics.bottom_band
+        box_width = min(metrics.terminal_width, metrics.center_width / count)
+        start = metrics.left_band + max(0.0, (metrics.center_width - box_width * count) / 2)
+        return box_width, band, start
+    band = metrics.left_band if side == PinSide.LEFT else metrics.right_band
+    box_height = min(metrics.terminal_width, metrics.center_height / count)
+    start = metrics.top_band + max(0.0, (metrics.center_height - box_height * count) / 2)
+    return band, box_height, start
 
 
 def _pin_box(
@@ -1103,13 +1153,14 @@ def _pin_box(
     index: int,
     box_width: float,
     box_height: float,
+    start_offset: float,
     metrics: _ComponentMetrics,
 ) -> PinBox:
     if side == PinSide.TOP:
         return PinBox(
             pin=pin,
             side=side,
-            x=metrics.left_band + index * box_width,
+            x=start_offset + index * box_width,
             y=0.0,
             width=box_width,
             height=box_height,
@@ -1118,7 +1169,7 @@ def _pin_box(
         return PinBox(
             pin=pin,
             side=side,
-            x=metrics.left_band + index * box_width,
+            x=start_offset + index * box_width,
             y=metrics.height - box_height,
             width=box_width,
             height=box_height,
@@ -1128,7 +1179,7 @@ def _pin_box(
             pin=pin,
             side=side,
             x=0.0,
-            y=metrics.top_band + index * box_height,
+            y=start_offset + index * box_height,
             width=box_width,
             height=box_height,
         )
@@ -1136,7 +1187,7 @@ def _pin_box(
         pin=pin,
         side=side,
         x=metrics.width - box_width,
-        y=metrics.top_band + index * box_height,
+        y=start_offset + index * box_height,
         width=box_width,
         height=box_height,
     )
@@ -1201,6 +1252,16 @@ def _rect(
     return (
         f'<rect class="{class_name}" x="{x:.2f}" y="{y:.2f}" '
         f'width="{width:.2f}" height="{height:.2f}"{extra}/>'
+    )
+
+
+def _pin_label_text(x: float, y: float, value: str, font_size: float, side: PinSide) -> str:
+    transform = ""
+    if side in {PinSide.TOP, PinSide.BOTTOM}:
+        transform = f' transform="rotate(90 {x:.2f} {y:.2f})"'
+    return (
+        f'<text class="pin-label pin-label-{side.value}" x="{x:.2f}" y="{y:.2f}" '
+        f'font-size="{font_size:.2f}pt"{transform}>{escape(value)}</text>'
     )
 
 

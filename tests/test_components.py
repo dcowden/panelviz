@@ -71,6 +71,19 @@ def test_simple_component_stringifies_pin_names_and_qualifies_them():
     assert not connector.exposes_net("GND")
 
 
+def test_component_size_accepts_terminal_width_override():
+    size = ComponentSize(width=2, height=3, terminal_width=0.25, terminal_width_unit="in")
+
+    assert size.terminal_width == 0.25
+    assert size.terminal_width_unit == "in"
+
+    with pytest.raises(ValidationError, match="component terminal_width must be positive"):
+        ComponentSize(width=2, height=3, terminal_width=0)
+
+    with pytest.raises(ValidationError, match="component terminal_width_unit must be 'mm' or 'in'"):
+        ComponentSize(width=2, height=3, terminal_width=0.25, terminal_width_unit="cm")
+
+
 def test_simple_component_types_are_available_for_dispatch_and_diagrams():
     assert Switch(name="contactor", pins={"top": ["A1"], "bottom": ["A2"]}).type == ComponentType.SWITCH
     assert PowerSupply(name="supply", pins={"bottom": ["GND", "V+"]}).type == ComponentType.POWER_SUPPLY

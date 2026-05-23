@@ -14,7 +14,7 @@ def main() -> int:
     output_dir = root / "tests" / "outputs"
     output_dir.mkdir(exist_ok=True)
 
-    parsed = parse_panel_yaml((root / "mycnc.yml").read_text(encoding="utf-8"))
+    parsed = parse_panel_yaml((root / "tests" / "fixtures" / "mycnc_valid.yml").read_text(encoding="utf-8"))
     router = WireRouter.route_parse_result(parsed)
     measurer = ApproximateTextMeasurer()
 

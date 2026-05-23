@@ -9,6 +9,8 @@ description = "Generate wire lists and diagrams for electrical panels."
 readme = "prompt.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fpdf2>=2.8",
+    "nicegui>=2.0",
     "networkx>=3.3",
     "pydantic>=2.8",
     "ruamel.yaml>=0.18.6",

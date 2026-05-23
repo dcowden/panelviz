@@ -107,12 +107,28 @@ class ComponentSize(BaseModel):
 
     width: float
     height: float
+    terminal_width: float | None = None
+    terminal_width_unit: str | None = None
 
     @field_validator("width", "height")
     @classmethod
     def _dimensions_are_positive(cls, value: float) -> float:
         if value <= 0:
             raise ValueError("component dimensions must be positive")
+        return value
+
+    @field_validator("terminal_width")
+    @classmethod
+    def _terminal_width_is_positive(cls, value: float | None) -> float | None:
+        if value is not None and value <= 0:
+            raise ValueError("component terminal_width must be positive")
+        return value
+
+    @field_validator("terminal_width_unit")
+    @classmethod
+    def _terminal_width_unit_is_supported(cls, value: str | None) -> str | None:
+        if value is not None and value not in {"mm", "in"}:
+            raise ValueError("component terminal_width_unit must be 'mm' or 'in'")
         return value
 
 

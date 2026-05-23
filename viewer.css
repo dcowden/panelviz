@@ -1,0 +1,324 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Inter, Segoe UI, Arial, sans-serif;
+  color: #0f172a;
+  background: #e5e7eb;
+}
+.app-shell {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+.workspace {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6px var(--wire-table-width, 420px);
+}
+.workspace.table-collapsed {
+  grid-template-columns: minmax(0, 1fr) 0 0;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #cbd5e1;
+  background: #ffffff;
+}
+.help-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #475569;
+  font-size: 11px;
+}
+.help-strip span {
+  padding: 2px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #f8fafc;
+}
+h1 {
+  margin: 0;
+  font-size: 18px;
+}
+p {
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.diagnostic-actions,
+.wire-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+button {
+  border: 1px solid #94a3b8;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 5px 9px;
+  border-radius: 4px;
+}
+#canvas-host {
+  min-height: 0;
+  overflow: auto;
+  background:
+    linear-gradient(#f8fafc 1px, transparent 1px),
+    linear-gradient(90deg, #f8fafc 1px, transparent 1px),
+    #eef2f7;
+  background-size: 24px 24px;
+}
+#canvas-host.panning {
+  cursor: grabbing;
+}
+#wire-table-resizer {
+  min-height: 0;
+  cursor: col-resize;
+  background: #dbe3ee;
+}
+#wire-table-resizer:hover {
+  background: #94a3b8;
+}
+.table-collapsed #wire-table-resizer,
+.table-collapsed .wire-table-panel {
+  display: none;
+}
+.wire-table-panel {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border-left: 1px solid #cbd5e1;
+  background: #ffffff;
+}
+.wire-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+h2 {
+  margin: 0;
+  font-size: 14px;
+}
+.wire-table-scroll {
+  overflow: auto;
+}
+.wire-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.wire-table th,
+.wire-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  white-space: nowrap;
+}
+.wire-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 800;
+}
+.wire-table thead tr:nth-child(2) th {
+  top: 29px;
+}
+.wire-table th button {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.wire-table th button::after {
+  content: attr(data-sort-marker);
+  padding-left: 4px;
+}
+.wire-table-row {
+  border-left: 4px solid var(--net-color, #475569);
+  cursor: pointer;
+}
+.wire-table-row:hover {
+  background: #f8fafc;
+}
+.wire-table-row.dimmed {
+  opacity: 0.3;
+}
+.wire-table-row.selected {
+  background: color-mix(in srgb, var(--net-color, #475569) 12%, white);
+}
+.wire-chip {
+  display: inline-block;
+  min-width: 58px;
+  padding: 2px 6px;
+  border: 1px solid var(--net-color, #475569);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--net-color, #475569) 10%, white);
+  font-weight: 800;
+}
+svg {
+  display: block;
+  min-width: 100%;
+  min-height: 100%;
+}
+.component {
+  cursor: grab;
+}
+.component.dragging {
+  cursor: grabbing;
+}
+.component.selected .component-body {
+  stroke-width: 2.4;
+}
+.component.group-selected .component-body,
+.component.group-selected .component-outline-overlay {
+  stroke: #2563eb;
+  stroke-width: 2.6;
+}
+.component-body {
+  fill: #ffffff;
+  stroke: #1f2937;
+  stroke-width: 1.8;
+  filter: drop-shadow(0 3px 6px rgb(15 23 42 / 0.14));
+}
+.component-outline-overlay {
+  fill: none;
+  stroke: #1f2937;
+  stroke-width: 1.8;
+  pointer-events: none;
+}
+.component-center {
+  fill: #ffffff;
+}
+.component-name {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  fill: #0f172a;
+  font-weight: 800;
+  pointer-events: none;
+}
+.component-type {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  fill: #64748b;
+  font-weight: 700;
+  pointer-events: none;
+}
+.pin-box {
+  fill: #f8fafc;
+  stroke: #94a3b8;
+  stroke-width: 0.75;
+  cursor: pointer;
+}
+.pin-label {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  fill: #0f172a;
+  pointer-events: none;
+}
+.pin-net-label {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  fill: #2563eb;
+  font-weight: 700;
+  pointer-events: none;
+}
+.no-connect-stub {
+  stroke: #dc2626;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.no-connect-dot {
+  fill: #dc2626;
+  stroke: #ffffff;
+  stroke-width: 1;
+  pointer-events: none;
+}
+.no-connect-x {
+  stroke: #dc2626;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.wire-stub {
+  fill: none;
+  stroke: var(--net-color, #475569);
+  stroke-width: var(--net-weight, 1.6);
+  stroke-dasharray: var(--net-dasharray, none);
+  stroke-linecap: round;
+}
+.wire-dot {
+  fill: var(--net-color, #475569);
+  stroke: #ffffff;
+  stroke-width: 1.2;
+}
+.wire-label-bg {
+  fill: #ffffff;
+  stroke: var(--net-color, #475569);
+  stroke-width: 0.8;
+}
+.wire-label-text {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 11px;
+  font-weight: 800;
+  fill: #0f172a;
+  pointer-events: none;
+}
+.wire-label-group {
+  cursor: pointer;
+}
+.dimmed {
+  opacity: 0.18;
+}
+.selected .wire-stub,
+.selected.wire-stub {
+  stroke-width: var(--net-selected-weight, 4);
+}
+.selected .wire-dot,
+.selected.wire-dot {
+  stroke: var(--net-color, #475569);
+  stroke-width: 3;
+}
+.selected .wire-label-bg,
+.selected.wire-label-bg,
+.selected.pin-box,
+.diagnostic-selected.pin-box {
+  stroke: var(--net-color, #475569);
+  stroke-width: 2.4;
+  fill: color-mix(in srgb, var(--net-color, #475569) 12%, white);
+}
+.diagnostic-selected.pin-box {
+  --net-color: #dc2626;
+}
+.diagnostic-selected.component .component-body,
+.diagnostic-selected.component .component-outline-overlay {
+  stroke: #dc2626;
+  stroke-width: 2.8;
+}
+.selection-marquee {
+  fill: rgb(37 99 235 / 0.12);
+  stroke: #2563eb;
+  stroke-width: 1.5;
+  stroke-dasharray: 7 4;
+  pointer-events: none;
+}

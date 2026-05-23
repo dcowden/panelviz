@@ -64,7 +64,8 @@ def test_typography_is_global_across_components():
     )
 
     assert typography.pin_font_size_pt < roomy_only.pin_font_size_pt
-    assert typography.pin_font_size_pt >= ComponentVisualConfig().font.min_pin_size
+    assert typography.pin_font_size_pt >= 1.5
+    assert typography.pin_font_fits is False
 
 
 def test_component_layout_places_pins_on_all_four_sides():
@@ -84,16 +85,16 @@ def test_component_layout_places_pins_on_all_four_sides():
 
     boxes = {box.pin: box for box in layout.pin_boxes}
     assert boxes["T1"].y == 0
-    assert boxes["T1"].x == layout.center_x
-    assert boxes["T1"].width == layout.center_width
+    assert boxes["T1"].x == pytest.approx(layout.center_x + (layout.center_width - boxes["T1"].width) / 2)
+    assert boxes["T1"].width == ComponentVisualConfig().terminal_width_pt
     assert boxes["L1"].x == 0
-    assert boxes["L1"].y == layout.center_y
-    assert boxes["L1"].height == layout.center_height
+    assert boxes["L1"].y == pytest.approx(layout.center_y + (layout.center_height - boxes["L1"].height) / 2)
+    assert boxes["L1"].height == ComponentVisualConfig().terminal_width_pt
     assert boxes["R1"].x + boxes["R1"].width == layout.width_pt
-    assert boxes["R1"].y == layout.center_y
+    assert boxes["R1"].y == pytest.approx(boxes["L1"].y)
     assert boxes["B1"].y + boxes["B1"].height == layout.height_pt
-    assert boxes["B1"].x == layout.center_x
-    assert boxes["B1"].width == layout.center_width
+    assert boxes["B1"].x == pytest.approx(boxes["T1"].x)
+    assert boxes["B1"].width == ComponentVisualConfig().terminal_width_pt
     assert boxes["B1"].x + boxes["B1"].width <= boxes["R1"].x
     assert boxes["R1"].y + boxes["R1"].height <= boxes["B1"].y
     assert layout.center_width > 0
@@ -115,7 +116,7 @@ def test_terminal_block_layout_height_scales_by_position_count():
     assert [box.pin for box in layout.pin_boxes] == ["1A", "2A", "3A", "1B", "2B", "3B"]
 
 
-def test_terminal_block_layout_keeps_minimum_center_even_for_narrow_blocks():
+def test_terminal_block_layout_preserves_physical_size_even_for_narrow_blocks():
     block = TerminalBlock(
         name="tb",
         type="terminal_block",
@@ -138,13 +139,12 @@ def test_terminal_block_layout_keeps_minimum_center_even_for_narrow_blocks():
     )
     layout = plan_component_layout(block, UnitsConfig(length="mm"), typography, config=config)
 
-    assert layout.center_width == 80
-    assert layout.center_height >= 36
-    assert layout.width_pt == 80 + config.min_terminal_pin_band_pt * 2
-    assert layout.height_pt >= 36
+    assert layout.width_pt == pytest.approx(length_to_points(6, UnitsConfig(length="mm")))
+    assert layout.height_pt == pytest.approx(length_to_points(3 * 4, UnitsConfig(length="mm")))
+    assert layout.center_width == 1.0
 
 
-def test_terminal_block_layout_expands_rows_for_readable_pin_labels():
+def test_terminal_block_layout_uses_configured_physical_terminal_size():
     block = TerminalBlock(
         name="power_t",
         type="terminal_block",
@@ -159,8 +159,8 @@ def test_terminal_block_layout_expands_rows_for_readable_pin_labels():
     assert boxes["1A"].width >= ComponentVisualConfig().min_pin_band_pt
     assert boxes["1B"].width >= ComponentVisualConfig().min_pin_band_pt
     assert boxes["1A"].height >= typography.pin_font_size_pt * 1.2
-    assert layout.center_width >= ComponentVisualConfig().min_terminal_center_width_pt
-    assert layout.center_width >= len("power_t") * ComponentVisualConfig().font.max_component_name_size * 0.62
+    assert layout.width_pt == pytest.approx(length_to_points(6, UnitsConfig(length="mm")))
+    assert layout.center_width == pytest.approx(1.0)
 
 
 def test_terminal_block_layout_separates_a_and_b_side_labels():
@@ -176,8 +176,9 @@ def test_terminal_block_layout_separates_a_and_b_side_labels():
     boxes = {box.pin: box for box in layout.pin_boxes}
 
     assert boxes["1A"].x == 0
-    assert boxes["1A"].width == ComponentVisualConfig().min_terminal_pin_band_pt
-    assert boxes["1B"].x >= boxes["1A"].width + ComponentVisualConfig().min_terminal_center_width_pt
+    terminal_depth = ComponentVisualConfig().terminal_width_pt * ComponentVisualConfig().terminal_depth_factor
+    assert boxes["1A"].width == pytest.approx(terminal_depth)
+    assert boxes["1B"].x == pytest.approx(layout.width_pt - boxes["1B"].width)
     assert boxes["1B"].x + boxes["1B"].width == layout.width_pt
 
 
@@ -480,7 +481,7 @@ def test_render_wiring_diagram_svg_label_mode_places_label_edge_after_fixed_gap(
     assert label_left_x - stub_end_x == pytest.approx(config.wire_label_gap_pt, abs=0.02)
 
 
-def test_render_wiring_diagram_svg_label_mode_fans_labels_for_multi_connected_pin():
+def test_render_wiring_diagram_svg_label_mode_stacks_labels_for_multi_connected_pin():
     from panelviz.parser import parse_panel_yaml
 
     parsed = parse_panel_yaml(
@@ -521,11 +522,12 @@ def test_render_wiring_diagram_svg_label_mode_fans_labels_for_multi_connected_pi
     assert 'data-slot="0" data-slot-count="2"' in svg
     assert 'data-slot="1" data-slot-count="2"' in svg
     source_label_groups = re.findall(
-        r'data-side="top" data-slot="[01]" data-slot-count="2"[^>]*transform="rotate\(90 ([0-9.]+) ',
+        r'data-side="top" data-slot="[01]" data-slot-count="2"[^>]*transform="rotate\(90 ([0-9.]+) ([0-9.]+)\)',
         svg,
     )
     assert len(source_label_groups) == 2
-    assert len(set(source_label_groups)) == 2
+    assert len({x for x, _ in source_label_groups}) == 1
+    assert len({y for _, y in source_label_groups}) == 2
 
 
 def test_render_wiring_diagram_svg_label_mode_expands_component_spacing_for_labels():

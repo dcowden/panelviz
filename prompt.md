@@ -38,7 +38,7 @@ I have created an example file called mycnc.yml that has full example. The detai
 ### Top-level file shape
 
 The top-level yaml sections are:
-  * `config`: global settings including `wire_label_format`, `wiring_mode`, defaults, units, and visualization styling.
+  * `config`: global settings including `wire_label_format`, `wiring_mode`, defaults, drawing metadata, units, and visualization styling.
   * `components`: a mapping of component names to component definitions.
   * `connections`: a section containing the physical wire list.
   * `no_connects`: a list of pins intentionally marked not connected.
@@ -48,8 +48,10 @@ The top-level yaml sections are:
   * `wires`: draw routed wire paths between component pins.
   * `labels`: draw only short endpoint stubs with the same wire label at each end, like common schematic-editor practice.
 `config.defaults.awg` sets the default wire gauge for connection rows that do not specify an `awg`.
+`config.drawing` stores title-block metadata used for PDF exports. It supports `company`, `author`, and `title`.
 `config.units.length` controls physical component dimensions. Supported length units are `mm` and `in`.
 `config.visualization` controls net styling used by both the static SVG diagram and the interactive viewer.
+`config.visualization.terminal_width` controls the physical size of component terminal boxes. It defaults to `0.1` with `terminal_width_unit: in`, matching common compact terminal pitch.
 
 Visualization style fields:
   * `default_net_style`: fallback style for any net not explicitly configured.
@@ -67,9 +69,15 @@ config:
   wiring_mode: labels
   defaults:
     awg: 20
+  drawing:
+    company: "Example Controls LLC"
+    author: "D. Example"
+    title: "PanelViz Wiring Schematic"
   units:
     length: mm
   visualization:
+    terminal_width: 0.1
+    terminal_width_unit: in
     default_net_style:
       color: "#475569"
       line_weight: 1.6
@@ -224,14 +232,32 @@ Reasons:
 Important architecture rule: the renderer must not become the source of truth.
 The parser and wire router should build a typed internal panel model containing components, pins, nets, physical wires, warnings, generated labels, and NetworkX graph views. The same internal model should feed:
   * static SVG diagram output
+  * PDF drawing export
   * static interactive SVG.js viewer output
   * wire list csv
+  * wire list PDF
   * net list csv
   * component summary
 
 CSV export does not need to be solved by the visualization library. It should be generated directly from the internal model.
 
 The renderer should be hidden behind small output functions so later versions can try other layout/rendering engines without changing the parser, net resolver, wire router, or reports.
+
+PDF export requirements:
+  * Use `fpdf2` for generated PDFs.
+  * The editor should provide a download action that exports both a schematic PDF and a wire-list PDF.
+  * The schematic PDF should be generated from the rendered SVG diagram, rasterized as a full-extents screenshot, so the PDF matches the on-screen schematic instead of using a separate Python redraw of components and labels.
+  * The schematic PDF should show the full schematic extents, scaled/cropped to the needed drawing area with modest whitespace around the border. The page aspect ratio may be expanded to fit the diagram instead of forcing a fixed paper ratio.
+  * The schematic PDF should preserve real-world component scale at `1:1` because component sizes are defined in physical units. The title block should include the drawing scale so tiled printing can produce a physically meaningful drawing.
+  * Component outlines and terminal boxes should preserve physical scale. Component `size` is authoritative; labels and fonts must shrink to fit the physical component and terminal geometry rather than expanding the component.
+  * Terminal boxes should use the configured physical `terminal_width`, be centered along the component side where they appear, and should not stretch across the entire side merely because there are few terminals.
+  * The schematic PDF should include a drawing border, top/bottom numeric zones, left/right letter zones, and a lower-right title block.
+  * Schematic drawing zones should be granular enough to make diagram references useful on dense panels.
+  * The schematic title block should include company, author, printed date, source YAML file name, drawing title, and sheet count.
+  * The wire-list PDF should be US Letter portrait, with as many pages as needed.
+  * The wire-list PDF should include a border and title block with source YAML file name, printed date, and page number/total pages.
+  * The first wire-list PDF page should include wire count and component count.
+  * The wire-list PDF must be generated after the schematic PDF, so it can add a diagram reference column such as `A1`, showing the drawing zone where one end of each wire can be found.
 
 The interactive viewer should be a no-build static web app using SVG.js plus plain JavaScript/CSS. It should be generated into the output directory as `viewer.html`, `viewer.css`, `viewer.js`, and `panel-data.json`. Running `panelviz --view <input_file> [output_dir]` should generate the normal outputs, generate the viewer bundle, serve the output directory on a local static HTTP server, and launch the browser.
 
@@ -256,6 +282,28 @@ Interactive viewer requirements:
     `wire`, `from component`, `from terminal`, `to component`, `to terminal`, `net`, and `awg`.
   * The wire list panel should be scrollable, collapsible, and horizontally resizable by dragging the boundary between the canvas and table.
   * The top bar should include diagnostic actions to highlight unconnected terminals, multi-connected terminals, and components with no connections at all.
+
+The live wiring editor should be launched with `panelviz --edit <input_file>`. It should run as a local NiceGUI/FastAPI app bound to `127.0.0.1`, reuse the same SVG.js viewer rendering where possible, and edit the YAML file directly. The editor is initially for wiring only: components remain authored in YAML.
+
+Editor requirements:
+  * Support the same pan, zoom, component dragging, highlighting, wire table, and diagnostic interactions as the static viewer.
+  * Shift-dragging on empty canvas should draw a marquee selection rectangle. Components intersecting the rectangle become a selected group, and dragging one selected component should move the whole selected group together.
+  * Left-clicking a terminal starts a route; left-clicking a second terminal creates a normal two-endpoint route.
+  * Shift-clicking terminals adds intermediate route hops. Finishing the route creates a chain where adjacent endpoints become physical wires.
+  * The editor should provide optional fields for route-level `net` and `awg`, using the same YAML object-form semantics as hand-written connection rows.
+  * For terminal blocks, a middle-hop reference such as `cnc_terminals.1` means pass through side A to side B. A concrete reference such as `cnc_terminals.1A` means both adjacent wires connect to that same physical pin.
+  * The editor should not currently create invisible whole-position click targets over terminal block centers. Terminal blocks must remain easy to grab and drag; users should route to concrete terminal pins until whole-position routing gets a dedicated UI affordance.
+  * Clicking an existing wire label and pressing Delete should remove that physical wire from the YAML. If the physical wire came from a multi-hop route row, the remaining physical route segments should be preserved as valid YAML rows.
+  * Dragging an endpoint dot from one terminal to another should relocate that endpoint in the YAML and then reload the routed view.
+  * The editor should use a fixed localhost port option (`--edit-port`) and should also support `--no-open` for workflows where the user wants to open the browser manually.
+  * Editor API and data-load failures should be reported as concise page-level messages instead of uncaught server tracebacks whenever possible, so an in-progress YAML file can be diagnosed without crashing edit mode startup.
+  * Pins that expose named component nets should show the net alias as smaller text inside the component near that terminal. This helps the user wire semantic nets without constantly checking the YAML.
+  * Pin net alias text must stay wholly inside the component body and should not sit on terminal boundaries.
+  * Pins listed in `no_connects` should be visibly marked with a red X connected by a short external stub, using the same stub length as wire labels. The X must not cover the terminal name.
+  * Wire creation and endpoint relocation in the editor must be transactional: validate the resulting routed panel before writing the YAML. If the edit would create a net conflict or other invalid route, leave the YAML unchanged and show an error popup in the editor.
+  * Component positions and rotations changed in the editor should be saved to a sidecar YAML file next to the panel file, named `<input_stem>.layout.yml`. The sidecar should contain only non-critical layout state, currently component `x`, `y`, and `rotation`; it must not duplicate wiring or component definitions from the main YAML.
+  * Editor wire edits should reload the routed panel data in place instead of refreshing the whole browser page. Preserve the current pan and zoom view when updating the SVG after route creation, route deletion, or endpoint relocation.
+  * The editor should provide downloads for the wire-list CSV and a bundled PDF export containing the schematic PDF and paginated wire-list PDF.
 
 Renderer alternatives considered:
   * D2: attractive modern diagram DSL with SVG/PNG/PDF export, but it adds another external CLI and is less proven for component pin/port-heavy diagrams.
@@ -301,6 +349,8 @@ Project structure:
   * CLI syntax is `panelviz [--view] <input_file> [output_dir]`. If `output_dir` is omitted, the current working directory is used. If provided, it is created.
   * CLI outputs are `wire_list.csv`, `wire_list.txt`, `component_summary.csv`, `component_summary.txt`, and `wiring_diagram.svg`. The CLI diagram uses label mode.
   * With `--view`, the CLI also writes `viewer.html`, `viewer.css`, `viewer.js`, and `panel-data.json`, then serves the output directory locally.
+  * With `--edit`, the CLI launches the NiceGUI/FastAPI editor. Saved component layout state lives in a separate `<input_stem>.layout.yml` sidecar file next to the input YAML.
+  * The project depends on `fpdf2` for PDF exports.
   * The interactive viewer includes pan, zoom, component drag, component rotation, wire/net/component/terminal highlighting, a sortable and resizable wire-list panel, and diagnostic highlighting for unconnected, multi-connected, and isolated components.
 
 Typed model decisions:

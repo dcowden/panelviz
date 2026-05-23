@@ -8,6 +8,7 @@ import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from panelviz.editor import run_editor
 from panelviz.parser import parse_panel_yaml
 from panelviz.reports import (
     component_summary_table,
@@ -17,7 +18,7 @@ from panelviz.reports import (
 )
 from panelviz.routing import WireRouter
 from panelviz.viewer import write_static_viewer
-from panelviz.visualization import write_wiring_diagram_svg
+from panelviz.visualization import component_visual_config_from_visualization, write_wiring_diagram_svg
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,6 +29,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--view",
         action="store_true",
         help="Generate and launch the interactive static viewer.",
+    )
+    parser.add_argument(
+        "--edit",
+        action="store_true",
+        help="Launch the local NiceGUI YAML wire editor.",
+    )
+    parser.add_argument(
+        "--edit-port",
+        type=int,
+        default=8769,
+        help="Localhost port to use with --edit. Defaults to 8769.",
+    )
+    parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="Do not open a browser automatically with --edit.",
     )
     parser.add_argument("input_file", help="PanelViz YAML input file")
     parser.add_argument(
@@ -48,6 +65,7 @@ def run(input_file: str | Path, output_dir: str | Path = ".", include_viewer: bo
 
     parsed = parse_panel_yaml(input_path.read_text(encoding="utf-8"))
     router = WireRouter.route_parse_result(parsed)
+    visual_config = component_visual_config_from_visualization(parsed.config.visualization)
 
     outputs = [
         write_wire_list_csv(router, destination / "wire_list.csv"),
@@ -58,11 +76,12 @@ def run(input_file: str | Path, output_dir: str | Path = ".", include_viewer: bo
             router,
             destination / "wiring_diagram.svg",
             units=parsed.config.units,
+            config=visual_config,
             wiring_mode="labels",
         ),
     ]
     if include_viewer:
-        outputs.extend(write_static_viewer(router, destination, units=parsed.config.units, columns=3))
+        outputs.extend(write_static_viewer(router, destination, units=parsed.config.units, columns=3, config=visual_config))
     return outputs
 
 
@@ -70,6 +89,10 @@ def main(argv: list[str] | None = None) -> int:
     """Run the PanelViz CLI."""
 
     args = build_parser().parse_args(argv)
+    if args.edit:
+        run_editor(args.input_file, port=args.edit_port, open_browser=not args.no_open)
+        return 0
+
     outputs = run(args.input_file, args.output_dir, include_viewer=args.view)
     for output in outputs:
         print(output)

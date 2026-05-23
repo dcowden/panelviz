@@ -60,6 +60,22 @@ class VisualizationConfig(BaseModel):
 
     default_net_style: NetStyle = Field(default_factory=NetStyle)
     net_styles: dict[str, NetStyle] = Field(default_factory=default_net_styles)
+    terminal_width: float = 0.1
+    terminal_width_unit: str = "in"
+
+    @field_validator("terminal_width")
+    @classmethod
+    def _terminal_width_is_positive(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError("terminal_width must be positive")
+        return value
+
+    @field_validator("terminal_width_unit")
+    @classmethod
+    def _terminal_width_unit_is_supported(cls, value: str) -> str:
+        if value not in {"mm", "in"}:
+            raise ValueError("terminal_width_unit must be 'mm' or 'in'")
+        return value
 
     @model_validator(mode="after")
     def _merge_default_net_styles(self) -> "VisualizationConfig":
@@ -91,12 +107,21 @@ class DefaultsConfig(BaseModel):
         return value
 
 
+class DrawingConfig(BaseModel):
+    """Metadata used in drawing title blocks."""
+
+    company: str = ""
+    author: str = ""
+    title: str = "PanelViz Wiring Schematic"
+
+
 class PanelConfig(BaseModel):
     """Top-level PanelViz configuration."""
 
     wire_label_format: str = "%netname-%seq"
     wiring_mode: WiringMode = "wires"
     defaults: DefaultsConfig = Field(default_factory=DefaultsConfig)
+    drawing: DrawingConfig = Field(default_factory=DrawingConfig)
     units: UnitsConfig = Field(default_factory=UnitsConfig)
     visualization: VisualizationConfig = Field(default_factory=VisualizationConfig)
 
@@ -115,6 +140,7 @@ class WireSpec(BaseModel):
     route: list[str] | None = None
     net_name: str | None = Field(default=None, alias="net")
     awg: int | None = None
+    source_index: int | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -272,16 +298,18 @@ def _parse_wires(connections_tree: Any) -> list[WireSpec]:
         raise PanelParseError("connections.wires must be a list")
 
     wires: list[WireSpec] = []
-    for raw_wire in raw_wires:
+    for source_index, raw_wire in enumerate(raw_wires):
         if isinstance(raw_wire, Mapping):
-            wires.append(WireSpec.model_validate(dict(raw_wire)))
+            wire_spec = WireSpec.model_validate(dict(raw_wire))
+            wire_spec.source_index = source_index
+            wires.append(wire_spec)
             continue
         if not isinstance(raw_wire, list) or len(raw_wire) < 2:
             raise PanelParseError(f"wire entries must contain at least two endpoints: {raw_wire!r}")
         if len(raw_wire) == 2:
-            wires.append(WireSpec(from_endpoint=str(raw_wire[0]), to_endpoint=str(raw_wire[1])))
+            wires.append(WireSpec(from_endpoint=str(raw_wire[0]), to_endpoint=str(raw_wire[1]), source_index=source_index))
         else:
-            wires.append(WireSpec(route=[str(endpoint) for endpoint in raw_wire]))
+            wires.append(WireSpec(route=[str(endpoint) for endpoint in raw_wire], source_index=source_index))
     return wires
 
 

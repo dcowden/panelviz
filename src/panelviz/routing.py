@@ -48,6 +48,9 @@ class RoutedWire(BaseModel):
     net_name: str | None = None
     wire_label: str | None = None
     awg: int = 20
+    source_row_index: int | None = None
+    source_segment_index: int | None = None
+    source_route_length: int | None = None
 
 
 class PinRouteStatus(BaseModel):
@@ -109,13 +112,17 @@ class WireRouter(BaseModel):
             wire_spec = self._coerce_wire_spec(wire)
             if wire_spec is None:
                 raise RoutingError(f"Wire entries must have at least two endpoints: {wire!r}")
-            for from_endpoint, to_endpoint in self._route_segments(wire_spec):
+            route_length = len(wire_spec.route) - 1 if wire_spec.route is not None else 1
+            for segment_index, (from_endpoint, to_endpoint) in enumerate(self._route_segments(wire_spec)):
                 routed.append(
                     self.route_wire(
                         from_endpoint,
                         to_endpoint,
                         net_name=wire_spec.net_name,
                         awg=wire_spec.awg,
+                        source_row_index=wire_spec.source_index,
+                        source_segment_index=segment_index,
+                        source_route_length=route_length,
                     )
                 )
         return routed
@@ -126,6 +133,9 @@ class WireRouter(BaseModel):
         to_endpoint: str,
         net_name: str | None = None,
         awg: int | None = None,
+        source_row_index: int | None = None,
+        source_segment_index: int | None = None,
+        source_route_length: int | None = None,
     ) -> RoutedWire:
         """Resolve and add one physical wire to the graph."""
 
@@ -146,6 +156,9 @@ class WireRouter(BaseModel):
             to_exposed_net=to_resolved.exposed_net,
             explicit_net_name=net_name,
             awg=awg or self.default_awg,
+            source_row_index=source_row_index,
+            source_segment_index=source_segment_index,
+            source_route_length=source_route_length,
         )
         self.routed_wires.append(wire)
         self.physical_graph.add_edge(
@@ -163,6 +176,9 @@ class WireRouter(BaseModel):
             net_name=wire.net_name,
             wire_label=wire.wire_label,
             awg=wire.awg,
+            source_row_index=wire.source_row_index,
+            source_segment_index=wire.source_segment_index,
+            source_route_length=wire.source_route_length,
         )
         return wire
 
