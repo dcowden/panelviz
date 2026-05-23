@@ -286,6 +286,9 @@ def test_editor_js_exports_rendered_svg_snapshot_for_pdf_bundle():
     assert "/api/drawing-pdfs" in js
     assert "new XMLSerializer().serializeToString(clone)" in js
     assert "canvas.toDataURL('image/png')" in js
+    assert "const maxPixels = 160000000" in js
+    assert "const maxDimension = 20000" in js
+    assert "Math.min(\n          4," in js
     assert "source_bounds: bounds" in js
 
 

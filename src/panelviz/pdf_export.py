@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import math
-from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import date
 from io import BytesIO
@@ -13,6 +12,7 @@ from typing import Any
 from fpdf import FPDF
 
 from panelviz.parser import DrawingConfig
+from panelviz.references import ReferenceGrid, attach_wire_references
 from panelviz.reports import wire_list_rows
 from panelviz.routing import WireRouter
 
@@ -92,6 +92,7 @@ def export_schematic_pdf(
 
     geometry = _schematic_geometry(data, image_width=image_width, image_height=image_height, source_bounds=source_bounds)
     pdf = FPDF(unit="pt", format=(geometry.page_w, geometry.page_h))
+    pdf.set_compression(True)
     pdf.set_auto_page_break(False)
     pdf.add_page()
     _draw_drawing_border(pdf, geometry, meta, sheet="1 OF 1")
@@ -108,6 +109,7 @@ def export_wire_list_pdf(router: WireRouter, diagram_refs: dict[int | str, dict[
 
     rows = wire_list_rows(router)
     pdf = FPDF(unit="pt", format=LETTER_PORTRAIT)
+    pdf.set_compression(True)
     pdf.set_auto_page_break(False)
     page_w, page_h = LETTER_PORTRAIT
     margin = 28.0
@@ -329,9 +331,12 @@ def _draw_component(pdf: FPDF, component: dict[str, Any], wires: list[dict[str, 
         for pin in component.get("pins", []):
             _draw_pin(pdf, x, y, pin, geo.scale)
         pdf.set_font("Helvetica", "B", max(6, min(14, float(component["font"]["name"]) * geo.scale)))
-        _center_text(pdf, x + w / 2, y + h / 2 - 3, component["name"], max(6, min(14, float(component["font"]["name"]) * geo.scale)))
-        pdf.set_font("Helvetica", "", 5.5)
-        _center_text(pdf, x + w / 2, y + h / 2 + 9, component.get("type", ""), 5.5)
+        name_size = max(6, min(14, float(component["font"]["name"]) * geo.scale))
+        type_size = 5.5
+        orientation = _center_text_orientation(component, rotation, component["name"], name_size)
+        _draw_readable_center_text(pdf, x + w / 2, y + h / 2, component["name"], name_size, orientation, rotation, -name_size * 0.45)
+        pdf.set_font("Helvetica", "", type_size)
+        _draw_readable_center_text(pdf, x + w / 2, y + h / 2, component.get("type", ""), type_size, orientation, rotation, type_size * 1.15)
         for wire in wires:
             for endpoint in wire.get("endpoints", []):
                 if endpoint.get("component") == component.get("name"):
@@ -400,7 +405,7 @@ def _draw_endpoint(pdf: FPDF, component_x: float, component_y: float, component:
     font_size = max(4, min(8, 7 * scale))
     pdf.set_font("Helvetica", "B", font_size)
     text = str(wire.get("label", ""))
-    rotation = 90 if endpoint["side"] in {"top", "bottom"} else 0
+    rotation = _readable_label_local_rotation(endpoint["side"], float(component.get("rotation", 0)))
     if rotation:
         with pdf.rotation(rotation, x=lx, y=ly):
             _center_text(pdf, lx, ly + font_size * 0.35, text, font_size)
@@ -492,85 +497,28 @@ def diagram_reference_grid(data: dict[str, Any]) -> dict[str, Any]:
     """Return the schematic reference grid in source drawing coordinates."""
 
     geo = _schematic_geometry(data)
-    zone_left = geo.drawing_x
-    zone_top = geo.drawing_y
-    zone_w = geo.drawing_w
-    zone_h = geo.drawing_h
-    col_w = zone_w / geo.columns
-    row_h = zone_h / geo.rows
-
-    verticals = [_pdf_x_to_source(geo, zone_left + index * col_w) for index in range(geo.columns + 1)]
-    horizontals = [_pdf_y_to_source(geo, zone_top + index * row_h) for index in range(geo.rows + 1)]
-    labels = []
-    for row_index in range(geo.rows):
-        row_label = chr(ord("A") + row_index)
-        for col_index in range(geo.columns):
-            labels.append(
-                {
-                    "ref": f"{row_label}{col_index + 1}",
-                    "x": (verticals[col_index] + verticals[col_index + 1]) / 2,
-                    "y": (horizontals[row_index] + horizontals[row_index + 1]) / 2,
-                }
-            )
-    return {
-        "columns": geo.columns,
-        "rows": geo.rows,
-        "verticals": verticals,
-        "horizontals": horizontals,
-        "labels": labels,
-    }
+    return _reference_grid_from_geometry(geo).to_dict()
 
 
 def _diagram_references(data: dict[str, Any], geo: SheetGeometry) -> dict[int | str, dict[str, str]]:
-    refs: dict[int | str, dict[str, str]] = {}
-    grid = data.get("reference_grid")
-    for wire in data.get("wires", []):
-        endpoints = wire.get("endpoints", [])
-        wire_refs: dict[str, str] = {}
-        for ref_key, endpoint in zip(("from", "to"), endpoints[:2]):
-            point = endpoint.get("anchor", {})
-            if "x" not in point or "y" not in point:
-                continue
-            wire_refs[ref_key] = _zone_ref(float(point["x"]), float(point["y"]), geo, grid)
-        if not wire_refs:
-            continue
-        refs[int(wire.get("index", 0))] = wire_refs
-        refs[str(wire.get("label", ""))] = wire_refs
-    return refs
+    return attach_wire_references(data, _reference_grid_from_geometry(geo))
+
+
+def _reference_grid_from_geometry(geo: SheetGeometry) -> ReferenceGrid:
+    return ReferenceGrid.from_bounds(
+        geo.source_min_x,
+        geo.source_min_y,
+        geo.drawing_w / max(geo.scale, 0.0001),
+        geo.drawing_h / max(geo.scale, 0.0001),
+        columns=geo.columns,
+        rows=geo.rows,
+    )
 
 
 def _zone_ref(x: float, y: float, geo: SheetGeometry, grid: dict[str, Any] | None = None) -> str:
-    zone = _zone_ref_from_grid(x, y, grid)
-    if zone:
-        return zone
-    px, py = _map_point(geo, x, y)
-    rel_x = min(max((px - geo.drawing_x) / max(1, geo.drawing_w), 0), 0.9999)
-    rel_y = min(max((py - geo.drawing_y) / max(1, geo.drawing_h), 0), 0.9999)
-    col = int(rel_x * geo.columns) + 1
-    row = chr(ord("A") + int(rel_y * geo.rows))
-    return f"{row}{col}"
-
-
-def _zone_ref_from_grid(x: float, y: float, grid: dict[str, Any] | None) -> str | None:
-    if not isinstance(grid, dict):
-        return None
-    verticals = grid.get("verticals")
-    horizontals = grid.get("horizontals")
-    rows = int(grid.get("rows", 0) or 0)
-    columns = int(grid.get("columns", 0) or 0)
-    if not isinstance(verticals, list) or not isinstance(horizontals, list):
-        return None
-    if len(verticals) < 2 or len(horizontals) < 2:
-        return None
-    if rows < 1 or columns < 1:
-        return None
-
-    col_index = bisect_right(verticals, x) - 1
-    row_index = bisect_right(horizontals, y) - 1
-    col_index = max(0, min(columns - 1, col_index))
-    row_index = max(0, min(rows - 1, row_index))
-    row_label = chr(ord("A") + row_index)
-    return f"{row_label}{col_index + 1}"
+    if grid:
+        return ReferenceGrid.from_dict(grid).reference_for(x, y)
+    return _reference_grid_from_geometry(geo).reference_for(x, y)
 
 
 def _rotated_rect_corners(x: float, y: float, w: float, h: float, rotation: float) -> list[tuple[float, float]]:
@@ -629,6 +577,77 @@ def _fan_offset(side: str, slot: int, slot_count: int, spacing: float) -> tuple[
     if side in {"left", "right"}:
         return 0, offset
     return offset, 0
+
+
+def _draw_readable_center_text(
+    pdf: FPDF,
+    center_x: float,
+    center_y: float,
+    value: str,
+    font_size: float,
+    orientation: str,
+    component_rotation: float,
+    offset: float,
+) -> None:
+    offset_x, offset_y = (offset, 0.0) if orientation == "vertical" else (0.0, offset)
+    local_x, local_y = _inverse_rotate_vector(offset_x, offset_y, component_rotation)
+    x = center_x + local_x
+    y = center_y + local_y + font_size * 0.35
+    rotation = _readable_center_local_rotation(orientation, component_rotation)
+    if rotation:
+        with pdf.rotation(rotation, x=x, y=y):
+            _center_text(pdf, x, y, value, font_size)
+    else:
+        _center_text(pdf, x, y, value, font_size)
+
+
+def _center_text_orientation(component: dict[str, Any], rotation: float, value: str, font_size: float) -> str:
+    center = component.get("center", {})
+    center_w = float(center.get("width", component.get("width", 1)))
+    center_h = float(center.get("height", component.get("height", 1)))
+    normalized = abs(_normalize_rotation(rotation))
+    screen_w, screen_h = (center_h, center_w) if normalized == 90 else (center_w, center_h)
+    estimated = max(1.0, len(str(value)) * font_size * 0.58)
+    if screen_w < screen_h * 0.62 or estimated > max(1.0, screen_w - 8):
+        return "vertical"
+    return "horizontal"
+
+
+def _readable_center_local_rotation(orientation: str, component_rotation: float) -> int:
+    target = -90 if orientation == "vertical" else 0
+    return _normalize_rotation(target - component_rotation)
+
+
+def _readable_label_local_rotation(local_side: str, component_rotation: float) -> int:
+    screen_side = _rotate_side(local_side, component_rotation)
+    target = -90 if screen_side in {"top", "bottom"} else 0
+    return _normalize_rotation(target - component_rotation)
+
+
+def _rotate_side(side: str, rotation: float) -> str:
+    order = ["top", "right", "bottom", "left"]
+    if side not in order:
+        return side
+    turns = (round(rotation / 90) % 4 + 4) % 4
+    return order[(order.index(side) + turns) % len(order)]
+
+
+def _normalize_rotation(rotation: float) -> int:
+    normalized = int(round(rotation)) % 360
+    if normalized > 180:
+        normalized -= 360
+    return normalized
+
+
+def _inverse_rotate_vector(x: float, y: float, rotation: float) -> tuple[float, float]:
+    normalized = _normalize_rotation(rotation) % 360
+    if normalized == 90:
+        return y, -x
+    if normalized == 180:
+        return -x, -y
+    if normalized == 270:
+        return -y, x
+    return x, y
 
 
 def _set_pdf_color(pdf: FPDF, color: str, draw: bool = False) -> None:

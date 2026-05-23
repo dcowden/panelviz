@@ -1,4 +1,6 @@
 import random
+import re
+import zlib
 from pathlib import Path
 
 from panelviz.parser import parse_panel_yaml
@@ -44,3 +46,20 @@ def test_wire_list_pdf_accepts_two_endpoint_references():
     assert schematic.content.startswith(b"%PDF-")
     assert wire_list.startswith(b"%PDF-")
     assert isinstance(next(iter(schematic.diagram_refs.values())), dict)
+    wire_pdf_text = _pdf_stream_text(wire_list)
+    schematic_pdf_text = _pdf_stream_text(schematic.content)
+    assert "From Ref" in wire_pdf_text
+    assert "To Ref" in wire_pdf_text
+    assert "earth-1" in wire_pdf_text
+    assert "0.0863 0.6392 0.2902 RG" in schematic_pdf_text
+
+
+def _pdf_stream_text(content: bytes) -> str:
+    parts = [content]
+    for match in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", content, flags=re.DOTALL):
+        stream = match.group(1)
+        try:
+            parts.append(zlib.decompress(stream))
+        except zlib.error:
+            parts.append(stream)
+    return b"\n".join(parts).decode("latin1", errors="ignore")

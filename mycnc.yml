@@ -17,18 +17,18 @@ config:
       line_weight: 1.4
       line_style: solid
     net_styles:
-      110L: {color: "#2563eb", line_weight: 3, line_style: solid}
-      110N: {color: "#2563eb", line_weight: 3, line_style: solid}
-      110L_SWITCHED: {color: "#2563eb", line_weight: 3, line_style: solid}
-      110N_SWITCHED: {color: "#2563eb", line_weight: 3, line_style: solid}
+      110L: {color: "#2563eb", line_weight: 2.5, line_style: solid}
+      110N: {color: "#2563eb", line_weight: 2.5, line_style: solid}
+      110L_SWITCHED: {color: "#2563eb", line_weight: 2.5, line_style: solid}
+      110N_SWITCHED: {color: "#2563eb", line_weight: 2.5, line_style: solid}
       24V: {color: "#ff1111", line_weight: 2, line_style: solid}
       5V: {color: "#ff2222", line_weight: 2, line_style: solid}
       24V0: {color: "#000000", line_weight: 2, line_style: solid}
       5V0: {color: "#000000", line_weight: 2, line_style: solid}
       220L: {color: "#000000", line_weight: 2, line_style: solid}
       220N: {color: "#2563eb", line_weight: 2, line_style: solid}
-      earth: {color: "#16a34a", line_weight: 4.0, line_style: solid}
-      shield: {color: "#16a34a", line_weight: 4.0, line_style: solid}
+      earth: {color: "#16a34a", line_weight: 2.5, line_style: solid}
+      shield: {color: "#16a34a", line_weight: 2.5, line_style: solid}
 components:
   y_cl57s:
     type: driver
@@ -58,42 +58,24 @@ components:
             O17, O16, O15, O14, O13, O12, O11, O10, O9]
       bottom: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]                                                                           #these are in the aux board
     nets:
-      - name: VFD_REV
-        pins: [O2]
-      - name: VFD_FWD
-        pins: [O3]
-      - name: UL1
-        pins: [I1-]
-      - name: YLL
-        pins: [I2-]
-      - name: X1LL
-        pins: [I3-]
-      - name: X2LL
-        pins: [I4-]
-      - name: ZLL
-        pins: [I5-]
-      - name: COIL+
-        pins: [I6+]
-      - name: COIL-
-        pins: [I6-]
-      - name: VFD_V1
-        pins: [A01]
-      - name: ZDIR
-        pins: [O16]
-      - name: ZSTEP
-        pins: [O15]
-      - name: X2DIR
-        pins: [O14]
-      - name: X2STEP
-        pins: [O13]
-      - name: X1DIR
-        pins: [O12]
-      - name: X1STEP
-        pins: [O11]
-      - name: YDIR
-        pins: [O10]
-      - name: YSTEP
-        pins: [O9]
+      - { name: VFD_REV, pins: [O2] }
+      - { name: VFD_FWD, pins: [O3] }
+      - { name: UL1, pins: [I1-] }
+      - { name: YLL, pins: [I2-] }
+      - { name: X1LL, pins: [I3-] }
+      - { name: X2LL, pins: [I4-] }
+      - { name: ZLL, pins: [I5-] }
+      - { name: COIL+, pins: [I6+] }
+      - { name: COIL-, pins: [I6-] }
+      - { name: VFD_V1, pins: [A01] }
+      - { name: ZDIR, pins: [O16] }
+      - { name: ZSTEP, pins: [O15] }
+      - { name: X2DIR, pins: [O14] }
+      - { name: X2STEP, pins: [O13] }
+      - { name: X1DIR, pins: [O12] }
+      - { name: X1STEP, pins: [O11] }
+      - { name: YDIR, pins: [O10] }
+      - { name: YSTEP, pins: [O9] }
   contactor_110:
     type: switch
     size:
@@ -123,7 +105,7 @@ components:
   36V_X1:
     type: power_supply
     size:
-      width: 5
+      width: 4.5
       height: 8.4
       terminal_width: 0.25
     pins:
@@ -131,7 +113,7 @@ components:
   36V_X2:
     type: power_supply
     size:
-      width: 5
+      width: 4.5
       height: 8.4
       terminal_width: 0.25
     pins:
@@ -139,7 +121,7 @@ components:
   48v:
     type: power_supply
     size:
-      width: 6
+      width: 4.5
       height: 8.4
       terminal_width: 0.25
     pins:

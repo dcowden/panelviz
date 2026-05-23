@@ -12,44 +12,44 @@ components:
     y: 32.725
     rotation: 90
   36V_X1:
-    x: 650.176
-    y: 709.724
-    rotation: 270
+    x: 1687.12
+    y: 1385.022
+    rotation: 0
   48v:
-    x: 623.124
-    y: 1489.553
-    rotation: 270
+    x: 2023.219
+    y: 1388.048
+    rotation: 0
   36V_X2:
-    x: 655.143
-    y: 1085.963
-    rotation: 270
+    x: 1354.181
+    y: 1394.222
+    rotation: 0
   transformer:
-    x: 1294.318
-    y: 1293.211
+    x: 1360.417
+    y: 2229.198
     rotation: 180
   5v:
-    x: 1600.622
-    y: 902.897
+    x: 1676.687
+    y: 927.434
     rotation: 0
   contactor_220:
-    x: 1738.366
-    y: 902.185
+    x: 1813.204
+    y: 923.041
     rotation: 0
   contactor_110:
-    x: 1873.516
-    y: 906.749
+    x: 1954.488
+    y: 917.791
     rotation: 0
   24v:
-    x: 2014.755
-    y: 831.55
+    x: 2095.727
+    y: 876.943
     rotation: 0
   alarm_limit_board:
-    x: 2057.633
-    y: 592.004
+    x: 2088.469
+    y: 506.344
     rotation: 0
   opto_board:
-    x: 1796.002
-    y: 522.575
+    x: 1817.782
+    y: 456.049
     rotation: 90
   cnc_terminals:
     x: 1845.959
@@ -120,40 +120,40 @@ components:
     y: -716.845
     rotation: 0
   reset_relay:
-    x: 1747.652
-    y: 568.913
+    x: 1750.409
+    y: 488.959
     rotation: 0
   driver_relay:
-    x: 1672.952
-    y: 571.109
+    x: 1667.438
+    y: 487.019
     rotation: 180
   estop_relay:
-    x: 1594.744
-    y: 572.504
+    x: 1589.23
+    y: 488.414
     rotation: 0
   ulimit_relay:
-    x: 1516.029
-    y: 573.33
+    x: 1510.515
+    y: 489.24
     rotation: 0
   vfd:
-    x: 1847.511
-    y: 1297.813
+    x: 905.069
+    y: 775.878
     rotation: 180
   live_power_t:
-    x: 1491.741
-    y: 1001.84
+    x: 1571.486
+    y: 1033.738
     rotation: 270
   wall_plug:
-    x: 1199.329
-    y: 1310.699
+    x: 2132.156
+    y: 2500.305
     rotation: 270
   switched_110N:
-    x: 1400.481
-    y: 1011.55
+    x: 1480.226
+    y: 1043.448
     rotation: 90
   switched_110L:
-    x: 1441.838
-    y: 1010.902
+    x: 1521.583
+    y: 1042.8
     rotation: 90
   24V_bus:
     x: 1498.324
@@ -164,22 +164,22 @@ components:
     y: 63.605
     rotation: 90
   5V_bus:
-    x: 1403.235
-    y: 612.522
+    x: 1397.721
+    y: 528.432
     rotation: 90
   5V_switched_bus:
-    x: 1352.77
-    y: 638.294
+    x: 1347.256
+    y: 554.204
     rotation: 90
   5V0_bus:
     x: 1401.488
     y: 29.283
     rotation: 90
   coil_t:
-    x: 2111.255
-    y: 989.696
+    x: 2198.361
+    y: 1024.047
     rotation: 90
   earth:
-    x: 1354.127
-    y: 1012.688
+    x: 1433.872
+    y: 1044.586
     rotation: 90

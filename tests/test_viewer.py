@@ -40,6 +40,8 @@ def test_viewer_data_contains_components_wires_styles_and_pin_anchors():
     earth_wire = next(wire for wire in data["wires"] if wire["net"] == "earth")
     assert earth_wire["style"]["color"] == "#16a34a"
     assert data["wires"][0]["awg"] == 12
+    assert data["wires"][0]["from_ref"]
+    assert data["wires"][0]["to_ref"]
     assert data["wires"][0]["style"]["line_weight"] > data["styles"]["nets"]["earth"]["line_weight"]
     assert earth_wire["endpoints"][0]["anchor"]["x"] > 0
     assert earth_wire["endpoints"][0]["stub"]["x"] > 0
@@ -110,6 +112,10 @@ def test_write_static_viewer_writes_no_build_browser_bundle():
     assert "const originX = component.endpointOriginX ?? component.x" in viewer_js
     assert "sortWireTable" in viewer_js
     assert "AWG" in viewer_js
+    assert "From Ref" in viewer_js
+    assert "To Ref" in viewer_js
+    assert "from_ref" in viewer_js
+    assert "to_ref" in viewer_js
     assert "selectDiagnosticNodes" in viewer_js
     assert "toggle-reference-grid" in viewer_html
     assert "renderReferenceGrid" in viewer_js
@@ -120,6 +126,8 @@ def test_write_static_viewer_writes_no_build_browser_bundle():
     assert "interaction-layer" in viewer_js
     assert "debug-layer" in viewer_js
     assert "referenceGridFromBounds" in viewer_js
+    assert "applyWireReferences" in viewer_js
+    assert "referenceForPoint" in viewer_js
     assert "updateReferenceGrid" in viewer_js
     assert "readableScreenRotation" in viewer_js
     assert "stubDistance" in viewer_js
@@ -145,6 +153,8 @@ def test_write_static_viewer_writes_no_build_browser_bundle():
     assert "no-connect-x" in viewer_css
     assert "wire-table-row" in viewer_css
     assert "reference-grid-label" in viewer_css
+    assert '"Segoe UI", Arial, Helvetica, sans-serif' in viewer_css
+    assert "font-weight: 900" in viewer_css
     assert '"wires"' in (output_dir / "panel-data.json").read_text(encoding="utf-8")
     assert '"reference_grid"' in (output_dir / "panel-data.json").read_text(encoding="utf-8")
 
@@ -171,6 +181,9 @@ components:
       terminal_width: 0.25
     pins:
       bottom: [A]
+connections:
+  wires:
+    - [default_terminal.A, wide_terminal.A]
 """
     )
     router = WireRouter.route_parse_result(parsed)
@@ -182,6 +195,14 @@ components:
 
     assert wide_pin["width"] > default_pin["width"]
     assert wide_pin["height"] > default_pin["height"]
+    endpoints = data["wires"][0]["endpoints"]
+    default_label = next(endpoint["label"] for endpoint in endpoints if endpoint["component"] == "default_terminal")
+    wide_label = next(endpoint["label"] for endpoint in endpoints if endpoint["component"] == "wide_terminal")
+
+    assert default_label["height"] == default_pin["width"]
+    assert wide_label["height"] == wide_pin["width"]
+    assert wide_label["font_size"] > default_label["font_size"]
+    assert wide_label["corner_radius"] < wide_label["height"] / 2
 
 
 def test_viewer_text_orientation_contract_keeps_component_labels_readable():

@@ -13,11 +13,13 @@ from typing import Any
 from panelviz.components import PinSide
 from panelviz.parser import UnitsConfig
 from panelviz.pdf_export import diagram_reference_grid
+from panelviz.references import attach_wire_references
 from panelviz.routing import RoutedWire, WireRouter
 from panelviz.visualization import (
     ApproximateTextMeasurer,
     ComponentVisualConfig,
     PinBox,
+    WireLabelSizeCalculator,
     plan_component_sheet_layout,
 )
 
@@ -206,6 +208,7 @@ def viewer_data(
     }
     update_scene_bounds(data)
     data["reference_grid"] = diagram_reference_grid(data)
+    attach_wire_references(data)
     return data
 
 
@@ -308,6 +311,7 @@ class _Anchor:
     x: float
     y: float
     side: PinSide
+    terminal_width_pt: float
 
 
 @dataclass(frozen=True)
@@ -317,13 +321,14 @@ class _EndpointSlot:
 
 
 def _pin_anchor(box: PinBox, offset_x: float, offset_y: float) -> _Anchor:
+    terminal_width = min(box.width, box.height)
     if box.side == PinSide.LEFT:
-        return _Anchor(offset_x + box.x, offset_y + box.y + box.height / 2, box.side)
+        return _Anchor(offset_x + box.x, offset_y + box.y + box.height / 2, box.side, terminal_width)
     if box.side == PinSide.RIGHT:
-        return _Anchor(offset_x + box.x + box.width, offset_y + box.y + box.height / 2, box.side)
+        return _Anchor(offset_x + box.x + box.width, offset_y + box.y + box.height / 2, box.side, terminal_width)
     if box.side == PinSide.TOP:
-        return _Anchor(offset_x + box.x + box.width / 2, offset_y + box.y, box.side)
-    return _Anchor(offset_x + box.x + box.width / 2, offset_y + box.y + box.height, box.side)
+        return _Anchor(offset_x + box.x + box.width / 2, offset_y + box.y, box.side, terminal_width)
+    return _Anchor(offset_x + box.x + box.width / 2, offset_y + box.y + box.height, box.side, terminal_width)
 
 
 def _wire_view(
@@ -388,20 +393,22 @@ def _endpoint_view(
     slot: _EndpointSlot,
 ) -> dict[str, Any]:
     dx, dy = _side_vector(anchor.side)
-    label_width = _wire_label_width(wire_label, config)
+    label_size = WireLabelSizeCalculator().for_label(wire_label, anchor.terminal_width_pt)
+    label_width = label_size.width_pt
     stub_distance = config.wire_stub_pt + slot.index * (label_width + config.wire_stub_pt)
     stub = {
         "x": anchor.x + dx * stub_distance,
         "y": anchor.y + dy * stub_distance,
     }
-    label_height = max(config.wire_label_font_size_pt * 1.35, config.terminal_width_pt)
+    label_height = label_size.height_pt
     label_offset = config.wire_label_gap_pt + label_width / 2
     label_position = {
         "x": stub["x"] + dx * label_offset,
         "y": stub["y"] + dy * label_offset,
         "width": label_width,
         "height": label_height,
-        "font_size": config.wire_label_font_size_pt,
+        "font_size": label_size.font_size_pt,
+        "corner_radius": label_size.corner_radius_pt,
         "rotation": 0,
         "side": anchor.side.value,
         "slot": slot.index,
@@ -454,14 +461,15 @@ def _fan_offset(side: PinSide, slot: _EndpointSlot, spacing: float) -> tuple[flo
 
 
 def _wire_label_padding(config: ComponentVisualConfig) -> float:
-    return max(1.5, config.wire_label_font_size_pt * 0.62)
+    return WireLabelSizeCalculator().for_label("", config.terminal_width_pt).padding_pt
+
+
+def _wire_label_height(config: ComponentVisualConfig) -> float:
+    return WireLabelSizeCalculator().for_label("", config.terminal_width_pt).height_pt
 
 
 def _wire_label_width(label: str, config: ComponentVisualConfig) -> float:
-    return max(
-        config.terminal_width_pt * 1.1,
-        len(label) * config.wire_label_font_size_pt * 0.62 + _wire_label_padding(config) * 2,
-    )
+    return WireLabelSizeCalculator().for_label(label, config.terminal_width_pt).width_pt
 
 
 def _endpoint_slots(wires: list[RoutedWire]) -> dict[tuple[int, str], _EndpointSlot]:
@@ -575,7 +583,7 @@ def _viewer_css() -> str:
     return """html, body {
   height: 100%;
   margin: 0;
-  font-family: Inter, Segoe UI, Arial, sans-serif;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   color: #0f172a;
   background: #e5e7eb;
 }
@@ -783,6 +791,7 @@ svg {
   fill: #ffffff;
 }
 .component-name {
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   text-anchor: middle;
   dominant-baseline: middle;
   fill: #0f172a;
@@ -790,6 +799,7 @@ svg {
   pointer-events: none;
 }
 .component-type {
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   text-anchor: middle;
   dominant-baseline: middle;
   fill: #64748b;
@@ -803,6 +813,7 @@ svg {
   cursor: pointer;
 }
 .pin-label {
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   text-anchor: middle;
   dominant-baseline: middle;
   fill: #0f172a;
@@ -851,9 +862,10 @@ svg {
   stroke-width: 0.45;
 }
 .wire-label-text {
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   text-anchor: middle;
   dominant-baseline: middle;
-  font-weight: 800;
+  font-weight: 900;
   fill: #0f172a;
   pointer-events: none;
 }
@@ -924,7 +936,7 @@ svg {
 }
 .reference-grid-label {
   fill: #c2410c;
-  font-family: Inter, Segoe UI, Arial, sans-serif;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   font-size: 14px;
   font-weight: 800;
   text-anchor: middle;
@@ -1160,7 +1172,9 @@ function updateReferenceGrid(svg, visible = false) {
   const bounds = renderedSceneBounds(svg, state.scene || state.canvas);
   const grid = referenceGridFromBounds(bounds, state.data?.reference_grid);
   if (state.data) state.data.reference_grid = grid;
+  applyWireReferences(grid);
   renderReferenceGrid(debugLayer, grid, visible);
+  if (state.data && wireTableBody.children.length) renderWireTable(state.data.wires);
 }
 
 function referenceGridFromBounds(bounds, fallbackGrid = {}) {
@@ -1233,6 +1247,26 @@ function renderReferenceGrid(parentLayer, grid, visible = false) {
   });
   parentLayer.appendChild(gridGroup);
   toggleReferenceGridButton.setAttribute('aria-pressed', String(visible));
+}
+
+function applyWireReferences(grid) {
+  if (!state.data?.wires || !grid?.verticals?.length || !grid?.horizontals?.length) return;
+  state.data.wires.forEach((wire) => {
+    const fromAnchor = wire.endpoints?.[0]?.anchor;
+    const toAnchor = wire.endpoints?.[1]?.anchor;
+    wire.from_ref = fromAnchor ? referenceForPoint(grid, fromAnchor.x, fromAnchor.y) : '';
+    wire.to_ref = toAnchor ? referenceForPoint(grid, toAnchor.x, toAnchor.y) : '';
+  });
+}
+
+function referenceForPoint(grid, x, y) {
+  let col = 0;
+  while (col + 1 < grid.verticals.length && Number(x) >= grid.verticals[col + 1]) col += 1;
+  let row = 0;
+  while (row + 1 < grid.horizontals.length && Number(y) >= grid.horizontals[row + 1]) row += 1;
+  col = Math.max(0, Math.min(grid.columns - 1, col));
+  row = Math.max(0, Math.min(grid.rows - 1, row));
+  return `${String.fromCharCode('A'.charCodeAt(0) + row)}${col + 1}`;
 }
 
 function renderComponent(layer, component) {
@@ -1361,7 +1395,8 @@ function renderNoConnectMarker(group, pin) {
     x: stub.x + vector.x * markerGap,
     y: stub.y + vector.y * markerGap,
   };
-  const size = Math.max(3.6, Math.min(6.2, Math.max(pin.width, pin.height) * 0.24));
+  const terminalPitch = Math.min(pin.width, pin.height);
+  const size = Math.max(1.8, terminalPitch * 0.38);
   group.appendChild(el('path', {
     class: 'no-connect-stub',
     'data-node': pin.node,
@@ -1423,13 +1458,17 @@ function renderWireTable(wires) {
         <td>${escapeHtml(wire.to)}</td>
         <td>${escapeHtml(wire.net)}</td>
         <td>${escapeHtml(wire.awg)}</td>
+        <td>${escapeHtml(wire.from_ref || '')}</td>
+        <td>${escapeHtml(wire.to_ref || '')}</td>
       `
       : `
         <td><span class="wire-chip">${escapeHtml(wire.label)}</span></td>
         <td>${escapeHtml(wire.from_component)}</td>
         <td>${escapeHtml(wire.from_pin)}</td>
+        <td>${escapeHtml(wire.from_ref || '')}</td>
         <td>${escapeHtml(wire.to_component)}</td>
         <td>${escapeHtml(wire.to_pin)}</td>
+        <td>${escapeHtml(wire.to_ref || '')}</td>
         <td>${escapeHtml(wire.net)}</td>
         <td>${escapeHtml(wire.awg)}</td>
       `;
@@ -1451,22 +1490,26 @@ function renderWireTableHeader() {
         ${sortableHeader('To', 'to', marker('to'))}
         ${sortableHeader('Net', 'net', marker('net'))}
         ${sortableHeader('AWG', 'awg', marker('awg'))}
+        ${sortableHeader('From Ref', 'from_ref', marker('from_ref'))}
+        ${sortableHeader('To Ref', 'to_ref', marker('to_ref'))}
       </tr>
     `;
   } else {
     wireTableHead.innerHTML = `
       <tr>
         <th rowspan="2">${sortButton('Wire', 'label', marker('label'))}</th>
-        <th colspan="2">From</th>
-        <th colspan="2">To</th>
+        <th colspan="3">From</th>
+        <th colspan="3">To</th>
         <th rowspan="2">${sortButton('Net', 'net', marker('net'))}</th>
         <th rowspan="2">${sortButton('AWG', 'awg', marker('awg'))}</th>
       </tr>
       <tr>
         ${sortableHeader('Component', 'from_component', marker('from_component'))}
         ${sortableHeader('Terminal', 'from_pin', marker('from_pin'))}
+        ${sortableHeader('Ref', 'from_ref', marker('from_ref'))}
         ${sortableHeader('Component', 'to_component', marker('to_component'))}
         ${sortableHeader('Terminal', 'to_pin', marker('to_pin'))}
+        ${sortableHeader('Ref', 'to_ref', marker('to_ref'))}
       </tr>
     `;
   }
@@ -1630,6 +1673,7 @@ function renderWireLabel(wire, endpoint) {
   });
   const width = endpoint.label.width || Math.max(8, wire.label.length * 4 + 1.5);
   const height = endpoint.label.height || 17;
+  const cornerRadius = endpoint.label.corner_radius || 2;
   const transform = endpoint.label.rotation
     ? `rotate(${endpoint.label.rotation} ${endpoint.label.x} ${endpoint.label.y})`
     : '';
@@ -1642,8 +1686,8 @@ function renderWireLabel(wire, endpoint) {
     y: endpoint.label.y - height / 2,
     width,
     height,
-    rx: 4,
-    ry: 4,
+    rx: cornerRadius,
+    ry: cornerRadius,
   }));
   label.appendChild(textEl(wire.label, {
     class: 'wire-label-text',

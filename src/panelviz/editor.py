@@ -18,6 +18,7 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from panelviz.parser import parse_panel_yaml
 from panelviz.pdf_export import DrawingMeta, diagram_reference_grid, export_schematic_pdf, export_wire_list_pdf
+from panelviz.references import attach_wire_references
 from panelviz.reports import WIRE_LIST_COLUMNS, wire_list_rows
 from panelviz.routing import WireRouter
 from panelviz.viewer import _viewer_css, _viewer_js, update_scene_bounds, viewer_data
@@ -285,6 +286,7 @@ class EditorSession:
         self._apply_layout(data)
         update_scene_bounds(data)
         data["reference_grid"] = diagram_reference_grid(data)
+        attach_wire_references(data)
         return data
 
     def wire_list_csv(self) -> str:
@@ -303,6 +305,7 @@ class EditorSession:
         self._apply_layout(data)
         update_scene_bounds(data)
         data["reference_grid"] = diagram_reference_grid(data)
+        attach_wire_references(data)
         meta = DrawingMeta.from_config(parsed.config.drawing, self.path.name)
         image_bytes, image_width, image_height, source_bounds = _snapshot_export_args(snapshot)
         schematic = export_schematic_pdf(
@@ -1010,10 +1013,10 @@ function rasterizeSvg(svgText, width, height) {
     const url = URL.createObjectURL(svgBlob);
     image.onload = () => {
       try {
-        const maxPixels = 30000000;
-        const maxDimension = 9000;
+        const maxPixels = 160000000;
+        const maxDimension = 20000;
         const scale = Math.min(
-          2,
+          4,
           maxDimension / Math.max(width, height),
           Math.sqrt(maxPixels / Math.max(width * height, 1)),
         );

@@ -4,12 +4,14 @@ from pathlib import Path
 import pytest
 
 from panelviz.components import Connector, PowerSupply, TerminalBlock
-from panelviz.parser import UnitsConfig
+from panelviz.parser import UnitsConfig, VisualizationConfig
 from panelviz.routing import WireRouter
 from panelviz.visualization import (
     ApproximateTextMeasurer,
     ComponentVisualConfig,
+    WireLabelSizeCalculator,
     length_to_points,
+    component_visual_config_from_visualization,
     plan_component_layout,
     plan_component_sheet_layout,
     plan_typography,
@@ -28,6 +30,30 @@ TEST_OUTPUTS = Path(__file__).resolve().parent / "outputs"
 def output_path(filename: str) -> Path:
     TEST_OUTPUTS.mkdir(exist_ok=True)
     return TEST_OUTPUTS / filename
+
+
+def test_wire_label_font_scales_to_fit_terminal_width():
+    small = component_visual_config_from_visualization(VisualizationConfig(terminal_width=0.1))
+    large = component_visual_config_from_visualization(VisualizationConfig(terminal_width=0.25))
+
+    assert small.wire_label_font_size_pt * 1.35 <= small.terminal_width_pt
+    assert large.wire_label_font_size_pt * 1.35 <= large.terminal_width_pt
+    assert large.wire_label_font_size_pt > small.wire_label_font_size_pt
+
+
+def test_wire_label_size_calculator_uses_endpoint_terminal_width():
+    calculator = WireLabelSizeCalculator()
+
+    small = calculator.for_label("earth-1", 7.2)
+    large = calculator.for_label("earth-1", 18.0)
+
+    assert small.height_pt == pytest.approx(7.2)
+    assert large.height_pt == pytest.approx(18.0)
+    assert small.font_size_pt * calculator.line_height <= small.height_pt
+    assert large.font_size_pt * calculator.line_height <= large.height_pt
+    assert large.font_size_pt > small.font_size_pt
+    assert large.corner_radius_pt < large.height_pt / 2
+    assert large.corner_radius_pt <= calculator.max_corner_radius_pt
 
 
 def test_length_to_points_supports_inches_and_mm():

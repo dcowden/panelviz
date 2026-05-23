@@ -102,6 +102,52 @@ class ComponentVisualConfig(BaseModel):
     terminal_depth_factor: float = 2.6
 
 
+@dataclass(frozen=True)
+class WireLabelSize:
+    """Resolved geometry for a wire label attached to one terminal."""
+
+    width_pt: float
+    height_pt: float
+    font_size_pt: float
+    padding_pt: float
+    corner_radius_pt: float
+
+
+@dataclass(frozen=True)
+class WireLabelSizeCalculator:
+    """Compute wire-label geometry from the terminal pitch."""
+
+    line_height: float = 1.35
+    text_width_factor: float = 0.62
+    padding_factor: float = 0.62
+    min_font_size_pt: float = 1.5
+    min_padding_pt: float = 1.5
+    min_width_factor: float = 1.1
+    min_corner_radius_pt: float = 0.9
+    max_corner_radius_pt: float = 2.4
+    corner_radius_factor: float = 0.14
+
+    def for_label(self, label: str, terminal_width_pt: float) -> WireLabelSize:
+        height = max(terminal_width_pt, self.min_font_size_pt * self.line_height)
+        font_size = max(self.min_font_size_pt, height / self.line_height)
+        padding = max(self.min_padding_pt, font_size * self.padding_factor)
+        width = max(
+            height * self.min_width_factor,
+            len(label) * font_size * self.text_width_factor + padding * 2,
+        )
+        corner_radius = min(
+            self.max_corner_radius_pt,
+            max(self.min_corner_radius_pt, height * self.corner_radius_factor),
+        )
+        return WireLabelSize(
+            width_pt=width,
+            height_pt=height,
+            font_size_pt=font_size,
+            padding_pt=padding,
+            corner_radius_pt=corner_radius,
+        )
+
+
 def component_visual_config_from_visualization(visualization: VisualizationConfig) -> ComponentVisualConfig:
     """Build physical drawing defaults from parsed visualization config."""
 
@@ -113,6 +159,7 @@ def component_visual_config_from_visualization(visualization: VisualizationConfi
         max_pin_size=max(2.2, terminal_width_pt * 0.7),
         max_component_name_size=max(3.0, terminal_width_pt * 0.9),
     )
+    wire_label_font_size_pt = WireLabelSizeCalculator().for_label("", terminal_width_pt).font_size_pt
     return ComponentVisualConfig(
         font=font,
         terminal_width_pt=terminal_width_pt,
@@ -120,8 +167,8 @@ def component_visual_config_from_visualization(visualization: VisualizationConfi
         max_pin_band_pt=terminal_width_pt * 1.35,
         min_terminal_pin_band_pt=terminal_width_pt * 1.35,
         min_terminal_row_height_pt=terminal_width_pt,
-        wire_label_font_size_pt=max(2.8, terminal_width_pt * 0.52),
-        wire_endpoint_radius_pt=max(0.9, terminal_width_pt * 0.16),
+        wire_label_font_size_pt=wire_label_font_size_pt,
+        wire_endpoint_radius_pt=max(0.2, terminal_width_pt * 0.01),
     )
 
 
@@ -668,6 +715,7 @@ class _WireAnchor:
     x: float
     y: float
     side: PinSide
+    terminal_width_pt: float
     component_bounds: tuple[float, float, float, float]
 
 
@@ -700,6 +748,7 @@ def _pin_anchors(
                 x=x,
                 y=y,
                 side=box.side,
+                terminal_width_pt=min(box.width, box.height),
                 component_bounds=component_bounds,
             )
     return anchors
@@ -759,8 +808,9 @@ def _wire_svg(
         f'r="{config.wire_endpoint_radius_pt:.2f}"/>'
     )
     mid_x, mid_y = _path_label_point(points)
-    label_width = _wire_label_width(label, config)
-    label_height = max(config.wire_label_font_size_pt * 1.35, config.terminal_width_pt)
+    label_size = WireLabelSizeCalculator().for_label(label, max(start.terminal_width_pt, end.terminal_width_pt))
+    label_width = label_size.width_pt
+    label_height = label_size.height_pt
     label_svg = "\n".join(
         [
             f'<g class="wire-label-group {_net_class(wire.net_name)}" data-wire="{wire.index}" '
@@ -772,7 +822,7 @@ def _wire_svg(
                 label_height,
                 "wire-label-bg",
             ),
-            _text(mid_x, mid_y, label, config.wire_label_font_size_pt, "wire-label"),
+            _text(mid_x, mid_y, label, label_size.font_size_pt, "wire-label"),
             "</g>",
         ]
     )
@@ -789,6 +839,8 @@ def _wire_label_mode_svg(
     start_slot: _EndpointSlot,
     end_slot: _EndpointSlot,
 ) -> tuple[str, str]:
+    start_label_size = WireLabelSizeCalculator().for_label(label, start.terminal_width_pt)
+    end_label_size = WireLabelSizeCalculator().for_label(label, end.terminal_width_pt)
     start_stub = _stub_point(start, _endpoint_stub_distance(start, label, config, start_slot))
     end_stub = _stub_point(end, _endpoint_stub_distance(end, label, config, end_slot))
     style_attr = _net_style_attr(net_style)
@@ -812,8 +864,12 @@ def _wire_label_mode_svg(
     )
     labels = "\n".join(
         [
-            _endpoint_wire_label_svg(wire.index, label, wire.net_name, start, start_stub, config, net_style, start_slot),
-            _endpoint_wire_label_svg(wire.index, label, wire.net_name, end, end_stub, config, net_style, end_slot),
+            _endpoint_wire_label_svg(
+                wire.index, label, wire.net_name, start, start_stub, start_label_size, config, net_style, start_slot
+            ),
+            _endpoint_wire_label_svg(
+                wire.index, label, wire.net_name, end, end_stub, end_label_size, config, net_style, end_slot
+            ),
         ]
     )
     return line, labels
@@ -825,12 +881,13 @@ def _endpoint_wire_label_svg(
     net_name: str | None,
     anchor: _WireAnchor,
     stub: tuple[float, float],
+    label_size: WireLabelSize,
     config: ComponentVisualConfig,
     net_style: NetStyle,
     slot: _EndpointSlot,
 ) -> str:
-    label_width = _wire_label_width(label, config)
-    label_height = max(config.wire_label_font_size_pt * 1.35, config.terminal_width_pt)
+    label_width = label_size.width_pt
+    label_height = label_size.height_pt
     rotate_vertical = anchor.side in {PinSide.TOP, PinSide.BOTTOM}
     rotation = 90 if rotate_vertical else 0
 
@@ -862,8 +919,9 @@ def _endpoint_wire_label_svg(
                 label_width,
                 label_height,
                 "wire-label-bg",
+                corner_radius=label_size.corner_radius_pt,
             ),
-            _text(x, y, label, config.wire_label_font_size_pt, "wire-label"),
+            _text(x, y, label, label_size.font_size_pt, "wire-label"),
             "</g>",
         ]
     )
@@ -885,14 +943,15 @@ def _wire_line_weight(base_weight: float, awg: int | None) -> float:
 
 
 def _wire_label_padding(config: ComponentVisualConfig) -> float:
-    return max(1.5, config.wire_label_font_size_pt * 0.62)
+    return WireLabelSizeCalculator().for_label("", config.terminal_width_pt).padding_pt
+
+
+def _wire_label_height(config: ComponentVisualConfig) -> float:
+    return WireLabelSizeCalculator().for_label("", config.terminal_width_pt).height_pt
 
 
 def _wire_label_width(label: str, config: ComponentVisualConfig) -> float:
-    return max(
-        config.terminal_width_pt * 1.1,
-        _estimated_text_width(label, config.wire_label_font_size_pt, _wire_label_padding(config)),
-    )
+    return WireLabelSizeCalculator().for_label(label, config.terminal_width_pt).width_pt
 
 
 def _endpoint_stub_distance(
@@ -901,8 +960,8 @@ def _endpoint_stub_distance(
     config: ComponentVisualConfig,
     slot: _EndpointSlot,
 ) -> float:
-    del anchor
-    return config.wire_stub_pt + slot.index * (_wire_label_width(label, config) + config.wire_stub_pt)
+    label_width = WireLabelSizeCalculator().for_label(label, anchor.terminal_width_pt).width_pt
+    return config.wire_stub_pt + slot.index * (label_width + config.wire_stub_pt)
 
 
 def _endpoint_slots(wires: list[RoutedWire]) -> dict[tuple[int, str], _EndpointSlot]:
@@ -1243,12 +1302,15 @@ def _rect(
     class_name: str,
     fill: str | None = None,
     stroke: str | None = None,
+    corner_radius: float | None = None,
 ) -> str:
     extra = ""
     if fill is not None:
         extra += f' fill="{fill}"'
     if stroke is not None:
         extra += f' stroke="{stroke}"'
+    if corner_radius is not None:
+        extra += f' rx="{corner_radius:.2f}" ry="{corner_radius:.2f}"'
     return (
         f'<rect class="{class_name}" x="{x:.2f}" y="{y:.2f}" '
         f'width="{width:.2f}" height="{height:.2f}"{extra}/>'
