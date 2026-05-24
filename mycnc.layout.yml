@@ -1,11 +1,11 @@
 components:
   axbb-e:
-    x: 1635.597
-    y: -57.79
+    x: 1637.445
+    y: 57.556
     rotation: 270
   Z_cl57s:
-    x: 2012.473
-    y: -204.903
+    x: 2007.667
+    y: -186.048
     rotation: 270
   y_cl57s:
     x: 2011.11
@@ -28,20 +28,20 @@ components:
     y: 2229.198
     rotation: 180
   5v:
-    x: 1676.687
-    y: 927.434
+    x: 1600.622
+    y: 902.897
     rotation: 0
   contactor_220:
-    x: 1813.204
-    y: 923.041
+    x: 1738.366
+    y: 902.185
     rotation: 0
   contactor_110:
-    x: 1954.488
-    y: 917.791
+    x: 1873.516
+    y: 906.749
     rotation: 0
   24v:
-    x: 2095.727
-    y: 876.943
+    x: 2014.755
+    y: 831.55
     rotation: 0
   alarm_limit_board:
     x: 2088.469
@@ -148,8 +148,8 @@ components:
     y: 2500.305
     rotation: 270
   switched_110N:
-    x: 1480.226
-    y: 1043.448
+    x: 1434.316
+    y: 1042.207
     rotation: 90
   switched_110L:
     x: 1521.583
@@ -180,6 +180,14 @@ components:
     y: 1024.047
     rotation: 90
   earth:
-    x: 1433.872
-    y: 1044.586
+    x: 1381.137
+    y: 1038.382
     rotation: 90
+  upper_limits_ok_relay:
+    x: 1193.602
+    y: 1644.949
+    rotation: 0
+  run_relay:
+    x: 999.412
+    y: 1644.949
+    rotation: 0

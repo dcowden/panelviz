@@ -154,7 +154,7 @@ components:
       height: 1
     pins:
       right: [GND, 1, 2]
-  estop_relay:
+  run_relay:
     type: relay
     size:
       width: 1
@@ -162,23 +162,7 @@ components:
     pins:
       top: [DC+, DC-, IN]
       bottom: [NO, COM, NC]
-  driver_relay:
-    type: relay
-    size:
-      width: 1
-      height: 2
-    pins:
-      top: [DC+, DC-, IN]
-      bottom: [NO, COM, NC]
-  reset_relay:
-    type: relay
-    size:
-      width: 1
-      height: 2
-    pins:
-      top: [DC+, DC-, IN]
-      bottom: [NO, COM, NC]
-  ulimit_relay:
+  upper_limits_ok_relay:
     type: relay
     size:
       width: 1
@@ -195,61 +179,53 @@ components:
       left: [1+, 1-, 2+, 2-, 3+, 3-, 4+, 4-, 5+, 5-, 6+, 6-, 7+, 7-, 8+, 8-]
       right: [O1, O2, O3, O4, O5, O6, O7, O8]
     nets:
-      - name: ZUL
+      - name: X1UL_OK
+        pins: [O1]
+      - name: X2UL_OK
+        pins: [O2]
+      - name: YUL_OK
         pins: [O3]
-      - name: X1UL
-        pins: [O5]
-      - name: X2UL
+      - name: ZUL_OK
         pins: [O4]
-      - name: YUL
+      - name: X1_ALM_OK
+        pins: [O5]
+      - name: X2_ALM_OK
         pins: [O6]
-      - name: COIL
-        pins: [1-]
-      - name: Z_ULIMIT_SW
-        pins: [3-]
-      - name: X2_ULIMIT_SW
-        pins: [4-]
-      - name: X1_ULIMIT_SW
-        pins: [5-]
-      - name: Y_ULIMIT_SW
-        pins: [6-]
+      - name: Y_ALM_OK
+        pins: [O7]
+      - name: Z_ALM_OK
+        pins: [O8]
   alarm_limit_board:
     type: pcb
     size:
       width: 2.2
       height: 1.6
     pins:
-      top: [D13, 3V3, REF, A0, A1, A2, A3, A4, A5, A6, A7, RST, GND, VIN]
+      top: [D13, 3V3, REF, A0, A1, A2, A3, A4, A5, A6, A7, RST, GND, 5V]
       bottom: [D12, D11, D10, D9, D8, D7, D6, D5, D4, D3, D2, 5V0, RST2, RX TX]
     nets:
-      - name: RR_CTL
+      - name: X1UL_OK
         pins: [D2]
-      - name: UL_CTL
+      - name: X2UL_OK
         pins: [D3]
-      - name: DP_CTL
+      - name: YUL_OK
         pins: [D4]
-      - name: ESTOP_CTL
+      - name: ZUL_OK
         pins: [D5]
-      - name: ALM_Y
+      - name: X1_ALM_OK
         pins: [D6]
-      - name: ALM_X1
+      - name: X2_ALM_OK
         pins: [D7]
-      - name: ALM_X2
+      - name: Y_ALM_OK
         pins: [D8]
-      - name: ALM_Z
+      - name: Z_ALM_OK
         pins: [D9]
-      - name: COIL_SENSE
-        pins: [A5]
-      - name: RESET_SIG
-        pins: [A4]
-      - name: ZUL
-        pins: [A3]
-      - name: X2UL
-        pins: [A2]
-      - name: X1UL
-        pins: [A1]
-      - name: YUL
-        pins: [A0]
+      - name: RUN_RELAY_CTL
+        pins: [D10]
+      - name: UPPER_LIMITS_OK_RELAY_CTL
+        pins: [D11]
+      - name: RESET_SW
+        pins: [D12]
   vfd:
     type: vfd
     size:
@@ -335,18 +311,7 @@ components:
     pins:
       left: [A]
       right: [B]
-    positions: 8
-  5V_switched_bus:
-    type: bus_block
-    size:
-      width: 2
-      height: 0.118
-    nets:
-      - name: 5V
-    pins:
-      left: [A]
-      right: [B]
-    positions: 3
+    positions: 16
   5V0_bus:
     type: bus_block
     size:
@@ -357,7 +322,7 @@ components:
     pins:
       left: [A]
       right: [B]
-    positions: 12
+    positions: 24
   coil_t:
     type: terminal_block
     size:
@@ -492,6 +457,13 @@ components:
       height: 0.5
     pins:
       left: [reset_sw+, reset_sw-, estop+, estop-, light+, light-]
+  secondary_estop:
+    type: connector
+    size:
+      width: 0.5
+      height: 0.5
+    pins:
+      left: [estop+, estop-]
   spindle:
     type: connector
     size:
@@ -561,7 +533,7 @@ connections:
     - [z_control.gnd, cnc_terminals.10, Z_cl57s.GND]
     - [z_control.shield, connector_earth.shield]
     - [z_limits.5v, cnc_terminals.11, 5V_bus.5V]
-    - [z_limits.ul, cnc_terminals.12, opto_board.Z_ULIMIT_SW]
+    - [z_limits.ul, cnc_terminals.12, opto_board.4+]
     - [z_limits.ll, cnc_terminals.13, axbb-e.ZLL]
     - [z_limits.5v0, cnc_terminals.14, 5V0_bus.5V0]
     - [z_limits.shield, connector_earth.shield]
@@ -578,59 +550,56 @@ connections:
     - [y_control.gnd, cnc_terminals.24, y_cl57s.GND]
     - [y_control.shield, connector_earth.shield]
     - [y_limits.5v, cnc_terminals.25, 5V_bus.5V]
-    - [y_limits.ul, cnc_terminals.26, opto_board.Y_ULIMIT_SW]
+    - [y_limits.ul, cnc_terminals.26, opto_board.3+]
     - [y_limits.ll, cnc_terminals.27, axbb-e.YLL]
     - [y_limits.5v0, cnc_terminals.28, 5V0_bus.5V0]
     - [y_limits.shield, connector_earth.shield]
     - [x1_motor.M+, cnc_terminals.29, 36V_X1.36V_X1]
     - [x1_motor.M-, cnc_terminals.30, 36V_X1.36V0_X1]
     - [x1_motor.shield, connector_earth.shield]
-    - [x1_control.alrm+, cnc_terminals.31, alarm_limit_board.ALM_X1]
+    - [x1_control.alrm+, cnc_terminals.31, opto_board.5-]
     - [x1_control.alrm-, cnc_terminals.32, 5V0_bus.5V0]
     - [x1_control.dir+, cnc_terminals.33, axbb-e.X1DIR]
     - [x1_control.dir-, cnc_terminals.34, 5V0_bus.5V0]
     - [x1_control.pul+, cnc_terminals.35, axbb-e.X1STEP]
     - [x1_control.pul-, cnc_terminals.36, 5V0_bus.5V0]
     - [x1_limits.5v, cnc_terminals.37, 5V_bus.5V]
-    - [x1_limits.ul, cnc_terminals.38, opto_board.X1_ULIMIT_SW]
+    - [x1_limits.ul, cnc_terminals.38, opto_board.1+]
     - [x1_limits.ll, cnc_terminals.39, axbb-e.X1LL]
     - [x1_limits.5v0, cnc_terminals.40, 5V0_bus.5V0]
     - [x1_limits.shield, connector_earth.shield]
     - [x2_motor.M+, cnc_terminals.41, 36V_X2.36V_X2]
     - [x2_motor.M-, cnc_terminals.42, 36V_X2.36V0_X2]
     - [x2_motor.shield, connector_earth.shield]
-    - [x2_control.alrm+, cnc_terminals.43, alarm_limit_board.ALM_X2]
+    - [x2_control.alrm+, cnc_terminals.43, opto_board.6-]
     - [x2_control.alrm-, cnc_terminals.44, 5V0_bus.5V0]
     - [x2_control.dir+, cnc_terminals.45, axbb-e.X2DIR]
     - [x2_control.dir-, cnc_terminals.46, 5V0_bus.5V0]
     - [x2_control.pul+, cnc_terminals.47, axbb-e.X2STEP]
     - [x2_control.pul-, cnc_terminals.48, 5V0_bus.5V0]
     - [x2_limits.5v, cnc_terminals.49, 5V_bus.5V]
-    - [x2_limits.ul, cnc_terminals.50, opto_board.X2_ULIMIT_SW]
+    - [x2_limits.ul, cnc_terminals.50, opto_board.2+]
     - [x2_limits.ll, cnc_terminals.51, axbb-e.X2LL]
     - [x2_limits.5v0, cnc_terminals.52, 5V0_bus.5V0]
     - [x2_limits.shield, connector_earth.shield]
     - [probe.probe+, cnc_terminals.53A]
     - [probe.probe-, cnc_terminals.54A]
     - [probe.shield, connector_earth.shield]
-    - [estop_panel.reset_sw+, cnc_terminals.55, 24V_bus.24V]
-    - [estop_panel.reset_sw-, cnc_terminals.56, opto_board.2+]
-    - [estop_panel.estop+, cnc_terminals.57, coil_t.COIL-]
-    - [estop_panel.estop-, cnc_terminals.58, estop_relay.NC]
+    - [estop_panel.reset_sw+, cnc_terminals.55, 5V0_bus.5V0]
+    - [estop_panel.reset_sw-, cnc_terminals.56, alarm_limit_board.RESET_SW]
+    - [estop_panel.estop+, cnc_terminals.57, 24V_bus.24V]
+    - [estop_panel.estop-, cnc_terminals.58, secondary_estop.estop+]
     - [estop_panel.light+, cnc_terminals.59, 24V_bus.24V]
-    - [estop_panel.light-, cnc_terminals.60, coil_t.COIL-]
+    - [estop_panel.light-, cnc_terminals.60, run_relay.NC]
+    - [secondary_estop.estop-, cnc_terminals.64, coil_t.COIL+]
     - [spindle.u, cnc_terminals.61, vfd.U]
     - [spindle.v, cnc_terminals.62, vfd.V]
     - [spindle.w, cnc_terminals.63, vfd.W]
     - [spindle.shield, connector_earth.shield]
-    - [driver_relay.DC-, 5V0_bus.5V0]
-    - [driver_relay.DC+, 5V_bus.5V]
-    - [estop_relay.DC-, 5V0_bus.5V0]
-    - [estop_relay.DC+, 5V_bus.5V]
-    - [reset_relay.DC-, 5V0_bus.5V0]
-    - [reset_relay.DC+, 5V_bus.5V]
-    - [ulimit_relay.DC-, 5V0_bus.5V0]
-    - [ulimit_relay.DC+, 5V_bus.5V]
+    - [run_relay.DC-, 5V0_bus.5V0]
+    - [run_relay.DC+, 5V_bus.5V]
+    - [upper_limits_ok_relay.DC-, 5V0_bus.5V0]
+    - [upper_limits_ok_relay.DC+, 5V_bus.5V]
     - [5v.5V, 5V_bus.5V]
     - [5v.5V0, 5V0_bus.5V0]
     - [24v.24V, 24V_bus.24V]
@@ -640,7 +609,7 @@ connections:
     - [vfd.T, contactor_220.L2]
     #drivers
     - [y_cl57s.PUL+, axbb-e.YSTEP]
-    - [y_cl57s.ALM, alarm_limit_board.ALM_Y]
+    - [y_cl57s.ALM, opto_board.7-]
     - [y_cl57s.PUL-, 5V0_bus.5V0]
     - [y_cl57s.DIR+, axbb-e.YDIR]
     - [y_cl57s.DIR-, 5V0_bus.5V0]
@@ -649,7 +618,7 @@ connections:
     - [y_cl57s.GND, 48v.48V0]
 
     - [Z_cl57s.PUL+, axbb-e.ZSTEP]
-    - [Z_cl57s.ALM, alarm_limit_board.ALM_Z]
+    - [Z_cl57s.ALM, opto_board.8-]
     - [Z_cl57s.PUL-, 5V0_bus.5V0]
     - [Z_cl57s.DIR+, axbb-e.ZDIR]
     - [Z_cl57s.DIR-, 5V0_bus.5V0]
@@ -677,35 +646,34 @@ connections:
     - [axbb-e.VFD_V1, vfd.VI]
 
   #alarm_limit_board
-    - [alarm_limit_board.COIL_SENSE, opto_board.O1]
-    - [alarm_limit_board.RESET_SIG, opto_board.O2]
-    - [alarm_limit_board.ZUL, opto_board.ZUL]
-    - [alarm_limit_board.YUL, opto_board.YUL]
-    - [alarm_limit_board.X1UL, opto_board.X1UL]
-    - [alarm_limit_board.X2UL, opto_board.X2UL]
+    - [alarm_limit_board.X1UL_OK, opto_board.X1UL_OK]
+    - [alarm_limit_board.X2UL_OK, opto_board.X2UL_OK]
+    - [alarm_limit_board.YUL_OK, opto_board.YUL_OK]
+    - [alarm_limit_board.ZUL_OK, opto_board.ZUL_OK]
+    - [alarm_limit_board.X1_ALM_OK, opto_board.X1_ALM_OK]
+    - [alarm_limit_board.X2_ALM_OK, opto_board.X2_ALM_OK]
+    - [alarm_limit_board.Y_ALM_OK, opto_board.Y_ALM_OK]
+    - [alarm_limit_board.Z_ALM_OK, opto_board.Z_ALM_OK]
     - [alarm_limit_board.5V0, 5V0_bus.5V0]
-    - [alarm_limit_board.VIN, 5V_bus.5V]
-    - [alarm_limit_board.RR_CTL, reset_relay.IN]
-    - [alarm_limit_board.UL_CTL, ulimit_relay.IN]
-    - [alarm_limit_board.DP_CTL, driver_relay.IN]
-    - [alarm_limit_board.ESTOP_CTL, estop_relay.IN]
+    - [alarm_limit_board.5V, 5V_bus.5V]
+    - [alarm_limit_board.RUN_RELAY_CTL, run_relay.IN]
+    - [alarm_limit_board.UPPER_LIMITS_OK_RELAY_CTL, upper_limits_ok_relay.IN]
 
   #relay boards
-    - [reset_relay.COM, 24V_bus.24V]
-    - [reset_relay.NO, coil_t.COIL+]
-    - [ulimit_relay.COM, 24V0_bus.24V0]
-    - [ulimit_relay.NC, axbb-e.UL1]
-    - [driver_relay.NC, 5V_bus.5V]
-    - [driver_relay.COM, 5V_switched_bus.5V]
-    - [estop_relay.COM, coil_t.COIL-]
+    - [run_relay.COM, 24V0_bus.24V0]
+    - [run_relay.NO, coil_t.COIL-]
+    - [upper_limits_ok_relay.COM, 24V0_bus.24V0]
+    - [upper_limits_ok_relay.NC, axbb-e.UL1]
 
   #opto board
-    - [opto_board.1+, 24V_bus.24V]
-    - [opto_board.2-, 24V0_bus.24V0]
-    - [opto_board.3+, 24V_bus.24V]
-    - [opto_board.4+, 24V_bus.24V]
-    - [opto_board.5+, 24V_bus.24V]
-    - [opto_board.6+, 24V_bus.24V]
+    - [opto_board.1-, 5V0_bus.5V0]
+    - [opto_board.2-, 5V0_bus.5V0]
+    - [opto_board.3-, 5V0_bus.5V0]
+    - [opto_board.4-, 5V0_bus.5V0]
+    - [opto_board.5+, 5V_bus.5V]
+    - [opto_board.6+, 5V_bus.5V]
+    - [opto_board.7+, 5V_bus.5V]
+    - [opto_board.8+, 5V_bus.5V]
 
 
 
@@ -727,16 +695,10 @@ no_connects:
   - Z_cl57s.ENA-
   - Z_cl57s.BRK
 
-  - opto_board.7+
-  - opto_board.7-
-  - opto_board.8+
-  - opto_board.8-
-  - opto_board.O7
-  - opto_board.O8
-
-  - reset_relay.NC
-  - driver_relay.NO
-  - estop_relay.NO
-  - ulimit_relay.NO
+  - contactor_110.13
+  - contactor_110.14
+  - contactor_220.13
+  - contactor_220.14
+  - upper_limits_ok_relay.NO
 
   - spindle.x
