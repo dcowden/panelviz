@@ -336,11 +336,16 @@ def _draw_component(pdf: FPDF, component: dict[str, Any], wires: list[dict[str, 
         orientation = _center_text_orientation(component, rotation, component["name"], name_size)
         _draw_readable_center_text(pdf, x + w / 2, y + h / 2, component["name"], name_size, orientation, rotation, -name_size * 0.45)
         pdf.set_font("Helvetica", "", type_size)
-        _draw_readable_center_text(pdf, x + w / 2, y + h / 2, component.get("type", ""), type_size, orientation, rotation, type_size * 1.15)
+        _draw_readable_center_text(pdf, x + w / 2, y + h / 2, _component_subtitle(component), type_size, orientation, rotation, type_size * 1.15)
         for wire in wires:
             for endpoint in wire.get("endpoints", []):
                 if endpoint.get("component") == component.get("name"):
                     _draw_endpoint(pdf, x, y, component, endpoint, wire, geo.scale)
+
+
+def _component_subtitle(component: dict[str, Any]) -> str:
+    tags = [str(tag).strip() for tag in component.get("tags", []) if str(tag).strip()]
+    return ", ".join(tags) if tags else str(component.get("type", ""))
 
 
 def _draw_pin(pdf: FPDF, component_x: float, component_y: float, pin: dict[str, Any], scale: float) -> None:
@@ -454,6 +459,7 @@ def _draw_wire_list_table(
         ("Pin", 46),
         ("Net", 78),
         ("AWG", 34),
+        ("Tags", 58),
         ("From Ref", 42),
         ("To Ref", 42),
     ]
@@ -480,6 +486,7 @@ def _draw_wire_list_table(
             row.to_pin,
             row.netname,
             str(row.awg),
+            row.tags,
             refs.get("from", ""),
             refs.get("to", ""),
         ]

@@ -16,6 +16,7 @@ from panelviz.viewer import (
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_OUTPUTS = Path(__file__).resolve().parent / "outputs"
 VALID_PANEL = Path(__file__).resolve().parent / "fixtures" / "mycnc_valid.yml"
+PROJECT_PANEL = PROJECT_ROOT / "mycnc.yml"
 
 
 def test_viewer_data_contains_components_wires_styles_and_pin_anchors():
@@ -42,6 +43,7 @@ def test_viewer_data_contains_components_wires_styles_and_pin_anchors():
     assert data["wires"][0]["awg"] == 12
     assert data["wires"][0]["from_ref"]
     assert data["wires"][0]["to_ref"]
+    assert "tags" in data["wires"][0]
     assert data["wires"][0]["style"]["line_weight"] > data["styles"]["nets"]["earth"]["line_weight"]
     assert earth_wire["endpoints"][0]["anchor"]["x"] > 0
     assert earth_wire["endpoints"][0]["stub"]["x"] > 0
@@ -112,6 +114,11 @@ def test_write_static_viewer_writes_no_build_browser_bundle():
     assert "const originX = component.endpointOriginX ?? component.x" in viewer_js
     assert "sortWireTable" in viewer_js
     assert "AWG" in viewer_js
+    assert "Tags" in viewer_js
+    assert "wire-tag-filter" in viewer_html
+    assert "wire-table-count" in viewer_html
+    assert "filterWiresByTag" in viewer_js
+    assert "updateWireTableCount" in viewer_js
     assert "From Ref" in viewer_js
     assert "To Ref" in viewer_js
     assert "from_ref" in viewer_js
@@ -203,6 +210,60 @@ connections:
     assert wide_label["height"] == wide_pin["width"]
     assert wide_label["font_size"] > default_label["font_size"]
     assert wide_label["corner_radius"] < wide_label["height"] / 2
+
+
+def test_viewer_data_wire_tags_combine_endpoint_component_tags():
+    parsed = parse_panel_yaml(
+        """
+components:
+  terminal_block_row:
+    type: connector
+    tags: [terminals]
+    size: {width: 1, height: 1}
+    pins:
+      right: [A]
+  safety_row:
+    type: relay
+    tags: [safety, relay]
+    size: {width: 1, height: 1}
+    pins:
+      left: [B]
+connections:
+  wires:
+    - [terminal_block_row.A, safety_row.B]
+"""
+    )
+    router = WireRouter.route_parse_result(parsed)
+
+    data = viewer_data(router, units=parsed.config.units, columns=2)
+
+    assert data["components"][0]["tags"] == ["terminals"]
+    assert data["components"][1]["tags"] == ["safety", "relay"]
+    assert data["wires"][0]["tags"] == "terminals, safety, relay"
+
+
+def test_viewer_vfd_tag_filter_count_matches_endpoint_component_tags():
+    parsed = parse_panel_yaml(PROJECT_PANEL.read_text(encoding="utf-8"))
+    router = WireRouter.route_parse_result(parsed)
+
+    data = viewer_data(router, units=parsed.config.units, columns=3)
+    expected_vfd_wires = [
+        wire
+        for wire in router.routed_wires
+        if "vfd"
+        in {
+            *(tag.lower() for tag in router.components[wire.from_pin.component].tags),
+            *(tag.lower() for tag in router.components[wire.to_pin.component].tags),
+        }
+    ]
+    filtered_vfd_wires = [
+        wire
+        for wire in data["wires"]
+        if "vfd" in {tag.strip().lower() for tag in wire["tags"].split(",") if tag.strip()}
+    ]
+
+    assert len(filtered_vfd_wires) == len(expected_vfd_wires)
+    assert len(filtered_vfd_wires) == 47
 
 
 def test_viewer_text_orientation_contract_keeps_component_labels_readable():

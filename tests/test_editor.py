@@ -1,5 +1,6 @@
 from io import BytesIO
 from pathlib import Path
+import socket
 from zipfile import ZipFile
 
 import pytest
@@ -8,6 +9,7 @@ from panelviz.editor import (
     EditorSession,
     _editor_document,
     _editor_js,
+    _select_editor_port,
     append_route_to_yaml,
     delete_wire_from_yaml,
     layout_path_for_panel,
@@ -293,13 +295,41 @@ def test_editor_js_exports_rendered_svg_snapshot_for_pdf_bundle():
 
 
 def test_editor_document_cache_busts_local_assets():
-    html = _editor_document(Path("panel.yml"))
+    html = _editor_document(Path("panel.yml"), "fresh-token")
 
-    assert '<link rel="stylesheet" href="/viewer.css?v=' in html
-    assert '<script src="/viewer.js?v=' in html
-    assert '<script src="/editor.js?v=' in html
+    assert '<link rel="stylesheet" href="/viewer.css?v=fresh-token">' in html
+    assert '<script src="/viewer.js?v=fresh-token"></script>' in html
+    assert '<script src="/editor.js?v=fresh-token"></script>' in html
+    assert 'content="no-store, no-cache, must-revalidate, max-age=0"' in html
     assert 'href="/wire-list.csv"' in html
     assert "Download CSV" in html
     assert 'id="editor-download-pdfs"' in html
     assert "Download PDFs" in html
     assert 'id="toggle-reference-grid"' in html
+
+
+def test_editor_document_can_use_fresh_cache_bust_token_per_server_run():
+    first = _editor_document(Path("panel.yml"), "run-one")
+    second = _editor_document(Path("panel.yml"), "run-two")
+
+    assert 'viewer.js?v=run-one' in first
+    assert 'viewer.js?v=run-two' in second
+    assert first != second
+
+
+def test_viewer_and_editor_fetch_panel_data_without_browser_cache():
+    from panelviz.viewer import _viewer_js
+
+    assert "fetch('panel-data.json', { cache: 'no-store' })" in _viewer_js()
+    assert "fetch('panel-data.json', { cache: 'no-store' })" in _editor_js()
+
+
+def test_editor_selects_next_free_port_when_preferred_is_busy():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as busy:
+        busy.bind(("127.0.0.1", 0))
+        busy.listen()
+        occupied_port = busy.getsockname()[1]
+
+        selected_port = _select_editor_port(occupied_port, attempts=20)
+
+    assert selected_port > occupied_port

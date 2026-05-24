@@ -127,6 +127,21 @@ def test_component_layout_places_pins_on_all_four_sides():
     assert layout.center_height > 0
 
 
+def test_component_svg_uses_tags_as_center_subtitle():
+    component = Connector(
+        name="field_connector",
+        type="connector",
+        tags=["terminals", "field"],
+        size={"width": 2, "height": 1},
+        pins={"right": ["A"]},
+    )
+
+    svg = render_component_svg(component, units=UnitsConfig(length="in"), measurer=ApproximateTextMeasurer())
+
+    assert "terminals, field" in svg
+    assert ">connector<" not in svg
+
+
 def test_terminal_block_layout_height_scales_by_position_count():
     block = TerminalBlock(
         name="tb",

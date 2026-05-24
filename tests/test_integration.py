@@ -109,6 +109,7 @@ def test_myncnc_wire_list_report_is_grouped_by_netname():
         "to_pin": "1A",
         "netname": "110L",
         "awg": 12,
+        "tags": "",
     }
     assert "wirenumber" in wire_list_table(router)
     assert "COIL+-1" in wire_list_table(router)

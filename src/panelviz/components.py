@@ -137,6 +137,7 @@ class Component(BaseModel):
 
     name: str
     type: ComponentType
+    tags: list[str] = Field(default_factory=list)
     pins: dict[PinSide, list[str]]
     size: ComponentSize | None = None
     nets: list[NetDefinition] = Field(default_factory=list)
@@ -148,6 +149,25 @@ class Component(BaseModel):
     @classmethod
     def _stringify_name(cls, value: Any) -> str:
         return str(value)
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _stringify_tags(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            raise ValueError("component tags must be a list")
+        return [str(tag) for tag in value]
+
+    @field_validator("tags")
+    @classmethod
+    def _tags_are_unique_and_non_empty(cls, value: list[str]) -> list[str]:
+        stripped = [tag.strip() for tag in value]
+        if any(not tag for tag in stripped):
+            raise ValueError("component tags must be non-empty")
+        if len(set(stripped)) != len(stripped):
+            raise ValueError("component tags must be unique")
+        return stripped
 
     @field_validator("pins", mode="before")
     @classmethod

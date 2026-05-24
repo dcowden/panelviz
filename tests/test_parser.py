@@ -152,6 +152,7 @@ def test_component_pin_graph_nodes_include_routing_metadata():
     assert graph.nodes["wall_plug.1"]["pin"] == "1"
     assert graph.nodes["wall_plug.1"]["pin_side"] == "right"
     assert graph.nodes["wall_plug.1"]["component_type"] == "connector"
+    assert graph.nodes["wall_plug.1"]["component_tags"] == []
     assert graph.nodes["wall_plug.1"]["exposed_nets"] == []
     assert graph.nodes["wall_plug.1"]["component_width"] == 24
     assert graph.nodes["wall_plug.1"]["component_height"] == 24

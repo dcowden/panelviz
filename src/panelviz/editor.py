@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import base64
 import csv
-import webbrowser
+import secrets
+import socket
 import zipfile
 from dataclasses import dataclass
 from hashlib import sha1
@@ -156,7 +157,9 @@ def run_editor(
     except ImportError as error:  # pragma: no cover
         raise RuntimeError("NiceGUI is required for --edit. Run: pip install -e \".[dev]\"") from error
 
+    selected_port = _select_editor_port(port)
     session = EditorSession(Path(input_file).resolve())
+    cache_bust = secrets.token_urlsafe(12)
 
     @app.get("/panel-data.json", response_model=None)
     def panel_data_endpoint() -> dict[str, Any] | JSONResponse:
@@ -263,13 +266,31 @@ def run_editor(
 
     @app.get("/")
     def editor_page() -> HTMLResponse:
-        return HTMLResponse(_editor_document(session.path), headers=_no_store_headers())
+        return HTMLResponse(_editor_document(session.path, cache_bust), headers=_no_store_headers())
 
-    url = f"http://127.0.0.1:{port}/"
+    url = f"http://127.0.0.1:{selected_port}/"
+    if selected_port != port:
+        print(f"Port {port} is already in use; using {selected_port} instead.")
     print(f"Serving PanelViz editor at {url}")
-    if open_browser:
-        webbrowser.open(url)
-    ui.run(host="127.0.0.1", port=port, reload=False, show=False, title="PanelViz Editor")
+    ui.run(host="127.0.0.1", port=selected_port, reload=False, show=open_browser, title="PanelViz Editor")
+
+
+def _select_editor_port(preferred_port: int, attempts: int = 50) -> int:
+    """Return the preferred editor port or the next free localhost port."""
+
+    for port in range(preferred_port, preferred_port + attempts):
+        if _localhost_port_is_free(port):
+            return port
+    raise EditorError(f"No free localhost port found from {preferred_port} through {preferred_port + attempts - 1}")
+
+
+def _localhost_port_is_free(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        try:
+            probe.bind(("127.0.0.1", port))
+        except OSError:
+            return False
+    return True
 
 
 @dataclass
@@ -421,7 +442,11 @@ def _shift_point(point: Any, dx: float, dy: float) -> None:
 
 
 def _no_store_headers() -> dict[str, str]:
-    return {"Cache-Control": "no-store"}
+    return {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
 
 
 def _snapshot_export_args(
@@ -538,13 +563,16 @@ def _routed_wire_from_router(router: WireRouter, wire_index: int):
         raise EditorError(f"Unknown routed wire index: {wire_index}") from error
 
 
-def _editor_document(path: Path) -> str:
-    asset_version = sha1((_viewer_css() + _viewer_js() + _editor_css() + _editor_js()).encode("utf-8")).hexdigest()[:12]
+def _editor_document(path: Path, cache_bust: str | None = None) -> str:
+    asset_version = cache_bust or sha1((_viewer_css() + _viewer_js() + _editor_css() + _editor_js()).encode("utf-8")).hexdigest()[:12]
     return f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>PanelViz Editor</title>
   <link rel="stylesheet" href="/viewer.css?v={asset_version}">
   <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.2.4/dist/svg.min.js"></script>
@@ -602,8 +630,10 @@ def _editor_html(path: Path, asset_version: str = "") -> str:
     <div id="wire-table-resizer" aria-hidden="true"></div>
     <aside class="wire-table-panel" aria-label="Wire list">
       <div class="wire-table-header">
-        <h2>Wire List</h2>
+        <h2>Wire List <span id="wire-table-count" class="wire-table-count">0 wires</span></h2>
         <div class="wire-table-actions">
+          <label class="wire-tag-filter">Tag <input id="wire-tag-filter" type="search" list="wire-tag-options" placeholder="all"></label>
+          <datalist id="wire-tag-options"></datalist>
           <button id="toggle-wire-columns" type="button">Split Columns</button>
         </div>
       </div>
@@ -883,7 +913,7 @@ function apiPost(url, payload, options = {}) {
 }
 
 function reloadPanelData() {
-  fetch('panel-data.json')
+  fetch('panel-data.json', { cache: 'no-store' })
     .then((response) => response.json().then((data) => {
       if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
       return data;

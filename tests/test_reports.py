@@ -4,6 +4,8 @@ from panelviz.parser import parse_panel_yaml
 from panelviz.reports import (
     component_summary_rows,
     component_summary_table,
+    wire_list_rows,
+    wire_list_table,
     write_component_summary_csv,
     write_wire_list_csv,
 )
@@ -51,8 +53,37 @@ def test_report_csv_writers_write_expected_files():
     assert write_component_summary_csv(router, summary_csv) == summary_csv
 
     assert wire_csv.read_text(encoding="utf-8").splitlines()[0] == (
-        "wirenumber,from_component,from_pin,to_component,to_pin,netname,awg"
+        "wirenumber,from_component,from_pin,to_component,to_pin,netname,awg,tags"
     )
     assert summary_csv.read_text(encoding="utf-8").splitlines()[0] == (
         "component,type,pins,unconnected_pins,no_connects,multi_connected_pins,warnings"
     )
+
+
+def test_wire_list_rows_include_tags_from_both_endpoint_components():
+    parsed = parse_panel_yaml(
+        """
+components:
+  power:
+    type: connector
+    tags: [dc_power]
+    size: {width: 1, height: 1}
+    pins:
+      right: [V+]
+  board:
+    type: pcb
+    tags: [control, pcb]
+    size: {width: 1, height: 1}
+    pins:
+      left: [VIN]
+connections:
+  wires:
+    - [power.V+, board.VIN]
+"""
+    )
+    router = WireRouter.route_parse_result(parsed)
+
+    row = wire_list_rows(router)[0]
+
+    assert row.tags == "dc_power, control, pcb"
+    assert "dc_power, control, pcb" in wire_list_table(router)

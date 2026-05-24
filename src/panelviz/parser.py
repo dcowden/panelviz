@@ -271,6 +271,7 @@ def build_component_pin_graph(components: Mapping[str, Component]) -> nx.MultiGr
                 pin=pin,
                 pin_side=pin_side.value if pin_side else None,
                 component_type=component.type.value,
+                component_tags=list(component.tags),
                 exposed_nets=exposed_nets_by_pin.get(pin, []),
                 component_width=component.size.width if component.size else None,
                 component_height=component.size.height if component.size else None,

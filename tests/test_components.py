@@ -59,9 +59,15 @@ def test_net_definition_validates_positions_and_pin_names():
 
 
 def test_simple_component_stringifies_pin_names_and_qualifies_them():
-    connector = Connector(name="wall_plug", pins={"right": ["GND", 1, 2]}, size={"width": 24, "height": 24})
+    connector = Connector(
+        name="wall_plug",
+        tags=["terminals", 110],
+        pins={"right": ["GND", 1, 2]},
+        size={"width": 24, "height": 24},
+    )
 
     assert connector.type == ComponentType.CONNECTOR
+    assert connector.tags == ["terminals", "110"]
     assert connector.physical_pins() == ["GND", "1", "2"]
     assert connector.qualified_pins() == ["wall_plug.GND", "wall_plug.1", "wall_plug.2"]
     assert connector.pin_side("GND") == PinSide.RIGHT
@@ -149,6 +155,12 @@ def test_component_rejects_empty_or_ungrouped_pins_bad_positions_size_and_duplic
 
     with pytest.raises(ValidationError, match="component dimensions must be positive"):
         Connector(name="bad", pins={"left": ["A"]}, size={"width": 0, "height": 1})
+
+    with pytest.raises(ValidationError, match="component tags must be a list"):
+        Connector(name="bad", pins={"left": ["A"]}, tags="safety")
+
+    with pytest.raises(ValidationError, match="component tags must be unique"):
+        Connector(name="bad", pins={"left": ["A"]}, tags=["safety", "safety"])
 
     with pytest.raises(ValidationError, match="component net names must be unique"):
         Component(

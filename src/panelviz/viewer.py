@@ -173,6 +173,7 @@ def viewer_data(
             {
                 "name": layout.component_name,
                 "type": router.components[layout.component_name].type.value,
+                "tags": list(router.components[layout.component_name].tags),
                 "x": x,
                 "y": y,
                 "width": layout.width_pt,
@@ -354,6 +355,7 @@ def _wire_view(
         "from_pin": wire.from_pin.pin,
         "to_component": wire.to_pin.component,
         "to_pin": wire.to_pin.pin,
+        "tags": _wire_tags(router, wire.from_pin.component, wire.to_pin.component),
         "source": {
             "row": wire.source_row_index,
             "segment": wire.source_segment_index,
@@ -439,6 +441,15 @@ def _wire_line_weight(base_weight: float, awg: int | None) -> float:
     if awg <= 12:
         weight *= 2
     return max(base_weight, weight)
+
+
+def _wire_tags(router: WireRouter, from_component: str, to_component: str) -> str:
+    tags: list[str] = []
+    for component_name in (from_component, to_component):
+        for tag in router.components[component_name].tags:
+            if tag not in tags:
+                tags.append(tag)
+    return ", ".join(tags)
 
 
 def _side_vector(side: PinSide) -> tuple[float, float]:
@@ -559,8 +570,10 @@ def _viewer_html() -> str:
       <div id="wire-table-resizer" aria-hidden="true"></div>
       <aside class="wire-table-panel" aria-label="Wire list">
         <div class="wire-table-header">
-          <h2>Wire List</h2>
+          <h2>Wire List <span id="wire-table-count" class="wire-table-count">0 wires</span></h2>
           <div class="wire-table-actions">
+            <label class="wire-tag-filter">Tag <input id="wire-tag-filter" type="search" list="wire-tag-options" placeholder="all"></label>
+            <datalist id="wire-tag-options"></datalist>
             <button id="toggle-wire-columns" type="button">Split Columns</button>
           </div>
         </div>
@@ -643,6 +656,20 @@ p {
   align-items: center;
   gap: 6px;
 }
+.wire-tag-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #475569;
+  font-size: 12px;
+}
+.wire-tag-filter input {
+  width: 96px;
+  border: 1px solid #94a3b8;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font: inherit;
+}
 button {
   border: 1px solid #94a3b8;
   background: #f8fafc;
@@ -693,6 +720,13 @@ button {
 h2 {
   margin: 0;
   font-size: 14px;
+}
+.wire-table-count {
+  display: inline-block;
+  margin-left: 8px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
 }
 .wire-table-scroll {
   overflow: auto;
@@ -970,6 +1004,7 @@ const state = {
   tableMode: 'combined',
   sortKey: 'index',
   sortDirection: 'asc',
+  tagFilter: '',
   diagnosticNodes: [],
   diagnosticComponents: [],
 };
@@ -979,10 +1014,13 @@ const workspace = document.querySelector('.workspace');
 const statusEl = document.getElementById('status');
 const wireTableHead = document.getElementById('wire-table-head');
 const wireTableBody = document.getElementById('wire-table-body');
+const wireTableCount = document.getElementById('wire-table-count');
 const toggleWireColumnsButton = document.getElementById('toggle-wire-columns');
 const toggleWireTableButton = document.getElementById('toggle-wire-table');
 const toggleReferenceGridButton = document.getElementById('toggle-reference-grid');
 const wireTableResizer = document.getElementById('wire-table-resizer');
+const wireTagFilterInput = document.getElementById('wire-tag-filter');
+const wireTagOptions = document.getElementById('wire-tag-options');
 
 document.querySelectorAll('input[name="highlight-mode"]').forEach((input) => {
   input.addEventListener('change', () => {
@@ -1028,6 +1066,14 @@ toggleWireTableButton.addEventListener('click', () => {
   toggleWireTableButton.textContent = workspace.classList.contains('table-collapsed') ? 'Show Wires' : 'Hide Wires';
 });
 
+if (wireTagFilterInput) {
+  wireTagFilterInput.addEventListener('input', () => {
+    state.tagFilter = wireTagFilterInput.value.trim().toLowerCase();
+    renderWireTable(state.data.wires);
+    applyHighlight();
+  });
+}
+
 toggleReferenceGridButton.addEventListener('click', () => {
   const svg = host.querySelector('svg');
   const layer = host.querySelector('.reference-grid-layer');
@@ -1035,7 +1081,7 @@ toggleReferenceGridButton.addEventListener('click', () => {
   updateReferenceGrid(svg, visible);
 });
 
-fetch('panel-data.json')
+fetch('panel-data.json', { cache: 'no-store' })
   .then((response) => response.json().then((data) => {
     if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
     return data;
@@ -1076,6 +1122,7 @@ function render(data, options = {}) {
     state.viewBox = fitBoundsToViewport(state.scene, 72);
   }
   setViewBox(svg);
+  populateTagFilterOptions(data.wires);
   renderWireTable(data.wires);
 
   enableDrag(svg);
@@ -1130,6 +1177,7 @@ function refreshData(data, options = {}) {
   sortEndpointLayers();
   state.scene = renderedSceneBounds(svg, state.scene);
   updateReferenceGrid(svg, gridVisible);
+  populateTagFilterOptions(data.wires);
   renderWireTable(data.wires);
   applyHighlight();
   statusEl.textContent = `${data.components.length} components, ${data.wires.length} wires. SVG.js ${window.SVG ? 'loaded' : 'fallback renderer active'}.`;
@@ -1307,7 +1355,8 @@ function renderComponent(layer, component) {
   const centerFitWidth = centerTextFitWidth(component, component.rotation || 0, thinCenterText ? 'vertical' : 'horizontal');
   const fittedNameSize = fitTextSize(component.name, preferredNameSize, centerFitWidth, 8);
   const preferredTypeSize = Math.max(5, fittedNameSize * 0.62);
-  const typeFontSize = Math.min(fittedNameSize * 0.72, fitTextSize(component.type, preferredTypeSize, centerFitWidth, 4.5));
+  const componentSubtitle = componentSubtitleText(component);
+  const typeFontSize = Math.min(fittedNameSize * 0.72, fitTextSize(componentSubtitle, preferredTypeSize, centerFitWidth, 4.5));
   group.appendChild(textEl(component.name, {
     class: 'component-name',
     'data-text-role': 'name',
@@ -1319,7 +1368,7 @@ function renderComponent(layer, component) {
     y: centerY - typeFontSize * 0.55,
     'font-size': fittedNameSize,
   }));
-  group.appendChild(textEl(component.type, {
+  group.appendChild(textEl(componentSubtitle, {
     class: 'component-type',
     'data-text-role': 'type',
     'data-preferred-size': preferredTypeSize,
@@ -1445,11 +1494,14 @@ function bindComponentSelectTarget(target, group, componentName) {
 function renderWireTable(wires) {
   renderWireTableHeader();
   wireTableBody.textContent = '';
-  sortedWires(wires).forEach((wire) => {
+  const visibleWires = sortedWires(wires);
+  updateWireTableCount(visibleWires.length, wires.length);
+  visibleWires.forEach((wire) => {
     const row = document.createElement('tr');
     row.className = 'wire-table-row';
     row.dataset.wire = String(wire.index);
     row.dataset.net = wire.net;
+    row.dataset.tags = wire.tags || '';
     setNetStyle(row, wire.style);
     row.innerHTML = state.tableMode === 'combined'
       ? `
@@ -1458,6 +1510,7 @@ function renderWireTable(wires) {
         <td>${escapeHtml(wire.to)}</td>
         <td>${escapeHtml(wire.net)}</td>
         <td>${escapeHtml(wire.awg)}</td>
+        <td>${escapeHtml(wire.tags || '')}</td>
         <td>${escapeHtml(wire.from_ref || '')}</td>
         <td>${escapeHtml(wire.to_ref || '')}</td>
       `
@@ -1471,6 +1524,7 @@ function renderWireTable(wires) {
         <td>${escapeHtml(wire.to_ref || '')}</td>
         <td>${escapeHtml(wire.net)}</td>
         <td>${escapeHtml(wire.awg)}</td>
+        <td>${escapeHtml(wire.tags || '')}</td>
       `;
     row.addEventListener('click', () => {
       selectWire(String(wire.index), wire.net);
@@ -1478,6 +1532,13 @@ function renderWireTable(wires) {
     });
     wireTableBody.appendChild(row);
   });
+}
+
+function updateWireTableCount(visibleCount, totalCount) {
+  if (!wireTableCount) return;
+  const visible = Number(visibleCount) || 0;
+  const total = Number(totalCount) || 0;
+  wireTableCount.textContent = visible === total ? `${total} wires` : `${visible} of ${total} wires`;
 }
 
 function renderWireTableHeader() {
@@ -1490,6 +1551,7 @@ function renderWireTableHeader() {
         ${sortableHeader('To', 'to', marker('to'))}
         ${sortableHeader('Net', 'net', marker('net'))}
         ${sortableHeader('AWG', 'awg', marker('awg'))}
+        ${sortableHeader('Tags', 'tags', marker('tags'))}
         ${sortableHeader('From Ref', 'from_ref', marker('from_ref'))}
         ${sortableHeader('To Ref', 'to_ref', marker('to_ref'))}
       </tr>
@@ -1502,6 +1564,7 @@ function renderWireTableHeader() {
         <th colspan="3">To</th>
         <th rowspan="2">${sortButton('Net', 'net', marker('net'))}</th>
         <th rowspan="2">${sortButton('AWG', 'awg', marker('awg'))}</th>
+        <th rowspan="2">${sortButton('Tags', 'tags', marker('tags'))}</th>
       </tr>
       <tr>
         ${sortableHeader('Component', 'from_component', marker('from_component'))}
@@ -1539,13 +1602,41 @@ function sortWireTable(key) {
 
 function sortedWires(wires) {
   const direction = state.sortDirection === 'asc' ? 1 : -1;
-  return [...wires].sort((left, right) => {
+  return filterWiresByTag(wires).sort((left, right) => {
     const leftValue = wireSortValue(left, state.sortKey);
     const rightValue = wireSortValue(right, state.sortKey);
     if (leftValue < rightValue) return -1 * direction;
     if (leftValue > rightValue) return 1 * direction;
     return left.index - right.index;
   });
+}
+
+function filterWiresByTag(wires) {
+  if (!state.tagFilter) return [...wires];
+  return wires.filter((wire) => wireTags(wire).some((tag) => tag.toLowerCase() === state.tagFilter));
+}
+
+function wireTags(wire) {
+  return String(wire.tags || '')
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function populateTagFilterOptions(wires) {
+  if (!wireTagOptions) return;
+  const tags = [...new Set(wires.flatMap(wireTags))].sort((left, right) => left.localeCompare(right));
+  wireTagOptions.textContent = '';
+  tags.forEach((tag) => {
+    const option = document.createElement('option');
+    option.value = tag;
+    wireTagOptions.appendChild(option);
+  });
+}
+
+function componentSubtitleText(component) {
+  if (Array.isArray(component.tags) && component.tags.length) return component.tags.join(', ');
+  return component.type || '';
 }
 
 function wireSortValue(wire, key) {

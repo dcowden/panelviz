@@ -197,6 +197,7 @@ class ComponentLayout(BaseModel):
 
     component_name: str
     component_type: str
+    component_tags: list[str] = Field(default_factory=list)
     width_pt: float
     height_pt: float
     margin_pt: float
@@ -320,6 +321,7 @@ def plan_component_layout(
     return ComponentLayout(
         component_name=component.name,
         component_type=component.type.value,
+        component_tags=list(component.tags),
         width_pt=metrics.width,
         height_pt=metrics.height,
         margin_pt=visual_config.margin_pt,
@@ -611,6 +613,7 @@ def _component_svg_body(layout: ComponentLayout, offset_x: float, offset_y: floa
     ]
     center_text_x = offset_x + layout.margin_pt + layout.center_x + layout.center_width / 2
     center_text_y = offset_y + layout.margin_pt + layout.center_y + layout.center_height / 2
+    subtitle = _component_subtitle(layout)
     type_font_size = max(6.0, layout.typography.component_name_font_size_pt * 0.58)
     body.extend(
         [
@@ -624,7 +627,7 @@ def _component_svg_body(layout: ComponentLayout, offset_x: float, offset_y: floa
             _text(
                 center_text_x,
                 center_text_y + layout.typography.component_name_font_size_pt * 0.75,
-                layout.component_type,
+                subtitle,
                 type_font_size,
                 "component-type",
             ),
@@ -651,6 +654,10 @@ def _component_svg_body(layout: ComponentLayout, offset_x: float, offset_y: floa
             )
         )
     return body
+
+
+def _component_subtitle(layout: ComponentLayout) -> str:
+    return ", ".join(layout.component_tags) if layout.component_tags else layout.component_type
 
 
 def _outer_width(layout: ComponentLayout) -> float:

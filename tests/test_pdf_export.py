@@ -50,8 +50,33 @@ def test_wire_list_pdf_accepts_two_endpoint_references():
     schematic_pdf_text = _pdf_stream_text(schematic.content)
     assert "From Ref" in wire_pdf_text
     assert "To Ref" in wire_pdf_text
+    assert "Tags" in wire_pdf_text
     assert "earth-1" in wire_pdf_text
     assert "0.0863 0.6392 0.2902 RG" in schematic_pdf_text
+
+
+def test_pdf_component_subtitle_prefers_tags():
+    parsed = parse_panel_yaml(
+        """
+components:
+  tagged_part:
+    type: connector
+    tags: [safety, field]
+    size: {width: 1, height: 1}
+    pins:
+      right: [A]
+connections:
+  no_connects: [tagged_part.A]
+"""
+    )
+    router = WireRouter.route_parse_result(parsed)
+    data = viewer_data(router, units=parsed.config.units, columns=1)
+
+    schematic = export_schematic_pdf(router, data, DrawingMeta(file_name="tagged.yml"))
+    text = _pdf_stream_text(schematic.content)
+
+    assert "safety, field" in text
+    assert "connector" not in text
 
 
 def _pdf_stream_text(content: bytes) -> str:

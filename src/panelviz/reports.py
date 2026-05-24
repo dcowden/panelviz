@@ -21,9 +21,10 @@ class WireListRow(BaseModel):
     to_pin: str
     netname: str
     awg: int
+    tags: str
 
 
-WIRE_LIST_COLUMNS = ["wirenumber", "from_component", "from_pin", "to_component", "to_pin", "netname", "awg"]
+WIRE_LIST_COLUMNS = ["wirenumber", "from_component", "from_pin", "to_component", "to_pin", "netname", "awg", "tags"]
 
 
 class ComponentSummaryRow(BaseModel):
@@ -65,6 +66,7 @@ def wire_list_rows(router: WireRouter, grouped: bool = True) -> list[WireListRow
             to_pin=wire.to_pin.pin,
             netname=wire.net_name or "",
             awg=wire.awg,
+            tags=_wire_tags(router, wire.from_pin.component, wire.to_pin.component),
         )
         for wire in wires
     ]
@@ -141,3 +143,13 @@ def write_component_summary_csv(router: WireRouter, path: str | Path) -> Path:
 
 def _list_or_dash(values: list[str]) -> str:
     return ", ".join(values) if values else "-"
+
+
+def _wire_tags(router: WireRouter, from_component: str, to_component: str) -> str:
+    tags: list[str] = []
+    for component_name in (from_component, to_component):
+        component = router.components[component_name]
+        for tag in component.tags:
+            if tag not in tags:
+                tags.append(tag)
+    return ", ".join(tags)

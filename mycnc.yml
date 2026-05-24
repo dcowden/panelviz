@@ -32,6 +32,7 @@ config:
 components:
   y_cl57s:
     type: driver
+    tags: [control]
     size:
       width: 3
       height: 4.7
@@ -40,6 +41,7 @@ components:
             EA-, VCC, EGND, A+, A-, B+, B-, +VDC, GND]
   Z_cl57s:
     type: driver
+    tags: [control]
     size:
       width: 3
       height: 4.7
@@ -48,6 +50,7 @@ components:
             EA-, VCC, EGND, A+, A-, B+, B-, +VDC, GND]
   axbb-e:
     type: driver
+    tags: [control]
     size:
       width: 4.55
       height: 4
@@ -78,6 +81,7 @@ components:
       - {name: YSTEP, pins: [O9]}
   contactor_110:
     type: switch
+    tags: [vfd]
     size:
       width: 1.772
       height: 3.543
@@ -87,6 +91,7 @@ components:
       bottom: [T1, T2, T3, 14, A2]
   contactor_220:
     type: switch
+    tags: [vfd]
     size:
       width: 1.772
       height: 3.543
@@ -96,6 +101,7 @@ components:
       bottom: [T1, T2, T3, 14, A2]
   transformer:
     type: power_supply
+    tags: [vfd]
     size:
       width: 7.5
       height: 5.5
@@ -104,6 +110,7 @@ components:
       bottom: [GND, 110L, 110N, 220L, 220N]
   36V_X1:
     type: power_supply
+    tags: [vfd]
     size:
       width: 4.5
       height: 8.4
@@ -112,6 +119,7 @@ components:
       bottom: [GND, 110L, 110N, 36V0_X1, 36V_X1]
   36V_X2:
     type: power_supply
+    tags: [vfd]
     size:
       width: 4.5
       height: 8.4
@@ -120,6 +128,7 @@ components:
       bottom: [GND, 110L, 110N, 36V0_X2, 36V_X2]
   48v:
     type: power_supply
+    tags: [vfd]
     size:
       width: 4.5
       height: 8.4
@@ -133,6 +142,7 @@ components:
         pins: [48V]
   24v:
     type: power_supply
+    tags: [dc_power]
     size:
       width: 1.772
       height: 5
@@ -141,6 +151,7 @@ components:
       bottom: [GND, 110L, 110N, 24V0, 24V]
   5v:
     type: power_supply
+    tags: [dc_power]
     size:
       width: 1.772
       height: 3.543
@@ -149,6 +160,7 @@ components:
       bottom: [GND, 110L, 110N, 5V0, 5V]
   wall_plug:
     type: connector
+    tags: [vfd]
     size:
       width: 1.5
       height: 1
@@ -156,6 +168,7 @@ components:
       right: [GND, 1, 2]
   run_relay:
     type: relay
+    tags: [safety]
     size:
       width: 1
       height: 2
@@ -164,6 +177,7 @@ components:
       bottom: [NO, COM, NC]
   upper_limits_ok_relay:
     type: relay
+    tags: [safety]
     size:
       width: 1
       height: 2
@@ -172,6 +186,7 @@ components:
       bottom: [NO, COM, NC]
   opto_board:
     type: pcb
+    tags: [safety]
     size:
       width: 4
       height: 3
@@ -197,6 +212,7 @@ components:
         pins: [O8]
   alarm_limit_board:
     type: pcb
+    tags: [safety]
     size:
       width: 2.2
       height: 1.6
@@ -228,6 +244,7 @@ components:
         pins: [D12]
   vfd:
     type: vfd
+    tags: [vfd]
     size:
       width: 6
       height: 8
@@ -237,6 +254,7 @@ components:
       bottom: [R, S, T, P+, U, V, W, GND]
   cnc_terminals:
     type: terminal_block
+    tags: [terminals]
     size:
       width: 2
       height: 0.118 # per position
@@ -246,6 +264,7 @@ components:
     positions: 76
   live_power_t:
     type: terminal_block
+    tags: [vfd]
     size:
       width: 2
       height: 0.118
@@ -259,6 +278,7 @@ components:
         positions: [2, 4, 6]
   switched_110N:
     type: bus_block
+    tags: [vfd]
     size:
       width: 2
       height: 0.118
@@ -270,6 +290,7 @@ components:
     positions: 4
   switched_110L:
     type: bus_block
+    tags: [vfd]
     size:
       width: 2
       height: 0.118
@@ -281,6 +302,7 @@ components:
     positions: 4
   terminals_5v:
     type: bus_block
+    tags: [terminals]
     size:
       width: 2
       height: 0.118
@@ -292,6 +314,7 @@ components:
     positions: 3
   terminals_5v0:
     type: bus_block
+    tags: [terminals]
     size:
       width: 2
       height: 0.118
@@ -303,6 +326,7 @@ components:
     positions: 7
   terminals_24v:
     type: bus_block
+    tags: [terminals]
     size:
       width: 2
       height: 0.118
@@ -314,6 +338,7 @@ components:
     positions: 2
   terminals_24v0:
     type: bus_block
+    tags: [terminals]
     size:
       width: 2
       height: 0.118
@@ -325,6 +350,7 @@ components:
     positions: 1
   terminals_earth:
     type: bus_block
+    tags: [terminals]
     size:
       width: 2
       height: 0.118
@@ -336,6 +362,7 @@ components:
     positions: 1
   control_5v:
     type: bus_block
+    tags: [control]
     size:
       width: 2
       height: 0.118
@@ -347,6 +374,7 @@ components:
     positions: 2
   control_5v0:
     type: bus_block
+    tags: [control]
     size:
       width: 2
       height: 0.118
@@ -358,6 +386,7 @@ components:
     positions: 5
   control_24v:
     type: bus_block
+    tags: [control]
     size:
       width: 2
       height: 0.118
@@ -369,6 +398,7 @@ components:
     positions: 4
   control_24v0:
     type: bus_block
+    tags: [control]
     size:
       width: 2
       height: 0.118
@@ -380,6 +410,7 @@ components:
     positions: 2
   control_earth:
     type: bus_block
+    tags: [control]
     size:
       width: 2
       height: 0.118
@@ -391,6 +422,7 @@ components:
     positions: 1
   safety_5v:
     type: bus_block
+    tags: [safety]
     size:
       width: 2
       height: 0.118
@@ -402,6 +434,7 @@ components:
     positions: 5
   safety_5v0:
     type: bus_block
+    tags: [safety]
     size:
       width: 2
       height: 0.118
@@ -413,6 +446,7 @@ components:
     positions: 5
   safety_24v:
     type: bus_block
+    tags: [safety]
     size:
       width: 2
       height: 0.118
@@ -424,6 +458,7 @@ components:
     positions: 1
   safety_24v0:
     type: bus_block
+    tags: [safety]
     size:
       width: 2
       height: 0.118
@@ -435,6 +470,7 @@ components:
     positions: 2
   safety_earth:
     type: bus_block
+    tags: [safety]
     size:
       width: 2
       height: 0.118
@@ -446,6 +482,7 @@ components:
     positions: 1
   dc_power_5v:
     type: bus_block
+    tags: [dc_power]
     size:
       width: 2
       height: 0.118
@@ -457,6 +494,7 @@ components:
     positions: 2
   dc_power_5v0:
     type: bus_block
+    tags: [dc_power]
     size:
       width: 2
       height: 0.118
@@ -468,6 +506,7 @@ components:
     positions: 2
   dc_power_24v:
     type: bus_block
+    tags: [dc_power]
     size:
       width: 2
       height: 0.118
@@ -479,6 +518,7 @@ components:
     positions: 2
   dc_power_24v0:
     type: bus_block
+    tags: [dc_power]
     size:
       width: 2
       height: 0.118
@@ -490,6 +530,7 @@ components:
     positions: 2
   dc_power_earth:
     type: bus_block
+    tags: [dc_power]
     size:
       width: 2
       height: 0.118
@@ -501,6 +542,7 @@ components:
     positions: 2
   vfd_earth:
     type: bus_block
+    tags: [vfd]
     size:
       width: 2
       height: 0.118
@@ -512,6 +554,7 @@ components:
     positions: 4
   coil_t:
     type: terminal_block
+    tags: [safety]
     size:
       width: 2
       height: 0.118
@@ -526,6 +569,7 @@ components:
     positions: 8
   connector_earth:
     type: bus_block
+    tags: [terminals]
     size:
       width: 2
       height: 0.118
@@ -537,6 +581,7 @@ components:
     positions: 8
   z_motor:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -544,6 +589,7 @@ components:
       left: [ma+, ma-, mb+, mb-, shield]
   z_control:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -551,6 +597,7 @@ components:
       left: [eb+, eb-, ea+, ea-, vcc, gnd, shield]
   z_limits:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -558,6 +605,7 @@ components:
       left: [5v, ul, ll, 5v0, shield]
   y_motor:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -565,6 +613,7 @@ components:
       left: [ma+, ma-, mb+, mb-, shield]
   y_control:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -572,6 +621,7 @@ components:
       left: [eb+, eb-, ea+, ea-, vcc, gnd, shield]
   y_limits:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -579,6 +629,7 @@ components:
       left: [5v, ul, ll, 5v0, shield]
   x1_motor:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -586,6 +637,7 @@ components:
       left: [M+, M-, shield]
   x1_control:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -593,6 +645,7 @@ components:
       left: [alrm+, alrm-, dir+, dir-, pul+, pul-]
   x1_limits:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -600,6 +653,7 @@ components:
       left: [5v, ul, ll, 5v0, shield]
   x2_motor:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -607,6 +661,7 @@ components:
       left: [M+, M-, shield]
   x2_control:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -614,6 +669,7 @@ components:
       left: [alrm+, alrm-, dir+, dir-, pul+, pul-]
   x2_limits:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -621,6 +677,7 @@ components:
       left: [5v, ul, ll, 5v0, shield]
   probe:
     type: connector
+    tags: [terminals]
     size:
       width: .5
       height: .5
@@ -628,6 +685,7 @@ components:
       left: [probe+, probe-, shield]
   estop_panel:
     type: connector
+    tags: [terminals]
     size:
       width: 0.5
       height: 0.5
@@ -635,6 +693,7 @@ components:
       left: [reset_sw+, reset_sw-, estop+, estop-, light+, light-]
   secondary_estop:
     type: connector
+    tags: [terminals]
     size:
       width: 0.5
       height: 0.5
@@ -642,6 +701,7 @@ components:
       left: [estop+, estop-]
   spindle:
     type: connector
+    tags: [terminals]
     size:
       width: 0.5
       height: 0.5
