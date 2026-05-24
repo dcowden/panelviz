@@ -58,24 +58,24 @@ components:
             O17, O16, O15, O14, O13, O12, O11, O10, O9]
       bottom: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]                                                                           #these are in the aux board
     nets:
-      - { name: VFD_REV, pins: [O2] }
-      - { name: VFD_FWD, pins: [O3] }
-      - { name: UL1, pins: [I1-] }
-      - { name: YLL, pins: [I2-] }
-      - { name: X1LL, pins: [I3-] }
-      - { name: X2LL, pins: [I4-] }
-      - { name: ZLL, pins: [I5-] }
-      - { name: COIL+, pins: [I6+] }
-      - { name: COIL-, pins: [I6-] }
-      - { name: VFD_V1, pins: [A01] }
-      - { name: ZDIR, pins: [O16] }
-      - { name: ZSTEP, pins: [O15] }
-      - { name: X2DIR, pins: [O14] }
-      - { name: X2STEP, pins: [O13] }
-      - { name: X1DIR, pins: [O12] }
-      - { name: X1STEP, pins: [O11] }
-      - { name: YDIR, pins: [O10] }
-      - { name: YSTEP, pins: [O9] }
+      - {name: VFD_REV, pins: [O2]}
+      - {name: VFD_FWD, pins: [O3]}
+      - {name: UL1, pins: [I1-]}
+      - {name: YLL, pins: [I2-]}
+      - {name: X1LL, pins: [I3-]}
+      - {name: X2LL, pins: [I4-]}
+      - {name: ZLL, pins: [I5-]}
+      - {name: COIL+, pins: [I6+]}
+      - {name: COIL-, pins: [I6-]}
+      - {name: VFD_V1, pins: [A01]}
+      - {name: ZDIR, pins: [O16]}
+      - {name: ZSTEP, pins: [O15]}
+      - {name: X2DIR, pins: [O14]}
+      - {name: X2STEP, pins: [O13]}
+      - {name: X1DIR, pins: [O12]}
+      - {name: X1STEP, pins: [O11]}
+      - {name: YDIR, pins: [O10]}
+      - {name: YSTEP, pins: [O9]}
   contactor_110:
     type: switch
     size:
@@ -279,29 +279,7 @@ components:
       left: [A]
       right: [B]
     positions: 4
-  24V_bus:
-    type: bus_block
-    size:
-      width: 2
-      height: 0.118
-    nets:
-      - name: 24V
-    pins:
-      left: [A]
-      right: [B]
-    positions: 10
-  24V0_bus:
-    type: bus_block
-    size:
-      width: 2
-      height: 0.118
-    nets:
-      - name: 24V0
-    pins:
-      left: [A]
-      right: [B]
-    positions: 4
-  5V_bus:
+  terminals_5v:
     type: bus_block
     size:
       width: 2
@@ -311,8 +289,8 @@ components:
     pins:
       left: [A]
       right: [B]
-    positions: 16
-  5V0_bus:
+    positions: 3
+  terminals_5v0:
     type: bus_block
     size:
       width: 2
@@ -322,7 +300,216 @@ components:
     pins:
       left: [A]
       right: [B]
-    positions: 24
+    positions: 7
+  terminals_24v:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 24V
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+  terminals_24v0:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 24V0
+    pins:
+      left: [A]
+      right: [B]
+    positions: 1
+  terminals_earth:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: earth
+    pins:
+      left: [A]
+      right: [B]
+    positions: 1
+  control_5v:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 5V
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+  control_5v0:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 5V0
+    pins:
+      left: [A]
+      right: [B]
+    positions: 5
+  control_24v:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 24V
+    pins:
+      left: [A]
+      right: [B]
+    positions: 4
+  control_24v0:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 24V0
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+  control_earth:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: earth
+    pins:
+      left: [A]
+      right: [B]
+    positions: 1
+  safety_5v:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 5V
+    pins:
+      left: [A]
+      right: [B]
+    positions: 5
+  safety_5v0:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 5V0
+    pins:
+      left: [A]
+      right: [B]
+    positions: 5
+  safety_24v:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 24V
+    pins:
+      left: [A]
+      right: [B]
+    positions: 1
+  safety_24v0:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 24V0
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+  safety_earth:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: earth
+    pins:
+      left: [A]
+      right: [B]
+    positions: 1
+  dc_power_5v:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 5V
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+  dc_power_5v0:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 5V0
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+  dc_power_24v:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 24V
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+  dc_power_24v0:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 24V0
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+  dc_power_earth:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: earth
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+  vfd_earth:
+    type: bus_block
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: earth
+    pins:
+      left: [A]
+      right: [B]
+    positions: 4
   coil_t:
     type: terminal_block
     size:
@@ -337,17 +524,6 @@ components:
       - name: COIL-
         positions: [5, 6, 7, 8]
     positions: 8
-  earth:
-    type: bus_block
-    size:
-      width: 2
-      height: 0.118
-    nets:
-      - name: earth
-    pins:
-      left: [A]
-      right: [B]
-    positions: 4
   connector_earth:
     type: bus_block
     size:
@@ -474,7 +650,7 @@ components:
 connections:
   wires:
     - from: wall_plug.GND
-      to: earth.1A
+      to: vfd_earth.earth
       net: earth
       awg: 12
     - from: wall_plug.1
@@ -489,28 +665,28 @@ connections:
     - [live_power_t.110N, transformer.110N]
     - [live_power_t.110L, contactor_110.T2]
     - [live_power_t.110N, contactor_110.T3]
-    - [transformer.GND, earth.earth]
+    - [transformer.GND, vfd_earth.earth]
     - [transformer.220L, contactor_220.T1]
     - [transformer.220N, contactor_220.T2]
     - [contactor_110.L2, switched_110L.110L_SWITCHED]
     - [contactor_110.L3, switched_110N.110N_SWITCHED]
-    - [48v.GND, earth.earth]
-    - [24v.GND, earth.earth]
+    - [48v.GND, vfd_earth.earth]
+    - [24v.GND, dc_power_earth.earth]
     - [24v.110N, live_power_t.110N]
     - [24v.110L, live_power_t.110L]
     - [5v.110N, live_power_t.110N]
     - [5v.110L, live_power_t.110L]
-    - [5v.GND, earth.earth]
+    - [5v.GND, dc_power_earth.earth]
     - [48v.110L, switched_110L.110L_SWITCHED]
     - [36V_X1.110N, switched_110N.110N_SWITCHED]
     - [36V_X1.110L, switched_110L.110L_SWITCHED]
-    - [36V_X1.GND, earth.earth]
-    - [36V_X2.GND, earth.earth]
+    - [36V_X1.GND, vfd_earth.earth]
+    - [36V_X2.GND, vfd_earth.earth]
     - [36V_X2.110N, switched_110N.110N_SWITCHED]
     - [36V_X2.110L, switched_110L.110L_SWITCHED]
     - [contactor_110.A1, contactor_220.A1]
     - [contactor_110.A2, contactor_220.A2]
-    - [vfd.GND, earth.earth]
+    - [vfd.GND, vfd_earth.earth]
     - from: contactor_110.A2
       to: coil_t.COIL-
       net: COIL-
@@ -532,10 +708,10 @@ connections:
     - [z_control.vcc, cnc_terminals.9, Z_cl57s.VCC]
     - [z_control.gnd, cnc_terminals.10, Z_cl57s.GND]
     - [z_control.shield, connector_earth.shield]
-    - [z_limits.5v, cnc_terminals.11, 5V_bus.5V]
+    - [z_limits.5v, cnc_terminals.11, terminals_5v.5V]
     - [z_limits.ul, cnc_terminals.12, opto_board.4+]
     - [z_limits.ll, cnc_terminals.13, axbb-e.ZLL]
-    - [z_limits.5v0, cnc_terminals.14, 5V0_bus.5V0]
+    - [z_limits.5v0, cnc_terminals.14, terminals_5v0.5V0]
     - [z_limits.shield, connector_earth.shield]
     - [y_motor.ma+, cnc_terminals.15, y_cl57s.A+]
     - [y_motor.ma-, cnc_terminals.16, y_cl57s.A-]
@@ -549,80 +725,96 @@ connections:
     - [y_control.vcc, cnc_terminals.23, y_cl57s.VCC]
     - [y_control.gnd, cnc_terminals.24, y_cl57s.GND]
     - [y_control.shield, connector_earth.shield]
-    - [y_limits.5v, cnc_terminals.25, 5V_bus.5V]
+    - [y_limits.5v, cnc_terminals.25, terminals_5v.5V]
     - [y_limits.ul, cnc_terminals.26, opto_board.3+]
     - [y_limits.ll, cnc_terminals.27, axbb-e.YLL]
-    - [y_limits.5v0, cnc_terminals.28, 5V0_bus.5V0]
+    - [y_limits.5v0, cnc_terminals.28, terminals_5v0.5V0]
     - [y_limits.shield, connector_earth.shield]
     - [x1_motor.M+, cnc_terminals.29, 36V_X1.36V_X1]
     - [x1_motor.M-, cnc_terminals.30, 36V_X1.36V0_X1]
     - [x1_motor.shield, connector_earth.shield]
     - [x1_control.alrm+, cnc_terminals.31, opto_board.5-]
-    - [x1_control.alrm-, cnc_terminals.32, 5V0_bus.5V0]
+    - [x1_control.alrm-, cnc_terminals.32, terminals_5v0.5V0]
     - [x1_control.dir+, cnc_terminals.33, axbb-e.X1DIR]
-    - [x1_control.dir-, cnc_terminals.34, 5V0_bus.5V0]
+    - [x1_control.dir-, cnc_terminals.34, terminals_5v0.5V0]
     - [x1_control.pul+, cnc_terminals.35, axbb-e.X1STEP]
-    - [x1_control.pul-, cnc_terminals.36, 5V0_bus.5V0]
-    - [x1_limits.5v, cnc_terminals.37, 5V_bus.5V]
+    - [x1_control.pul-, cnc_terminals.36, terminals_5v0.5V0]
+    - [x1_limits.5v, cnc_terminals.37, terminals_5v.5V]
     - [x1_limits.ul, cnc_terminals.38, opto_board.1+]
     - [x1_limits.ll, cnc_terminals.39, axbb-e.X1LL]
-    - [x1_limits.5v0, cnc_terminals.40, 5V0_bus.5V0]
+    - [x1_limits.5v0, cnc_terminals.40, terminals_5v0.5V0]
     - [x1_limits.shield, connector_earth.shield]
     - [x2_motor.M+, cnc_terminals.41, 36V_X2.36V_X2]
     - [x2_motor.M-, cnc_terminals.42, 36V_X2.36V0_X2]
     - [x2_motor.shield, connector_earth.shield]
     - [x2_control.alrm+, cnc_terminals.43, opto_board.6-]
-    - [x2_control.alrm-, cnc_terminals.44, 5V0_bus.5V0]
+    - [x2_control.alrm-, cnc_terminals.44, terminals_5v0.5V0]
     - [x2_control.dir+, cnc_terminals.45, axbb-e.X2DIR]
-    - [x2_control.dir-, cnc_terminals.46, 5V0_bus.5V0]
+    - [x2_control.dir-, cnc_terminals.46, terminals_5v0.5V0]
     - [x2_control.pul+, cnc_terminals.47, axbb-e.X2STEP]
-    - [x2_control.pul-, cnc_terminals.48, 5V0_bus.5V0]
-    - [x2_limits.5v, cnc_terminals.49, 5V_bus.5V]
+    - [x2_control.pul-, cnc_terminals.48, terminals_5v0.5V0]
+    - [x2_limits.5v, cnc_terminals.49, terminals_5v.5V]
     - [x2_limits.ul, cnc_terminals.50, opto_board.2+]
     - [x2_limits.ll, cnc_terminals.51, axbb-e.X2LL]
-    - [x2_limits.5v0, cnc_terminals.52, 5V0_bus.5V0]
+    - [x2_limits.5v0, cnc_terminals.52, terminals_5v0.5V0]
     - [x2_limits.shield, connector_earth.shield]
     - [probe.probe+, cnc_terminals.53A]
     - [probe.probe-, cnc_terminals.54A]
     - [probe.shield, connector_earth.shield]
-    - [estop_panel.reset_sw+, cnc_terminals.55, 5V0_bus.5V0]
+    - [estop_panel.reset_sw+, cnc_terminals.55, terminals_5v0.5V0]
     - [estop_panel.reset_sw-, cnc_terminals.56, alarm_limit_board.RESET_SW]
-    - [estop_panel.estop+, cnc_terminals.57, 24V_bus.24V]
+    - [estop_panel.estop+, cnc_terminals.57, terminals_24v.24V]
     - [estop_panel.estop-, cnc_terminals.58, secondary_estop.estop+]
-    - [estop_panel.light+, cnc_terminals.59, 24V_bus.24V]
+    - [estop_panel.light+, cnc_terminals.59, terminals_24v.24V]
     - [estop_panel.light-, cnc_terminals.60, run_relay.NC]
     - [secondary_estop.estop-, cnc_terminals.64, coil_t.COIL+]
     - [spindle.u, cnc_terminals.61, vfd.U]
     - [spindle.v, cnc_terminals.62, vfd.V]
     - [spindle.w, cnc_terminals.63, vfd.W]
     - [spindle.shield, connector_earth.shield]
-    - [run_relay.DC-, 5V0_bus.5V0]
-    - [run_relay.DC+, 5V_bus.5V]
-    - [upper_limits_ok_relay.DC-, 5V0_bus.5V0]
-    - [upper_limits_ok_relay.DC+, 5V_bus.5V]
-    - [5v.5V, 5V_bus.5V]
-    - [5v.5V0, 5V0_bus.5V0]
-    - [24v.24V, 24V_bus.24V]
-    - [24v.24V0, 24V0_bus.24V0]
+    - [run_relay.DC-, safety_5v0.5V0]
+    - [run_relay.DC+, safety_5v.5V]
+    - [upper_limits_ok_relay.DC-, safety_5v0.5V0]
+    - [upper_limits_ok_relay.DC+, safety_5v.5V]
+    - [5v.5V, dc_power_5v.5V]
+    - [5v.5V0, dc_power_5v0.5V0]
+    - [24v.24V, dc_power_24v.24V]
+    - [24v.24V0, dc_power_24v0.24V0]
+    - [dc_power_5v.5V, safety_5v.5V]
+    - [safety_5v.5V, control_5v.5V]
+    - [control_5v.5V, terminals_5v.5V]
+    - [dc_power_5v0.5V0, safety_5v0.5V0]
+    - [safety_5v0.5V0, control_5v0.5V0]
+    - [control_5v0.5V0, terminals_5v0.5V0]
+    - [dc_power_24v.24V, safety_24v.24V]
+    - [safety_24v.24V, control_24v.24V]
+    - [control_24v.24V, terminals_24v.24V]
+    - [dc_power_24v0.24V0, safety_24v0.24V0]
+    - [safety_24v0.24V0, control_24v0.24V0]
+    - [control_24v0.24V0, terminals_24v0.24V0]
+    - [vfd_earth.earth, dc_power_earth.earth]
+    - [dc_power_earth.earth, safety_earth.earth]
+    - [safety_earth.earth, control_earth.earth]
+    - [control_earth.earth, terminals_earth.earth]
 
     - [vfd.R, contactor_220.L1]
     - [vfd.T, contactor_220.L2]
     #drivers
     - [y_cl57s.PUL+, axbb-e.YSTEP]
     - [y_cl57s.ALM, opto_board.7-]
-    - [y_cl57s.PUL-, 5V0_bus.5V0]
+    - [y_cl57s.PUL-, control_5v0.5V0]
     - [y_cl57s.DIR+, axbb-e.YDIR]
-    - [y_cl57s.DIR-, 5V0_bus.5V0]
-    - [y_cl57s.COM-, 5V0_bus.5V0]
+    - [y_cl57s.DIR-, control_5v0.5V0]
+    - [y_cl57s.COM-, control_5v0.5V0]
     - [y_cl57s.+VDC, 48v.48V]
     - [y_cl57s.GND, 48v.48V0]
 
     - [Z_cl57s.PUL+, axbb-e.ZSTEP]
     - [Z_cl57s.ALM, opto_board.8-]
-    - [Z_cl57s.PUL-, 5V0_bus.5V0]
+    - [Z_cl57s.PUL-, control_5v0.5V0]
     - [Z_cl57s.DIR+, axbb-e.ZDIR]
-    - [Z_cl57s.DIR-, 5V0_bus.5V0]
-    - [Z_cl57s.COM-, 5V0_bus.5V0]
+    - [Z_cl57s.DIR-, control_5v0.5V0]
+    - [Z_cl57s.COM-, control_5v0.5V0]
     - [Z_cl57s.+VDC, 48v.48V]
     - [Z_cl57s.GND, 48v.48V0]
 
@@ -631,18 +823,18 @@ connections:
   #axbb-e
     - [axbb-e.VFD_FWD, vfd.FOR]
     - [axbb-e.VFD_REV, vfd.REV]
-    - [24V_bus.24V, axbb-e.I1+]
-    - [24V_bus.24V, axbb-e.I2+]
-    - [24V_bus.24V, axbb-e.I3+]
-    - [24V_bus.24V, axbb-e.I4+]
-    - [24V_bus.24V, axbb-e.I5+]
+    - [control_24v.24V, axbb-e.I1+]
+    - [control_24v.24V, axbb-e.I2+]
+    - [control_24v.24V, axbb-e.I3+]
+    - [control_24v.24V, axbb-e.I4+]
+    - [control_24v.24V, axbb-e.I5+]
 
     - [axbb-e.COIL+, coil_t.COIL+]
     - [axbb-e.COIL-, coil_t.COIL-]
-    - [axbb-e.IN-24V0, 24V0_bus.24V0]
-    - [axbb-e.IN-24V+, 24V_bus.24V]
-    - [axbb-e.IN-5V0, 5V0_bus.5V0]
-    - [axbb-e.IN-5V+, 5V_bus.5V]
+    - [axbb-e.IN-24V0, control_24v0.24V0]
+    - [axbb-e.IN-24V+, control_24v.24V]
+    - [axbb-e.IN-5V0, control_5v0.5V0]
+    - [axbb-e.IN-5V+, control_5v.5V]
     - [axbb-e.VFD_V1, vfd.VI]
 
   #alarm_limit_board
@@ -654,26 +846,27 @@ connections:
     - [alarm_limit_board.X2_ALM_OK, opto_board.X2_ALM_OK]
     - [alarm_limit_board.Y_ALM_OK, opto_board.Y_ALM_OK]
     - [alarm_limit_board.Z_ALM_OK, opto_board.Z_ALM_OK]
-    - [alarm_limit_board.5V0, 5V0_bus.5V0]
-    - [alarm_limit_board.5V, 5V_bus.5V]
+    - [alarm_limit_board.5V0, safety_5v0.5V0]
+    - [alarm_limit_board.5V, safety_5v.5V]
     - [alarm_limit_board.RUN_RELAY_CTL, run_relay.IN]
     - [alarm_limit_board.UPPER_LIMITS_OK_RELAY_CTL, upper_limits_ok_relay.IN]
 
   #relay boards
-    - [run_relay.COM, 24V0_bus.24V0]
+    - [run_relay.COM, safety_24v0.24V0]
     - [run_relay.NO, coil_t.COIL-]
-    - [upper_limits_ok_relay.COM, 24V0_bus.24V0]
+    - [upper_limits_ok_relay.COM, safety_24v0.24V0]
     - [upper_limits_ok_relay.NC, axbb-e.UL1]
 
   #opto board
-    - [opto_board.1-, 5V0_bus.5V0]
-    - [opto_board.2-, 5V0_bus.5V0]
-    - [opto_board.3-, 5V0_bus.5V0]
-    - [opto_board.4-, 5V0_bus.5V0]
-    - [opto_board.5+, 5V_bus.5V]
-    - [opto_board.6+, 5V_bus.5V]
-    - [opto_board.7+, 5V_bus.5V]
-    - [opto_board.8+, 5V_bus.5V]
+    - [opto_board.1-, safety_5v0.5V0]
+    - [opto_board.2-, safety_5v0.5V0]
+    - [opto_board.3-, safety_5v0.5V0]
+    - [opto_board.4-, safety_5v0.5V0]
+    - [opto_board.5+, safety_5v.5V]
+    - [opto_board.6+, safety_5v.5V]
+    - [opto_board.7+, safety_5v.5V]
+    - [opto_board.8+, safety_5v.5V]
+    - [x1_motor.shield, spindle.w]
 
 
 

@@ -1,7 +1,7 @@
 components:
   axbb-e:
-    x: 1637.445
-    y: 57.556
+    x: 1639.089
+    y: -32.865
     rotation: 270
   Z_cl57s:
     x: 2007.667
@@ -12,36 +12,36 @@ components:
     y: 32.725
     rotation: 90
   36V_X1:
-    x: 1687.12
-    y: 1385.022
+    x: 1684.119
+    y: 1766.188
     rotation: 0
   48v:
-    x: 2023.219
-    y: 1388.048
+    x: 2029.873
+    y: 1761.533
     rotation: 0
   36V_X2:
-    x: 1354.181
-    y: 1394.222
+    x: 1344.62
+    y: 1767.224
     rotation: 0
   transformer:
-    x: 1360.417
-    y: 2229.198
+    x: 1473.164
+    y: 2608.988
     rotation: 180
   5v:
-    x: 1600.622
-    y: 902.897
+    x: 2021.35
+    y: 886.473
     rotation: 0
   contactor_220:
-    x: 1738.366
-    y: 902.185
+    x: 1803.414
+    y: 1376.109
     rotation: 0
   contactor_110:
-    x: 1873.516
-    y: 906.749
+    x: 1658.273
+    y: 1387.636
     rotation: 0
   24v:
-    x: 2014.755
-    y: 831.55
+    x: 1891.141
+    y: 839.852
     rotation: 0
   alarm_limit_board:
     x: 2088.469
@@ -52,142 +52,190 @@ components:
     y: 456.049
     rotation: 90
   cnc_terminals:
-    x: 1845.959
-    y: -719.638
+    x: 1836.611
+    y: -716.043
     rotation: 90
   connector_earth:
-    x: 1478.291
-    y: -424.586
+    x: 2359.008
+    y: -427.792
     rotation: 90
   z_control:
-    x: 1406.65
-    y: -664.342
+    x: 1397.302
+    y: -660.747
     rotation: 0
   z_motor:
-    x: 1400.044
-    y: -730.987
+    x: 1390.696
+    y: -727.392
     rotation: 0
   z_limits:
-    x: 1405.158
-    y: -597.931
+    x: 1395.81
+    y: -594.336
     rotation: 0
   y_motor:
-    x: 1579.76
-    y: -733.43
+    x: 1570.412
+    y: -729.835
     rotation: 0
   y_control:
-    x: 1583.793
-    y: -665.566
+    x: 1574.445
+    y: -661.971
     rotation: 0
   y_limits:
-    x: 1588.228
-    y: -605.16
+    x: 1578.88
+    y: -601.565
     rotation: 0
   x1_motor:
-    x: 1724.601
-    y: -725.831
+    x: 1715.253
+    y: -722.236
     rotation: 0
   x1_control:
-    x: 1720.513
-    y: -662.723
+    x: 1711.165
+    y: -659.128
     rotation: 0
   x1_limits:
-    x: 1721.938
-    y: -606.83
+    x: 1712.59
+    y: -603.235
     rotation: 0
   x2_motor:
-    x: 1903.963
-    y: -715.463
+    x: 1894.615
+    y: -711.868
     rotation: 0
   x2_control:
-    x: 1897.764
-    y: -662.044
+    x: 1888.416
+    y: -658.449
     rotation: 0
   x2_limits:
-    x: 1901.173
-    y: -607.077
+    x: 1891.825
+    y: -603.482
     rotation: 0
   probe:
-    x: 2128.256
-    y: -664.502
+    x: 2118.908
+    y: -660.907
     rotation: 0
   estop_panel:
-    x: 2125.185
-    y: -601.978
+    x: 2115.837
+    y: -598.383
+    rotation: 0
+  secondary_estop:
+    x: 2190.652
+    y: -598.383
     rotation: 0
   spindle:
-    x: 2126.561
-    y: -716.845
-    rotation: 0
-  reset_relay:
-    x: 1750.409
-    y: 488.959
-    rotation: 0
-  driver_relay:
-    x: 1667.438
-    y: 487.019
-    rotation: 180
-  estop_relay:
-    x: 1589.23
-    y: 488.414
-    rotation: 0
-  ulimit_relay:
-    x: 1510.515
-    y: 489.24
+    x: 2117.213
+    y: -713.25
     rotation: 0
   vfd:
-    x: 905.069
-    y: 775.878
-    rotation: 180
+    x: 2211.968
+    y: 1230.862
+    rotation: 270
   live_power_t:
-    x: 1571.486
-    y: 1033.738
+    x: 1790.116
+    y: 995.916
     rotation: 270
   wall_plug:
-    x: 2132.156
-    y: 2500.305
+    x: 2047.354
+    y: 2768.71
     rotation: 270
   switched_110N:
-    x: 1434.316
-    y: 1042.207
+    x: 1562.504
+    y: 1485.444
     rotation: 90
   switched_110L:
-    x: 1521.583
-    y: 1042.8
+    x: 1521.055
+    y: 1486.729
     rotation: 90
-  24V_bus:
-    x: 1498.324
-    y: 37.968
-    rotation: 270
-  24V0_bus:
-    x: 1561.967
-    y: 63.605
+  terminals_5v:
+    x: 2200.743
+    y: -406.725
     rotation: 90
-  5V_bus:
-    x: 1397.721
-    y: 528.432
+  terminals_5v0:
+    x: 2250.632
+    y: -426.283
     rotation: 90
-  5V_switched_bus:
-    x: 1347.256
-    y: 554.204
+  terminals_24v:
+    x: 2295.021
+    y: -404.891
     rotation: 90
-  5V0_bus:
-    x: 1401.488
-    y: 29.283
+  terminals_24v0:
+    x: 2316.795
+    y: -398.779
+    rotation: 90
+  terminals_earth:
+    x: 2179.046
+    y: -398.168
+    rotation: 90
+  control_5v:
+    x: 2237.877
+    y: 103.281
+    rotation: 90
+  control_5v0:
+    x: 2280.11
+    y: 89.443
+    rotation: 90
+  control_24v:
+    x: 2325.11
+    y: 96.823
+    rotation: 90
+  control_24v0:
+    x: 2359.04
+    y: 103.281
+    rotation: 90
+  control_earth:
+    x: 2384.668
+    y: 109.738
+    rotation: 90
+  safety_5v:
+    x: 2212.047
+    y: 576.567
+    rotation: 90
+  safety_5v0:
+    x: 2260.737
+    y: 566.419
+    rotation: 90
+  safety_24v:
+    x: 2296.513
+    y: 590.404
+    rotation: 90
+  safety_24v0:
+    x: 2321.218
+    y: 580.257
+    rotation: 90
+  safety_earth:
+    x: 2351.458
+    y: 581.179
+    rotation: 90
+  dc_power_5v:
+    x: 2173.303
+    y: 1008.854
+    rotation: 90
+  dc_power_5v0:
+    x: 2201.698
+    y: 1011.621
+    rotation: 90
+  dc_power_24v:
+    x: 2240.241
+    y: 1011.621
+    rotation: 90
+  dc_power_24v0:
+    x: 2272.326
+    y: 1007.931
+    rotation: 90
+  dc_power_earth:
+    x: 2316.403
+    y: 1015.311
     rotation: 90
   coil_t:
-    x: 2198.361
-    y: 1024.047
+    x: 2109.802
+    y: 983.457
     rotation: 90
-  earth:
-    x: 1381.137
-    y: 1038.382
+  vfd_earth:
+    x: 1890.317
+    y: 1495.351
     rotation: 90
   upper_limits_ok_relay:
-    x: 1193.602
-    y: 1644.949
+    x: 1662.6
+    y: 533.68
     rotation: 0
   run_relay:
-    x: 999.412
-    y: 1644.949
+    x: 1752.416
+    y: 531.844
     rotation: 0
