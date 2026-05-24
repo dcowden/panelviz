@@ -134,6 +134,9 @@ def test_write_static_viewer_writes_no_build_browser_bundle():
     assert "debug-layer" in viewer_js
     assert "referenceGridFromBounds" in viewer_js
     assert "applyWireReferences" in viewer_js
+    assert "renderedEndpointAnchor" in viewer_js
+    assert "transformComponentLocalPoint" in viewer_js
+    assert "group.getCTM" not in viewer_js
     assert "referenceForPoint" in viewer_js
     assert "updateReferenceGrid" in viewer_js
     assert "readableScreenRotation" in viewer_js

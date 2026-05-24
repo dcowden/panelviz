@@ -22,7 +22,7 @@ from panelviz.pdf_export import DrawingMeta, diagram_reference_grid, export_sche
 from panelviz.references import attach_wire_references
 from panelviz.reports import WIRE_LIST_COLUMNS, wire_list_rows
 from panelviz.routing import WireRouter
-from panelviz.viewer import _viewer_css, _viewer_js, update_scene_bounds, viewer_data
+from panelviz.viewer import _viewer_css, _viewer_js, update_scene_bounds, update_transformed_endpoint_geometry, viewer_data
 from panelviz.visualization import component_visual_config_from_visualization
 
 
@@ -305,6 +305,7 @@ class EditorSession:
         visual_config = component_visual_config_from_visualization(parsed.config.visualization)
         data = viewer_data(router, units=parsed.config.units, columns=3, config=visual_config)
         self._apply_layout(data)
+        update_transformed_endpoint_geometry(data)
         update_scene_bounds(data)
         data["reference_grid"] = diagram_reference_grid(data)
         attach_wire_references(data)
@@ -324,11 +325,12 @@ class EditorSession:
         visual_config = component_visual_config_from_visualization(parsed.config.visualization)
         data = viewer_data(router, units=parsed.config.units, columns=3, config=visual_config)
         self._apply_layout(data)
+        update_transformed_endpoint_geometry(data)
         update_scene_bounds(data)
         data["reference_grid"] = diagram_reference_grid(data)
         attach_wire_references(data)
         meta = DrawingMeta.from_config(parsed.config.drawing, self.path.name)
-        image_bytes, image_width, image_height, source_bounds = _snapshot_export_args(snapshot)
+        image_bytes, image_width, image_height, source_bounds, snapshot_refs = _snapshot_export_args(snapshot)
         schematic = export_schematic_pdf(
             router,
             data,
@@ -338,7 +340,7 @@ class EditorSession:
             image_height=image_height,
             source_bounds=source_bounds,
         )
-        wire_list_pdf = export_wire_list_pdf(router, schematic.diagram_refs, meta)
+        wire_list_pdf = export_wire_list_pdf(router, snapshot_refs or schematic.diagram_refs, meta)
         output = BytesIO()
         with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr(f"{self.path.stem}_schematic.pdf", schematic.content)
@@ -451,9 +453,9 @@ def _no_store_headers() -> dict[str, str]:
 
 def _snapshot_export_args(
     snapshot: dict[str, Any] | None,
-) -> tuple[bytes | None, float | None, float | None, dict[str, float] | None]:
+) -> tuple[bytes | None, float | None, float | None, dict[str, float] | None, dict[int | str, dict[str, str]] | None]:
     if not snapshot:
-        return None, None, None, None
+        return None, None, None, None, None
     image = str(snapshot.get("image") or "")
     if not image.startswith("data:image/png;base64,"):
         raise EditorError("Schematic PDF export requires a PNG data URL")
@@ -467,7 +469,26 @@ def _snapshot_export_args(
         "width": float(bounds_raw.get("width", width or 1)),
         "height": float(bounds_raw.get("height", height or 1)),
     }
-    return image_bytes, width or None, height or None, source_bounds
+    return image_bytes, width or None, height or None, source_bounds, _snapshot_wire_refs(snapshot.get("wire_refs"))
+
+
+def _snapshot_wire_refs(raw_refs: Any) -> dict[int | str, dict[str, str]] | None:
+    if not isinstance(raw_refs, dict):
+        return None
+    refs: dict[int | str, dict[str, str]] = {}
+    for key, value in raw_refs.items():
+        if not isinstance(value, dict):
+            continue
+        wire_refs = {
+            "from": str(value.get("from") or ""),
+            "to": str(value.get("to") or ""),
+        }
+        refs[str(key)] = wire_refs
+        try:
+            refs[int(key)] = wire_refs
+        except (TypeError, ValueError):
+            pass
+    return refs or None
 
 
 def _validate_roundtrip_yaml(yaml: YAML, data: Any) -> None:
@@ -973,6 +994,8 @@ async function schematicSnapshot() {
   const svg = document.querySelector('#canvas-host svg');
   if (!svg) throw new Error('No schematic SVG is available to export');
   const bounds = svgSceneBounds(svg);
+  const pdfGrid = referenceGridFromBounds(bounds, {});
+  const wireRefs = collectWireReferences(pdfGrid);
   const css = await fetch('/viewer.css').then((response) => response.text());
   const clone = svg.cloneNode(true);
   clone.setAttribute('xmlns', NS);
@@ -992,7 +1015,24 @@ async function schematicSnapshot() {
     width: raster.width,
     height: raster.height,
     source_bounds: bounds,
+    wire_refs: wireRefs,
   };
+}
+
+function collectWireReferences(grid) {
+  const refs = {};
+  if (!window.PanelVizRender || !state?.data?.wires) return refs;
+  state.data.wires.forEach((wire) => {
+    const fromAnchor = renderedEndpointAnchor(wire, wire.endpoints?.[0]);
+    const toAnchor = renderedEndpointAnchor(wire, wire.endpoints?.[1]);
+    const wireRefs = {
+      from: fromAnchor ? referenceForPoint(grid, fromAnchor.x, fromAnchor.y) : '',
+      to: toAnchor ? referenceForPoint(grid, toAnchor.x, toAnchor.y) : '',
+    };
+    refs[String(wire.index)] = wireRefs;
+    refs[String(wire.label)] = wireRefs;
+  });
+  return refs;
 }
 
 function svgSceneBounds(svg) {

@@ -207,10 +207,34 @@ def viewer_data(
         "wires": wires,
         "diagnostics": _diagnostics(router),
     }
+    update_transformed_endpoint_geometry(data)
     update_scene_bounds(data)
     data["reference_grid"] = diagram_reference_grid(data)
     attach_wire_references(data)
     return data
+
+
+def update_transformed_endpoint_geometry(data: dict[str, Any]) -> None:
+    """Store endpoint reference points in rendered, post-rotation coordinates."""
+
+    components = {str(component.get("name")): component for component in data.get("components", [])}
+    pins_by_node = {
+        str(pin.get("node")): (component, pin)
+        for component in components.values()
+        for pin in component.get("pins", [])
+    }
+
+    for component in components.values():
+        for pin in component.get("pins", []):
+            anchor = _transformed_pin_anchor(component, pin)
+            pin["anchor"] = {"x": anchor[0], "y": anchor[1]}
+
+    for wire in data.get("wires", []):
+        for endpoint in wire.get("endpoints", []):
+            component, pin = pins_by_node.get(str(endpoint.get("node")), (None, None))
+            if not component or not pin:
+                continue
+            _update_transformed_endpoint(component, pin, endpoint)
 
 
 def update_scene_bounds(data: dict[str, Any], padding: float = 96.0) -> None:
@@ -305,6 +329,67 @@ def _rotate_point(point: tuple[float, float], center: tuple[float, float], rotat
     cx, cy = center
     dx, dy = px - cx, py - cy
     return (cx + dx * math.cos(radians) - dy * math.sin(radians), cy + dx * math.sin(radians) + dy * math.cos(radians))
+
+
+def _transformed_pin_anchor(component: dict[str, Any], pin: dict[str, Any]) -> tuple[float, float]:
+    return _transform_component_local_point(component, _pin_boundary_point(pin))
+
+
+def _update_transformed_endpoint(component: dict[str, Any], pin: dict[str, Any], endpoint: dict[str, Any]) -> None:
+    local_side = str(endpoint.get("side") or pin.get("side") or "bottom")
+    dx, dy = _side_vector_value(local_side)
+    label = endpoint.get("label", {})
+    slot = int(label.get("slot", 0) or 0)
+    stub_length = float(endpoint.get("stub_length", 0) or 0)
+    label_width = float(label.get("width", 44) or 44)
+    label_gap = float(endpoint.get("label_gap", 0) or 0)
+    stub_distance = stub_length + slot * (label_width + stub_length)
+    label_offset = label_gap + label_width / 2
+    anchor = _pin_boundary_point(pin)
+    stub = (anchor[0] + dx * stub_distance, anchor[1] + dy * stub_distance)
+    label_point = (stub[0] + dx * label_offset, stub[1] + dy * label_offset)
+    anchor_x, anchor_y = _transform_component_local_point(component, anchor)
+    stub_x, stub_y = _transform_component_local_point(component, stub)
+    label_x, label_y = _transform_component_local_point(component, label_point)
+
+    endpoint["anchor"] = {"x": anchor_x, "y": anchor_y}
+    endpoint["stub"] = {"x": stub_x, "y": stub_y}
+    endpoint["stub_distance"] = stub_distance
+    label["x"] = label_x
+    label["y"] = label_y
+    label["rotation"] = readable_screen_text_rotation_for_side(local_side, float(component.get("rotation", 0) or 0))
+
+
+def _pin_boundary_point(pin: dict[str, Any]) -> tuple[float, float]:
+    x = float(pin.get("x", 0) or 0)
+    y = float(pin.get("y", 0) or 0)
+    width = float(pin.get("width", 0) or 0)
+    height = float(pin.get("height", 0) or 0)
+    side = str(pin.get("side") or "bottom")
+    if side == "left":
+        return x, y + height / 2
+    if side == "right":
+        return x + width, y + height / 2
+    if side == "top":
+        return x + width / 2, y
+    return x + width / 2, y + height
+
+
+def _transform_component_local_point(component: dict[str, Any], point: tuple[float, float]) -> tuple[float, float]:
+    width = float(component.get("width", 0) or 0)
+    height = float(component.get("height", 0) or 0)
+    rotated = _rotate_point(point, (width / 2, height / 2), float(component.get("rotation", 0) or 0))
+    return float(component.get("x", 0) or 0) + rotated[0], float(component.get("y", 0) or 0) + rotated[1]
+
+
+def _side_vector_value(side: str) -> tuple[float, float]:
+    if side == "left":
+        return -1.0, 0.0
+    if side == "right":
+        return 1.0, 0.0
+    if side == "top":
+        return 0.0, -1.0
+    return 0.0, 1.0
 
 
 @dataclass(frozen=True)
@@ -1300,11 +1385,33 @@ function renderReferenceGrid(parentLayer, grid, visible = false) {
 function applyWireReferences(grid) {
   if (!state.data?.wires || !grid?.verticals?.length || !grid?.horizontals?.length) return;
   state.data.wires.forEach((wire) => {
-    const fromAnchor = wire.endpoints?.[0]?.anchor;
-    const toAnchor = wire.endpoints?.[1]?.anchor;
+    const fromAnchor = renderedEndpointAnchor(wire, wire.endpoints?.[0]);
+    const toAnchor = renderedEndpointAnchor(wire, wire.endpoints?.[1]);
     wire.from_ref = fromAnchor ? referenceForPoint(grid, fromAnchor.x, fromAnchor.y) : '';
     wire.to_ref = toAnchor ? referenceForPoint(grid, toAnchor.x, toAnchor.y) : '';
   });
+}
+
+function renderedEndpointAnchor(wire, endpoint) {
+  if (!endpoint) return null;
+  const component = state.components.get(endpoint.component);
+  const pin = component?.pins?.find((item) => item.node === endpoint.node);
+  if (component && pin) {
+    return transformComponentLocalPoint(component, pinBoundaryPoint(pin));
+  }
+  return endpoint.anchor || null;
+}
+
+function transformComponentLocalPoint(component, point) {
+  const rotated = rotatePoint(
+    point,
+    { x: component.width / 2, y: component.height / 2 },
+    Number(component.rotation || 0),
+  );
+  return {
+    x: Number(component.x) + rotated.x,
+    y: Number(component.y) + rotated.y,
+  };
 }
 
 function referenceForPoint(grid, x, y) {

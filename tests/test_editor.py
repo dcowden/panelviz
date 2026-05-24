@@ -1,6 +1,8 @@
 from io import BytesIO
 from pathlib import Path
+import re
 import socket
+import zlib
 from zipfile import ZipFile
 
 import pytest
@@ -210,9 +212,19 @@ def test_save_component_layout_writes_sidecar_and_applies_to_panel_data():
         for endpoint in wire["endpoints"]
         if endpoint["component"] == "source"
     )
+    source_pin = next(pin for pin in source["pins"] if pin["node"] == source_endpoint["node"])
+    local_anchor_x = source_pin["x"] + source_pin["width"]
+    local_anchor_y = source_pin["y"] + source_pin["height"] / 2
+    center_x = source["width"] / 2
+    center_y = source["height"] / 2
+    expected_anchor = {
+        "x": source["x"] + center_x - (local_anchor_y - center_y),
+        "y": source["y"] + center_y + (local_anchor_x - center_x),
+    }
     assert source["x"] <= source_endpoint["anchor"]["x"] <= source["x"] + source["width"]
     assert source["y"] <= source_endpoint["anchor"]["y"] <= source["y"] + source["height"]
-    assert source_endpoint["label"]["x"] > source["x"] + source["width"]
+    assert source_endpoint["anchor"] == pytest.approx(expected_anchor)
+    assert source_endpoint["label"]["y"] > source["y"] + source["height"]
 
 
 def test_editor_session_exports_wire_list_csv():
@@ -244,6 +256,7 @@ def test_editor_session_exports_schematic_and_wire_list_pdf_bundle():
 
 def test_editor_session_exports_pdf_bundle_from_schematic_snapshot():
     path = write_editor_yaml("editor_pdf_snapshot_bundle.yml", LAYOUT_YAML)
+    first_label = routed(path).routed_wires[0].wire_label
     png_1x1 = (
         "data:image/png;base64,"
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
@@ -255,6 +268,7 @@ def test_editor_session_exports_pdf_bundle_from_schematic_snapshot():
             "width": 320,
             "height": 180,
             "source_bounds": {"x": 10, "y": 20, "width": 320, "height": 180},
+            "wire_refs": {first_label: {"from": "Z9", "to": "Y8"}},
         }
     )
 
@@ -265,6 +279,9 @@ def test_editor_session_exports_pdf_bundle_from_schematic_snapshot():
     assert schematic.startswith(b"%PDF-")
     assert wire_list.startswith(b"%PDF-")
     assert len(schematic) > 1000
+    wire_list_text = _pdf_stream_text(wire_list)
+    assert "Z9" in wire_list_text
+    assert "Y8" in wire_list_text
 
 
 def test_editor_js_refreshes_panel_data_without_full_render_when_available():
@@ -288,10 +305,23 @@ def test_editor_js_exports_rendered_svg_snapshot_for_pdf_bundle():
     assert "/api/drawing-pdfs" in js
     assert "new XMLSerializer().serializeToString(clone)" in js
     assert "canvas.toDataURL('image/png')" in js
+    assert "collectWireReferences" in js
+    assert "wire_refs" in js
     assert "const maxPixels = 160000000" in js
     assert "const maxDimension = 20000" in js
     assert "Math.min(\n          4," in js
     assert "source_bounds: bounds" in js
+
+
+def _pdf_stream_text(content: bytes) -> str:
+    parts = [content]
+    for match in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", content, flags=re.DOTALL):
+        stream = match.group(1)
+        try:
+            parts.append(zlib.decompress(stream))
+        except zlib.error:
+            parts.append(stream)
+    return b"\n".join(parts).decode("latin1", errors="ignore")
 
 
 def test_editor_document_cache_busts_local_assets():
