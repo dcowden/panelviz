@@ -64,52 +64,35 @@ connections:
     assert (output_dir / "wirelabel_row_a.pdf").read_bytes().startswith(b"%PDF-")
 
 
-def test_cli_main_uses_current_directory_when_output_dir_is_omitted(monkeypatch, capsys):
+def test_run_uses_selected_output_directory():
     output_dir = TEST_OUTPUTS / "cli_default"
     output_dir.mkdir(parents=True, exist_ok=True)
-    monkeypatch.chdir(output_dir)
+
+    outputs = run(VALID_PANEL, output_dir)
+
+    assert (output_dir / "wire_list.csv").exists()
+    assert (output_dir / "component_summary.txt").exists()
+    assert (output_dir / "wiring_diagram.svg").exists()
+    assert output_dir / "wire_list.csv" in outputs
+
+
+def test_cli_main_launches_web_app_by_default(monkeypatch):
+    launched = []
+
+    monkeypatch.setattr(cli, "run_editor", lambda path, port, open_browser: launched.append((path, port, open_browser)))
 
     exit_code = main([str(VALID_PANEL)])
 
     assert exit_code == 0
-    assert (output_dir / "wire_list.csv").exists()
-    assert (output_dir / "component_summary.txt").exists()
-    assert (output_dir / "wiring_diagram.svg").exists()
-    assert "wire_list.csv" in capsys.readouterr().out
+    assert launched == [(str(VALID_PANEL), 8769, True)]
 
 
-def test_cli_view_writes_static_viewer_and_serves_selected_output_dir(monkeypatch):
-    output_dir = TEST_OUTPUTS / "cli_view"
-    served = []
-
-    monkeypatch.setattr(cli, "serve_viewer", lambda path: served.append(path))
-
-    exit_code = main(["--view", str(VALID_PANEL), str(output_dir)])
-
-    assert exit_code == 0
-    assert served == [output_dir]
-    assert (output_dir / "viewer.html").exists()
-    assert (output_dir / "viewer.js").exists()
-    assert (output_dir / "panel-data.json").exists()
-
-
-def test_cli_edit_launches_editor_without_generating_outputs(monkeypatch):
+def test_cli_port_and_no_open_control_default_web_app(monkeypatch):
     launched = []
 
     monkeypatch.setattr(cli, "run_editor", lambda path, port, open_browser: launched.append((path, port, open_browser)))
 
-    exit_code = main(["--edit", "--edit-port", "8768", "--no-open", str(VALID_PANEL)])
+    exit_code = main(["--port", "8768", "--no-open", str(VALID_PANEL)])
 
     assert exit_code == 0
     assert launched == [(str(VALID_PANEL), 8768, False)]
-
-
-def test_cli_edit_defaults_to_editor_port(monkeypatch):
-    launched = []
-
-    monkeypatch.setattr(cli, "run_editor", lambda path, port, open_browser: launched.append((path, port, open_browser)))
-
-    exit_code = main(["--edit", "--no-open", str(VALID_PANEL)])
-
-    assert exit_code == 0
-    assert launched == [(str(VALID_PANEL), 8769, False)]

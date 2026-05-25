@@ -27,33 +27,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(description="Generate PanelViz wiring documentation.")
     parser.add_argument(
-        "--view",
-        action="store_true",
-        help="Generate and launch the interactive static viewer.",
-    )
-    parser.add_argument(
-        "--edit",
-        action="store_true",
-        help="Launch the local NiceGUI YAML wire editor.",
-    )
-    parser.add_argument(
-        "--edit-port",
+        "--port",
         type=int,
         default=8769,
-        help="Localhost port to use with --edit. Defaults to 8769.",
+        help="Localhost port for the PanelViz web app. Defaults to 8769.",
     )
     parser.add_argument(
         "--no-open",
         action="store_true",
-        help="Do not open a browser automatically with --edit.",
+        help="Do not open a browser automatically.",
     )
     parser.add_argument("input_file", help="PanelViz YAML input file")
-    parser.add_argument(
-        "output_dir",
-        nargs="?",
-        default=".",
-        help="Output directory. Defaults to the current working directory.",
-    )
     return parser
 
 
@@ -91,15 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     """Run the PanelViz CLI."""
 
     args = build_parser().parse_args(argv)
-    if args.edit:
-        run_editor(args.input_file, port=args.edit_port, open_browser=not args.no_open)
-        return 0
-
-    outputs = run(args.input_file, args.output_dir, include_viewer=args.view)
-    for output in outputs:
-        print(output)
-    if args.view:
-        serve_viewer(Path(args.output_dir))
+    run_editor(args.input_file, port=args.port, open_browser=not args.no_open)
     return 0
 
 

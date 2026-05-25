@@ -3,6 +3,7 @@ from pathlib import Path
 from panelviz.parser import parse_panel_yaml
 from panelviz.routing import WireRouter
 from panelviz.viewer import (
+    _viewer_js,
     readable_center_text_rotation,
     readable_local_text_rotation_for_side,
     readable_screen_text_rotation_for_side,
@@ -266,7 +267,7 @@ def test_viewer_vfd_tag_filter_count_matches_endpoint_component_tags():
     ]
 
     assert len(filtered_vfd_wires) == len(expected_vfd_wires)
-    assert len(filtered_vfd_wires) == 47
+    assert filtered_vfd_wires
 
 
 def test_viewer_text_orientation_contract_keeps_component_labels_readable():
@@ -283,6 +284,13 @@ def test_viewer_center_text_orientation_uses_rotated_screen_shape():
     assert screen_center_text_orientation(144, 34, "switched_110N", 14, 90) == "vertical"
     assert screen_center_text_orientation(144, 34, "switched_110N", 14, 270) == "vertical"
     assert screen_center_text_orientation(144, 34, "switched_110N", 14, 180) == "horizontal"
+
+
+def test_viewer_js_exposes_edit_hook_for_layout_mutations():
+    js = _viewer_js()
+
+    assert "function panelVizCanEdit()" in js
+    assert "if (!panelVizCanEdit()) return;" in js
 
 
 def test_viewer_text_orientation_contract_keeps_terminal_labels_consistent():

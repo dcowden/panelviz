@@ -628,20 +628,11 @@ def _editor_html(path: Path, asset_version: str = "") -> str:
       <p class="editor-path">{path}</p>
     </div>
     <div class="editor-route-panel">
-      <div id="editor-route">Click a terminal to start a route.</div>
+      <div id="editor-route">Editing locked. Enable Edit to change wiring or layout.</div>
       <label>Net <input id="editor-net" type="text" placeholder="optional"></label>
       <label>AWG <input id="editor-awg" type="number" min="1" placeholder="default"></label>
       <button id="editor-save-route" type="button">Save Route</button>
       <button id="editor-cancel-route" type="button">Cancel</button>
-    </div>
-    <div class="help-strip">
-      <span>Click terminal: start/finish</span>
-      <span>Shift-click: add hop</span>
-      <span>Click label + Delete: remove wire</span>
-      <span>Drag dot to terminal: relocate</span>
-      <span>Drag canvas: pan</span>
-      <span>Shift-drag canvas: select components</span>
-      <span>Wheel: zoom</span>
     </div>
     <div class="diagnostic-actions" role="group" aria-label="Diagnostic highlighting">
       <button id="show-unconnected" type="button">Unconnected</button>
@@ -653,11 +644,30 @@ def _editor_html(path: Path, asset_version: str = "") -> str:
       <label><input type="radio" name="highlight-mode" value="net"> Net</label>
       <a class="toolbar-link" href="/wire-list.csv" download>Download CSV</a>
       <button id="editor-download-pdfs" class="toolbar-link" type="button">Download PDFs</button>
+      <button id="editor-edit-toggle" type="button" aria-pressed="false">Enable Edit</button>
+      <button id="editor-help-button" type="button" aria-haspopup="dialog" aria-expanded="false" title="Help">?</button>
       <button id="toggle-reference-grid" type="button" aria-pressed="false">Ref Grid</button>
       <button id="toggle-wire-table" type="button">Hide Wires</button>
       <button id="clear-selection" type="button">Clear</button>
     </div>
   </header>
+  <dialog id="editor-help-dialog" class="help-dialog">
+    <form method="dialog">
+      <div class="help-dialog-header">
+        <h2>PanelViz Controls</h2>
+        <button type="submit" aria-label="Close help">Close</button>
+      </div>
+      <dl>
+        <dt>View</dt><dd>Drag empty canvas to pan. Use the wheel to zoom around the pointer.</dd>
+        <dt>Select</dt><dd>Click wire labels, terminals, or component bodies to highlight related wiring. Right-click empty canvas clears selection.</dd>
+        <dt>Diagnostics</dt><dd>Use Unconnected, Multi-connected, and No Connections to highlight wiring warnings.</dd>
+        <dt>Edit toggle</dt><dd>Editing starts locked. Enable Edit before moving components, rotating components, creating routes, deleting wires, or relocating wire endpoints.</dd>
+        <dt>Routing</dt><dd>With Edit enabled, click terminals to start and finish a route. Shift-click adds intermediate hops. Enter optional Net/AWG before saving.</dd>
+        <dt>Wire edits</dt><dd>With Edit enabled, click a wire label and press Delete to remove it, or drag an endpoint dot onto another terminal to relocate it.</dd>
+        <dt>Layout edits</dt><dd>With Edit enabled, drag component bodies to move them. Right-click a component to rotate it 90 degrees. Shift-drag empty canvas to select a group.</dd>
+      </dl>
+    </form>
+  </dialog>
   <section class="workspace">
     <section id="canvas-host" aria-label="Interactive PanelViz wiring editor"></section>
     <div id="wire-table-resizer" aria-hidden="true"></div>
@@ -699,6 +709,64 @@ def _editor_css() -> str:
   border: 1px solid #94a3b8;
   border-radius: 4px;
   padding: 4px 6px;
+}
+.editor-route-panel[aria-disabled="true"] {
+  opacity: 0.58;
+}
+.editor-route-panel[aria-disabled="true"] input,
+.editor-route-panel[aria-disabled="true"] button {
+  pointer-events: none;
+}
+#editor-edit-toggle[aria-pressed="true"] {
+  background: #dbeafe;
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+#editor-help-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+.help-dialog {
+  width: min(720px, calc(100vw - 48px));
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  color: #0f172a;
+  box-shadow: 0 24px 70px rgb(15 23 42 / 0.28);
+}
+.help-dialog::backdrop {
+  background: rgb(15 23 42 / 0.36);
+}
+.help-dialog form {
+  margin: 0;
+}
+.help-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+.help-dialog h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.help-dialog dl {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 10px 16px;
+  margin: 0;
+}
+.help-dialog dt {
+  font-weight: 800;
+}
+.help-dialog dd {
+  margin: 0;
+  color: #334155;
+  line-height: 1.35;
 }
 .toolbar-link {
   display: inline-flex;
@@ -768,6 +836,7 @@ body.editor-relocating-wire .wire-endpoint-group {
 def _editor_js() -> str:
     return r"""
 const editorState = {
+  editEnabled: false,
   route: [],
   relocating: null,
 };
@@ -778,6 +847,12 @@ const editorAwgEl = document.getElementById('editor-awg');
 const editorSaveEl = document.getElementById('editor-save-route');
 const editorCancelEl = document.getElementById('editor-cancel-route');
 const editorPdfEl = document.getElementById('editor-download-pdfs');
+const editorEditToggleEl = document.getElementById('editor-edit-toggle');
+const editorHelpButtonEl = document.getElementById('editor-help-button');
+const editorHelpDialogEl = document.getElementById('editor-help-dialog');
+const editorRoutePanelEl = document.querySelector('.editor-route-panel');
+
+window.PanelVizCanEdit = () => editorState.editEnabled;
 
 editorSaveEl.addEventListener('click', () => saveEditorRoute());
 editorSaveEl.addEventListener('pointerdown', (event) => {
@@ -793,18 +868,37 @@ editorPdfEl.addEventListener('click', () => downloadDrawingPdfs());
 editorPdfEl.addEventListener('pointerdown', (event) => {
   event.stopPropagation();
 });
+editorEditToggleEl.addEventListener('click', () => {
+  setEditEnabled(!editorState.editEnabled);
+});
+editorEditToggleEl.addEventListener('pointerdown', (event) => {
+  event.stopPropagation();
+});
+editorHelpButtonEl.addEventListener('click', () => {
+  if (editorHelpDialogEl?.showModal) {
+    editorHelpDialogEl.showModal();
+  }
+  editorHelpButtonEl.setAttribute('aria-expanded', 'true');
+});
+editorHelpButtonEl.addEventListener('pointerdown', (event) => {
+  event.stopPropagation();
+});
+editorHelpDialogEl?.addEventListener('close', () => {
+  editorHelpButtonEl.setAttribute('aria-expanded', 'false');
+});
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     if (editorState.route.length) clearEditorRoute();
     return;
   }
-  if (event.key === 'Delete' && state.selectedWire) {
+  if (event.key === 'Delete' && state.selectedWire && editorState.editEnabled) {
     event.preventDefault();
     deleteSelectedWire();
   }
 });
 
 document.addEventListener('panelviz:component-layout', (event) => {
+  if (!editorState.editEnabled) return;
   saveComponentLayout(event.detail);
 });
 
@@ -816,6 +910,7 @@ document.addEventListener('pointerup', (event) => {
   document.body.classList.remove('editor-relocating-wire');
   document.querySelectorAll('.wire-dot.relocating').forEach((dot) => dot.classList.remove('relocating'));
   if (!target || target === relocating.node) return;
+  if (!editorState.editEnabled) return;
   apiPost('/api/relocate-wire', {
     wire_index: Number(relocating.wire),
     endpoint_node: relocating.node,
@@ -831,6 +926,7 @@ function bindEditorTargets() {
   document.querySelectorAll('.pin-box:not([data-editor-bound])').forEach((pin) => {
     pin.dataset.editorBound = 'true';
     pin.addEventListener('pointerdown', (event) => {
+      if (!editorState.editEnabled) return;
       event.preventDefault();
       event.stopPropagation();
       handleEndpointClick(pin.dataset.node, event.shiftKey);
@@ -839,6 +935,7 @@ function bindEditorTargets() {
   document.querySelectorAll('.wire-dot:not([data-editor-bound])').forEach((dot) => {
     dot.dataset.editorBound = 'true';
     dot.addEventListener('pointerdown', (event) => {
+      if (!editorState.editEnabled) return;
       const group = dot.closest('.wire-endpoint-group');
       if (!group) return;
       event.preventDefault();
@@ -870,6 +967,7 @@ function endpointFromPoint(x, y) {
 }
 
 function handleEndpointClick(endpoint, shiftKey) {
+  if (!editorState.editEnabled) return;
   if (!endpoint) return;
   if (!editorState.route.length) {
     editorState.route = [endpoint];
@@ -884,7 +982,9 @@ function handleEndpointClick(endpoint, shiftKey) {
 function renderEditorRoute() {
   editorRouteEl.textContent = editorState.route.length
     ? editorState.route.join(' -> ')
-    : 'Click a terminal to start a route.';
+    : editorState.editEnabled
+      ? 'Click a terminal to start a route.'
+      : 'Editing locked. Enable Edit to change wiring or layout.';
   document.querySelectorAll('.editor-route-selected').forEach((el) => el.classList.remove('editor-route-selected'));
   editorState.route.forEach((endpoint) => {
     document.querySelectorAll(`[data-node="${cssEscape(endpoint)}"],[data-endpoint="${cssEscape(endpoint)}"]`).forEach((el) => {
@@ -899,6 +999,7 @@ function clearEditorRoute() {
 }
 
 function saveEditorRoute() {
+  if (!editorState.editEnabled) return;
   if (editorState.route.length < 2) return;
   apiPost('/api/append-route', {
     route: editorState.route,
@@ -908,12 +1009,14 @@ function saveEditorRoute() {
 }
 
 function deleteSelectedWire() {
+  if (!editorState.editEnabled) return;
   apiPost('/api/delete-wire', {
     wire_index: Number(state.selectedWire),
   });
 }
 
 function saveComponentLayout(detail) {
+  if (!editorState.editEnabled) return;
   if (!detail || !detail.component) return;
   apiPost('/api/save-layout', detail, { refresh: false, quiet: true });
 }
@@ -943,6 +1046,24 @@ function apiPost(url, payload, options = {}) {
       if (options.quiet) return;
       showEditorError(error.message);
     });
+}
+
+function setEditEnabled(enabled) {
+  editorState.editEnabled = Boolean(enabled);
+  editorEditToggleEl.setAttribute('aria-pressed', String(editorState.editEnabled));
+  editorEditToggleEl.textContent = editorState.editEnabled ? 'Edit On' : 'Enable Edit';
+  editorRoutePanelEl?.setAttribute('aria-disabled', String(!editorState.editEnabled));
+  [editorNetEl, editorAwgEl, editorSaveEl, editorCancelEl].forEach((control) => {
+    control.disabled = !editorState.editEnabled;
+  });
+  if (!editorState.editEnabled) {
+    editorState.relocating = null;
+    document.body.classList.remove('editor-relocating-wire');
+    document.querySelectorAll('.wire-dot.relocating').forEach((dot) => dot.classList.remove('relocating'));
+    clearEditorRoute();
+  } else {
+    renderEditorRoute();
+  }
 }
 
 function reloadPanelData() {
@@ -1144,4 +1265,6 @@ function showEditorError(message) {
   editorRouteEl.textContent = `Edit failed: ${message}`;
   window.setTimeout(() => toast.remove(), 7000);
 }
+
+setEditEnabled(false);
 """

@@ -1904,6 +1904,7 @@ function renderWireLabel(wire, endpoint) {
 function enableDrag(svg) {
   let active = null;
   svg.addEventListener('pointerdown', (event) => {
+    if (!panelVizCanEdit()) return;
     const dragSurface = event.target.closest('.component-drag-surface');
     if (!dragSurface) return;
     const component = dragSurface.closest('.component');
@@ -2160,7 +2161,7 @@ function enableContextMenu(svg) {
     event.preventDefault();
     const componentGroup = event.target.closest('.component');
     if (componentGroup) {
-      rotateComponent(componentGroup.dataset.component);
+      if (panelVizCanEdit()) rotateComponent(componentGroup.dataset.component);
       return;
     }
     clearSelectionState();
@@ -2175,6 +2176,7 @@ function enableContextMenu(svg) {
 }
 
 function rotateComponent(componentName) {
+  if (!panelVizCanEdit()) return;
   const component = state.components.get(componentName);
   const group = document.querySelector(`.component[data-component="${cssEscape(componentName)}"]`);
   if (!component || !group) return;
@@ -2196,6 +2198,10 @@ function dispatchComponentLayout(componentName, component) {
       rotation: Number(component.rotation || 0),
     },
   }));
+}
+
+function panelVizCanEdit() {
+  return typeof window.PanelVizCanEdit === 'function' ? Boolean(window.PanelVizCanEdit()) : true;
 }
 
 function updateComponentTransform(group, component) {

@@ -366,6 +366,10 @@ def test_editor_document_cache_busts_local_assets():
     assert "Download CSV" in html
     assert 'id="editor-download-pdfs"' in html
     assert "Download PDFs" in html
+    assert 'id="editor-edit-toggle"' in html
+    assert "Enable Edit" in html
+    assert 'id="editor-help-dialog"' in html
+    assert "Click terminal: start/finish" not in html
     assert 'id="toggle-reference-grid"' in html
 
 
@@ -383,6 +387,15 @@ def test_viewer_and_editor_fetch_panel_data_without_browser_cache():
 
     assert "fetch('panel-data.json', { cache: 'no-store' })" in _viewer_js()
     assert "fetch('panel-data.json', { cache: 'no-store' })" in _editor_js()
+
+
+def test_editor_js_locks_mutating_actions_until_edit_is_enabled():
+    js = _editor_js()
+
+    assert "editEnabled: false" in js
+    assert "window.PanelVizCanEdit = () => editorState.editEnabled" in js
+    assert "if (!editorState.editEnabled) return;" in js
+    assert "setEditEnabled(false);" in js
 
 
 def test_editor_selects_next_free_port_when_preferred_is_busy():
