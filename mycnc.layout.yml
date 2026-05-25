@@ -52,8 +52,8 @@ components:
     y: 456.049
     rotation: 90
   cnc_terminals:
-    x: 1836.611
-    y: -716.043
+    x: 1817.091
+    y: -670.496
     rotation: 90
   connector_earth:
     x: 2359.008
@@ -124,8 +124,8 @@ components:
     y: -713.25
     rotation: 0
   vfd:
-    x: 2211.968
-    y: 1230.862
+    x: 2263.99
+    y: 1221.963
     rotation: 270
   live_power_t:
     x: 1943.666
@@ -224,8 +224,8 @@ components:
     y: 1015.311
     rotation: 90
   coil_t:
-    x: 2109.802
-    y: 983.457
+    x: 2007.127
+    y: 1477.668
     rotation: 90
   vfd_earth:
     x: 1890.317

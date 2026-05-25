@@ -276,7 +276,7 @@ components:
     pins:
       left: [A]
       right: [B]
-    positions: 76
+    positions: 66
   live_power_t:
     type: terminal_block
     tags: [vfd]
@@ -569,7 +569,7 @@ components:
     positions: 4
   coil_t:
     type: terminal_block
-    tags: [safety]
+    tags: [vfd]
     size:
       width: 2
       height: 0.118
