@@ -16,8 +16,7 @@ from panelviz.viewer import (
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_OUTPUTS = Path(__file__).resolve().parent / "outputs"
-VALID_PANEL = Path(__file__).resolve().parent / "fixtures" / "mycnc_valid.yml"
-PROJECT_PANEL = PROJECT_ROOT / "mycnc.yml"
+VALID_PANEL = Path(__file__).resolve().parent / "fixtures" / "panel_valid.yml"
 
 
 def test_viewer_data_contains_components_wires_styles_and_pin_anchors():
@@ -37,7 +36,7 @@ def test_viewer_data_contains_components_wires_styles_and_pin_anchors():
     assert len(data["reference_grid"]["horizontals"]) == data["reference_grid"]["rows"] + 1
     assert data["reference_grid"]["labels"][0]["ref"] == "A1"
     assert {component["name"] for component in data["components"]} >= {"contactor_110", "live_power_t"}
-    assert len(data["wires"]) == 137
+    assert len(data["wires"]) == 19
     assert data["styles"]["nets"]["earth"]["color"] == "#16a34a"
     earth_wire = next(wire for wire in data["wires"] if wire["net"] == "earth")
     assert earth_wire["style"]["color"] == "#16a34a"
@@ -247,7 +246,7 @@ connections:
 
 
 def test_viewer_vfd_tag_filter_count_matches_endpoint_component_tags():
-    parsed = parse_panel_yaml(PROJECT_PANEL.read_text(encoding="utf-8"))
+    parsed = parse_panel_yaml(VALID_PANEL.read_text(encoding="utf-8"))
     router = WireRouter.route_parse_result(parsed)
 
     data = viewer_data(router, units=parsed.config.units, columns=3)

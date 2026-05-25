@@ -281,7 +281,7 @@ PDF export requirements:
   * Wire-label sheet height is computed from the configured font height and whitespace pattern. Each label begins and ends with wire text, with alternating whitespace multiples between text stripes, for example `whitespace: [1, 1.5, 2]`.
   * Wire-label PDFs intentionally duplicate labels across tags when a wire connects components in different tagged rows, because a physical wire needs a label at each end.
 
-The interactive viewer should be a no-build static web app using SVG.js plus plain JavaScript/CSS. It should be generated into the output directory as `viewer.html`, `viewer.css`, `viewer.js`, and `panel-data.json`. Running `panelviz --view <input_file> [output_dir]` should generate the normal outputs, generate the viewer bundle, serve the output directory on a local static HTTP server, and launch the browser.
+The interactive viewer should be a no-build SVG.js plus plain JavaScript/CSS experience shared by the local web app and generated static viewer bundle. The normal command-line workflow is `panelviz <input_file>`, which launches the local NiceGUI/FastAPI app bound to `127.0.0.1`.
 
 Interactive viewer requirements:
   * Components are draggable on the canvas.
@@ -305,7 +305,7 @@ Interactive viewer requirements:
   * The wire list panel should be scrollable, collapsible, and horizontally resizable by dragging the boundary between the canvas and table.
   * The top bar should include diagnostic actions to highlight unconnected terminals, multi-connected terminals, and components with no connections at all.
 
-The live wiring editor should be launched with `panelviz --edit <input_file>`. It should run as a local NiceGUI/FastAPI app bound to `127.0.0.1`, reuse the same SVG.js viewer rendering where possible, and edit the YAML file directly. The editor is initially for wiring only: components remain authored in YAML.
+The live wiring editor is the default web app launched with `panelviz <input_file>`. It should run as a local NiceGUI/FastAPI app bound to `127.0.0.1`, reuse the same SVG.js viewer rendering where possible, and edit the YAML file directly when edit mode is enabled. Components remain authored in YAML.
 
 Editor requirements:
   * Support the same pan, zoom, component dragging, highlighting, wire table, and diagnostic interactions as the static viewer.
@@ -317,10 +317,8 @@ Editor requirements:
   * The editor should not currently create invisible whole-position click targets over terminal block centers. Terminal blocks must remain easy to grab and drag; users should route to concrete terminal pins until whole-position routing gets a dedicated UI affordance.
   * Clicking an existing wire label and pressing Delete should remove that physical wire from the YAML. If the physical wire came from a multi-hop route row, the remaining physical route segments should be preserved as valid YAML rows.
   * Dragging an endpoint dot from one terminal to another should relocate that endpoint in the YAML and then reload the routed view.
-  * The editor should use a fixed localhost port option (`--edit-port`) and should also support `--no-open` for workflows where the user wants to open the browser manually.
+  * The editor should use a fixed localhost port option (`--port`) and should also support `--no-open` for workflows where the user wants to open the browser manually.
   * Editor API and data-load failures should be reported as concise page-level messages instead of uncaught server tracebacks whenever possible, so an in-progress YAML file can be diagnosed without crashing edit mode startup.
-  * Pins that expose named component nets should show the net alias as smaller text inside the component near that terminal. This helps the user wire semantic nets without constantly checking the YAML.
-  * Pin net alias text must stay wholly inside the component body and should not sit on terminal boundaries.
   * Pins listed in `no_connects` should be visibly marked with a red X connected by a short external stub, using the same stub length as wire labels. The X must not cover the terminal name.
   * Wire creation and endpoint relocation in the editor must be transactional: validate the resulting routed panel before writing the YAML. If the edit would create a net conflict or other invalid route, leave the YAML unchanged and show an error popup in the editor.
   * Component positions and rotations changed in the editor should be saved to a sidecar YAML file next to the panel file, named `<input_stem>.layout.yml`. The sidecar should contain only non-critical layout state, currently component `x`, `y`, and `rotation`; it must not duplicate wiring or component definitions from the main YAML.
@@ -368,10 +366,9 @@ Project structure:
   * `run_tests.cmd` sets `PYTHONDONTWRITEBYTECODE=1` and runs Python with `-B` so project-level `__pycache__` folders are not created during normal test runs.
   * Test and example SVG outputs live in `tests/outputs`; the test runner clears that folder before tests and regenerates the stable `labels` and `wires` diagrams after tests pass.
   * CLI entry points are `panelviz`, `panelvis`, and `panenvis`, all calling the same command.
-  * CLI syntax is `panelviz [--view] <input_file> [output_dir]`. If `output_dir` is omitted, the current working directory is used. If provided, it is created.
-  * CLI outputs are `wire_list.csv`, `wire_list.txt`, `component_summary.csv`, `component_summary.txt`, and `wiring_diagram.svg`. The CLI diagram uses label mode.
-  * With `--view`, the CLI also writes `viewer.html`, `viewer.css`, `viewer.js`, and `panel-data.json`, then serves the output directory locally.
-  * With `--edit`, the CLI launches the NiceGUI/FastAPI editor. Saved component layout state lives in a separate `<input_stem>.layout.yml` sidecar file next to the input YAML.
+  * CLI syntax is `panelviz [--port PORT] [--no-open] <input_file>`.
+  * Documentation export outputs are `wire_list.csv`, `wire_list.txt`, `component_summary.csv`, `component_summary.txt`, and `wiring_diagram.svg`. The diagram uses label mode.
+  * The CLI launches the NiceGUI/FastAPI editor by default. Editing is locked until the user enables edit mode in the UI. Saved component layout state lives in a separate `<input_stem>.layout.yml` sidecar file next to the input YAML.
   * The project depends on `fpdf2` for PDF exports.
   * The interactive viewer includes pan, zoom, component drag, component rotation, wire/net/component/terminal highlighting, a sortable and resizable wire-list panel, and diagnostic highlighting for unconnected, multi-connected, and isolated components.
 

@@ -157,7 +157,7 @@ def run_editor(
     try:
         from nicegui import app, ui
     except ImportError as error:  # pragma: no cover
-        raise RuntimeError("NiceGUI is required for --edit. Run: pip install -e \".[dev]\"") from error
+        raise RuntimeError("NiceGUI is required for the PanelViz web app. Run: pip install -e \".[dev]\"") from error
 
     selected_port = _select_editor_port(port)
     session = EditorSession(Path(input_file).resolve())

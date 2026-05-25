@@ -6,3 +6,7 @@ __pycache__/
 htmlcov/
 tests/outputs/
 out/
+viewer.html
+viewer.css
+viewer.js
+panel-data.json

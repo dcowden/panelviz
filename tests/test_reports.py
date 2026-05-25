@@ -14,7 +14,7 @@ from panelviz.routing import WireRouter
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_OUTPUTS = Path(__file__).resolve().parent / "outputs"
-VALID_PANEL = Path(__file__).resolve().parent / "fixtures" / "mycnc_valid.yml"
+VALID_PANEL = Path(__file__).resolve().parent / "fixtures" / "panel_valid.yml"
 
 
 def test_component_summary_rows_report_unconnected_nc_and_multi_connected_pins():
@@ -27,8 +27,8 @@ def test_component_summary_rows_report_unconnected_nc_and_multi_connected_pins()
     assert rows["contactor_110"].multi_connected_pins == "A1 (2), A2 (2)"
     assert rows["contactor_110"].warnings == "4 unconnected; 2 multi-connected"
     assert rows["estop_relay"].no_connects == "NC"
-    assert rows["estop_relay"].warnings == "3 unconnected"
-    assert rows["transformer"].warnings == "-"
+    assert rows["estop_relay"].warnings == "5 unconnected"
+    assert rows["transformer"].warnings == "1 multi-connected"
 
 
 def test_component_summary_table_is_pretty_printed():

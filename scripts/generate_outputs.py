@@ -14,13 +14,13 @@ def main() -> int:
     output_dir = root / "tests" / "outputs"
     output_dir.mkdir(exist_ok=True)
 
-    parsed = parse_panel_yaml((root / "tests" / "fixtures" / "mycnc_valid.yml").read_text(encoding="utf-8"))
+    parsed = parse_panel_yaml((root / "tests" / "fixtures" / "panel_valid.yml").read_text(encoding="utf-8"))
     router = WireRouter.route_parse_result(parsed)
     measurer = ApproximateTextMeasurer()
 
     write_wiring_diagram_svg(
         router,
-        output_dir / "mycnc_wiring_diagram_labels.svg",
+        output_dir / "panel_valid_wiring_diagram_labels.svg",
         units=parsed.config.units,
         columns=3,
         measurer=measurer,
@@ -28,7 +28,7 @@ def main() -> int:
     )
     write_wiring_diagram_svg(
         router,
-        output_dir / "mycnc_wiring_diagram_wires.svg",
+        output_dir / "panel_valid_wiring_diagram_wires.svg",
         units=parsed.config.units,
         columns=3,
         measurer=measurer,

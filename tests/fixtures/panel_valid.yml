@@ -1,0 +1,147 @@
+config:
+  wire_label_format: "%netname-%seq"
+  wiring_mode: labels
+  defaults:
+    awg: 20
+  units:
+    length: in
+  visualization:
+    default_net_style:
+      color: "#475569"
+      line_weight: 1.6
+      line_style: solid
+    net_styles:
+      110L: {color: "#2563eb", line_weight: 1.8, line_style: solid}
+      110N: {color: "#2563eb", line_weight: 1.8, line_style: solid}
+      earth: {color: "#16a34a", line_weight: 2.0, line_style: solid}
+components:
+  wall_plug:
+    type: connector
+    tags: [field]
+    size: {width: 0.95, height: 0.95, terminal_width: 0.25}
+    pins:
+      right: [GND, 1, 2]
+  live_power_t:
+    type: terminal_block
+    tags: [terminals, vfd]
+    size: {width: 0.236, height: 0.118}
+    pins:
+      left: [A]
+      right: [B]
+    positions: 6
+    nets:
+      - name: 110L
+        positions: [1, 3, 5]
+      - name: 110N
+        positions: [2, 4, 6]
+  switched_110L:
+    type: bus_block
+    tags: [control]
+    size: {width: 0.236, height: 0.118}
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+    nets:
+      - name: 110L_SWITCHED
+  switched_110N:
+    type: bus_block
+    tags: [control]
+    size: {width: 0.236, height: 0.118}
+    pins:
+      left: [A]
+      right: [B]
+    positions: 2
+    nets:
+      - name: 110N_SWITCHED
+  transformer:
+    type: power_supply
+    tags: [vfd]
+    size: {width: 2.75, height: 3.5, terminal_width: 0.25}
+    pins:
+      bottom: [GND, 110L, 110N, 220L, 220N]
+  contactor_110:
+    type: switch
+    tags: [safety]
+    size: {width: 1.75, height: 3.5, terminal_width: 0.25}
+    pins:
+      top: [L1, L2, L3, "13", A1]
+      bottom: [T1, T2, T3, "14", A2]
+  contactor_220:
+    type: switch
+    tags: [safety, vfd]
+    size: {width: 1.75, height: 3.5, terminal_width: 0.25}
+    pins:
+      top: [L1, L2, L3, "13", A1]
+      bottom: [T1, T2, T3, "14", A2]
+  coil_t:
+    type: terminal_block
+    tags: [safety]
+    size: {width: 0.236, height: 0.118}
+    pins:
+      left: [A]
+      right: [B]
+    positions: 4
+    nets:
+      - name: COIL+
+        positions: [1, 2]
+      - name: COIL-
+        positions: [3, 4]
+  earth:
+    type: bus_block
+    tags: [dc_power]
+    size: {width: 0.236, height: 0.118}
+    pins:
+      left: [A]
+      right: [B]
+    positions: 4
+    nets:
+      - name: earth
+  estop_relay:
+    type: relay
+    tags: [safety]
+    size: {width: 1.75, height: 3.5}
+    pins:
+      top: [DC+, DC-, IN]
+      bottom: [NO, COM, NC]
+  axbb-e:
+    type: driver
+    tags: [control]
+    size: {width: 4, height: 5}
+    pins:
+      left: [O1, O2, O17]
+      right: [IN-24V0, IN-24V+]
+    nets:
+      - name: VFD REV
+        pins: [O2]
+  vfd:
+    type: vfd
+    tags: [vfd]
+    size: {width: 4, height: 6}
+    pins:
+      top: [FOR, REV]
+      bottom: [R, S, T, GND]
+connections:
+  wires:
+    - {from: wall_plug.GND, to: earth.earth, net: earth, awg: 12}
+    - {from: wall_plug.1, to: live_power_t.110L, net: 110L, awg: 12}
+    - {from: wall_plug.2, to: live_power_t.110N, net: 110N, awg: 12}
+    - [live_power_t.110L, transformer.110L]
+    - [live_power_t.110N, transformer.110N]
+    - [live_power_t.110L, contactor_110.T2]
+    - [live_power_t.110N, contactor_110.T3]
+    - [transformer.GND, earth.earth]
+    - [transformer.220L, contactor_220.T1]
+    - [transformer.220N, contactor_220.T2]
+    - [contactor_110.L2, switched_110L.110L_SWITCHED]
+    - [contactor_110.L3, switched_110N.110N_SWITCHED]
+    - {from: contactor_110.A1, to: contactor_220.A1, net: COIL+}
+    - {from: contactor_110.A2, to: contactor_220.A2, net: COIL-}
+    - {from: contactor_110.A1, to: coil_t.COIL+, net: COIL+}
+    - {from: contactor_110.A2, to: coil_t.COIL-, net: COIL-}
+    - {route: [vfd.R, contactor_220.L1, transformer.220L], net: VFD_220L, awg: 16}
+    - [vfd.GND, earth.earth]
+no_connects:
+  - axbb-e.O1
+  - axbb-e.O17
+  - estop_relay.NC
