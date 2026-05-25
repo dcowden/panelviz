@@ -646,7 +646,7 @@ def _viewer_html() -> str:
         <label><input type="radio" name="highlight-mode" value="wire" checked> Wire</label>
         <label><input type="radio" name="highlight-mode" value="net"> Net</label>
         <button id="toggle-reference-grid" type="button" aria-pressed="false">Ref Grid</button>
-        <button id="toggle-wire-table" type="button">Hide Wires</button>
+        <button id="toggle-wire-table" type="button" aria-expanded="true" title="Collapse wire list">Wire List &lt;</button>
         <button id="clear-selection" type="button">Clear</button>
       </div>
     </header>
@@ -1106,6 +1106,11 @@ const toggleReferenceGridButton = document.getElementById('toggle-reference-grid
 const wireTableResizer = document.getElementById('wire-table-resizer');
 const wireTagFilterInput = document.getElementById('wire-tag-filter');
 const wireTagOptions = document.getElementById('wire-tag-options');
+const diagnosticButtons = {
+  unconnected: document.getElementById('show-unconnected'),
+  multiconnected: document.getElementById('show-multiconnected'),
+  isolated: document.getElementById('show-isolated'),
+};
 
 document.querySelectorAll('input[name="highlight-mode"]').forEach((input) => {
   input.addEventListener('change', () => {
@@ -1122,20 +1127,24 @@ document.querySelectorAll('input[name="highlight-mode"]').forEach((input) => {
 
 document.getElementById('clear-selection').addEventListener('click', () => {
   clearSelectionState();
+  setDiagnosticButtonState(null);
   applyHighlight();
 });
 
 document.getElementById('show-unconnected').addEventListener('click', () => {
   selectDiagnosticNodes(state.data.diagnostics.unconnected_pins.map((item) => item.node));
+  setDiagnosticButtonState('unconnected');
 });
 
 document.getElementById('show-multiconnected').addEventListener('click', () => {
   selectDiagnosticNodes(state.data.diagnostics.multi_connected_pins.map((item) => item.node));
+  setDiagnosticButtonState('multiconnected');
 });
 
 document.getElementById('show-isolated').addEventListener('click', () => {
   clearSelectionState();
   state.diagnosticComponents = state.data.diagnostics.isolated_components.map((item) => item.component);
+  setDiagnosticButtonState('isolated');
   applyHighlight();
 });
 
@@ -1148,7 +1157,10 @@ toggleWireColumnsButton.addEventListener('click', () => {
 
 toggleWireTableButton.addEventListener('click', () => {
   workspace.classList.toggle('table-collapsed');
-  toggleWireTableButton.textContent = workspace.classList.contains('table-collapsed') ? 'Show Wires' : 'Hide Wires';
+  const collapsed = workspace.classList.contains('table-collapsed');
+  toggleWireTableButton.textContent = collapsed ? 'Wire List >' : 'Wire List <';
+  toggleWireTableButton.setAttribute('aria-expanded', String(!collapsed));
+  toggleWireTableButton.setAttribute('title', collapsed ? 'Expand wire list' : 'Collapse wire list');
 });
 
 if (wireTagFilterInput) {
@@ -2531,6 +2543,13 @@ function clearSelectionState() {
   state.diagnosticComponents = [];
   document.querySelectorAll('.component.group-selected').forEach((component) => {
     component.classList.remove('group-selected');
+  });
+  setDiagnosticButtonState(null);
+}
+
+function setDiagnosticButtonState(activeKey) {
+  Object.entries(diagnosticButtons).forEach(([key, button]) => {
+    button?.setAttribute('aria-pressed', String(key === activeKey));
   });
 }
 

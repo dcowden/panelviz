@@ -9,8 +9,10 @@ import pytest
 
 from panelviz.editor import (
     EditorSession,
+    _doc_path,
     _editor_document,
     _editor_js,
+    _markdown_doc_html,
     _select_editor_port,
     append_route_to_yaml,
     delete_wire_from_yaml,
@@ -363,14 +365,37 @@ def test_editor_document_cache_busts_local_assets():
     assert '<script src="/editor.js?v=fresh-token"></script>' in html
     assert 'content="no-store, no-cache, must-revalidate, max-age=0"' in html
     assert 'href="/wire-list.csv"' in html
-    assert "Download CSV" in html
+    assert ">CSV<" in html
     assert 'id="editor-download-pdfs"' in html
-    assert "Download PDFs" in html
+    assert ">PDFs<" in html
     assert 'id="editor-edit-toggle"' in html
     assert "Enable Edit" in html
+    assert 'class="editor-route-panel" aria-hidden="true"' in html
     assert 'id="editor-help-dialog"' in html
+    assert 'href="/docs/getting-started"' in html
+    assert 'href="/docs/reference"' in html
     assert "Click terminal: start/finish" not in html
     assert 'id="toggle-reference-grid"' in html
+    assert 'id="toggle-wire-table"' in html
+    assert "Wire List &lt;" in html
+    assert 'id="show-unconnected" class="toolbar-button" type="button" aria-pressed="false"' in html
+
+
+def test_editor_doc_paths_and_markdown_renderer_are_local_and_escaped():
+    doc_path = _doc_path("getting_started.md")
+    rendered = _markdown_doc_html(
+        "Docs <Title>",
+        "# Heading\n\n- One <safe>\n\n```yaml\nkey: <value>\n```\n\nPlain text",
+    )
+
+    assert doc_path.name == "getting_started.md"
+    assert doc_path.parent.name == "docs"
+    assert "<title>Docs &lt;Title&gt;</title>" in rendered
+    assert "<h1>Heading</h1>" in rendered
+    assert "<li>One &lt;safe&gt;</li>" in rendered
+    assert "key: &lt;value&gt;" in rendered
+    assert "<p>Plain text</p>" in rendered
+    assert "no-store" in rendered
 
 
 def test_editor_document_can_use_fresh_cache_bust_token_per_server_run():

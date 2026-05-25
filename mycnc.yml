@@ -315,6 +315,29 @@ components:
       left: [A]
       right: [B]
     positions: 4
+  driver_power:
+    type: terminal_block
+    tags: [vfd]
+    size:
+      width: 2
+      height: 0.118
+    pins:
+      left: [A]
+      right: [B]
+    nets:
+      - name: 36V_X1
+        positions: [1]
+      - name: 36V0_X1
+        positions: [2]
+      - name: 36V_X2
+        positions: [3]
+      - name: 36V0_X2
+        positions: [4]
+      - name: DRIVER_48V
+        positions: [5, 6]
+      - name: DRIVER_GND
+        positions: [7, 8]
+    positions: 8
   terminals_5v:
     type: bus_block
     tags: [terminals]
@@ -756,9 +779,15 @@ connections:
     - [36V_X1.110N, switched_110N.110N_SWITCHED]
     - [36V_X1.110L, switched_110L.110L_SWITCHED]
     - [36V_X1.GND, vfd_earth.earth]
+    - [36V_X1.36V_X1, driver_power.36V_X1]
+    - [36V_X1.36V0_X1, driver_power.36V0_X1]
     - [36V_X2.GND, vfd_earth.earth]
     - [36V_X2.110N, switched_110N.110N_SWITCHED]
     - [36V_X2.110L, switched_110L.110L_SWITCHED]
+    - [36V_X2.36V_X2, driver_power.36V_X2]
+    - [36V_X2.36V0_X2, driver_power.36V0_X2]
+    - [48v.DRIVER_48V, driver_power.DRIVER_48V]
+    - [48v.DRIVER_GND, driver_power.DRIVER_GND]
     - [contactor_110.A1, coil_t.COIL+]
     - [contactor_220.A1, coil_t.COIL+]
     - [contactor_110.A2, coil_t.COIL-]
@@ -809,9 +838,9 @@ connections:
     - [y_limits.ll, cnc_terminals.27, axbb-e.YLL]
     - [y_limits.5v0, cnc_terminals.28, terminals_5v0.5V0]
     - [y_limits.shield, connector_earth.shield]
-    - route: [x1_motor.M+, cnc_terminals.29, 36V_X1.36V_X1]
+    - route: [x1_motor.M+, cnc_terminals.29, driver_power.36V_X1]
       awg: 16
-    - route: [x1_motor.M-, cnc_terminals.30, 36V_X1.36V0_X1]
+    - route: [x1_motor.M-, cnc_terminals.30, driver_power.36V0_X1]
       awg: 16
     - [x1_motor.shield, connector_earth.shield]
     - [x1_control.alrm+, cnc_terminals.31, opto_board.5-]
@@ -825,9 +854,9 @@ connections:
     - [x1_limits.ll, cnc_terminals.39, axbb-e.X1LL]
     - [x1_limits.5v0, cnc_terminals.40, terminals_5v0.5V0]
     - [x1_limits.shield, connector_earth.shield]
-    - route: [x2_motor.M+, cnc_terminals.41, 36V_X2.36V_X2]
+    - route: [x2_motor.M+, cnc_terminals.41, driver_power.36V_X2]
       awg: 16
-    - route: [x2_motor.M-, cnc_terminals.42, 36V_X2.36V0_X2]
+    - route: [x2_motor.M-, cnc_terminals.42, driver_power.36V0_X2]
       awg: 16
     - [x2_motor.shield, connector_earth.shield]
     - [x2_control.alrm+, cnc_terminals.43, opto_board.6-]
@@ -892,8 +921,8 @@ connections:
     - [y_cl57s.DIR+, axbb-e.YDIR]
     - [y_cl57s.DIR-, control_5v0.5V0]
     - [y_cl57s.COM-, control_5v0.5V0]
-    - [y_cl57s.+VDC, 48v.48V]
-    - [y_cl57s.GND, 48v.48V0]
+    - [y_cl57s.+VDC, driver_power.DRIVER_48V]
+    - [y_cl57s.GND, driver_power.DRIVER_GND]
 
     - [Z_cl57s.PUL+, axbb-e.ZSTEP]
     - [Z_cl57s.ALM, opto_board.8-]
@@ -901,8 +930,8 @@ connections:
     - [Z_cl57s.DIR+, axbb-e.ZDIR]
     - [Z_cl57s.DIR-, control_5v0.5V0]
     - [Z_cl57s.COM-, control_5v0.5V0]
-    - [Z_cl57s.+VDC, 48v.48V]
-    - [Z_cl57s.GND, 48v.48V0]
+    - [Z_cl57s.+VDC, driver_power.DRIVER_48V]
+    - [Z_cl57s.GND, driver_power.DRIVER_GND]
 
 
 

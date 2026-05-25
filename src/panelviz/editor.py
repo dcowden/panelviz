@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import csv
+import html
 import re
 import secrets
 import socket
@@ -181,6 +182,20 @@ def run_editor(
     @app.get("/editor.js")
     def editor_js_endpoint() -> Response:
         return Response(_editor_js(), media_type="text/javascript", headers=_no_store_headers())
+
+    @app.get("/docs/getting-started")
+    def getting_started_endpoint() -> HTMLResponse:
+        return HTMLResponse(
+            _markdown_doc_html("Getting Started", _doc_path("getting_started.md").read_text(encoding="utf-8")),
+            headers=_no_store_headers(),
+        )
+
+    @app.get("/docs/reference")
+    def reference_endpoint() -> HTMLResponse:
+        return HTMLResponse(
+            _markdown_doc_html("YAML Reference", _doc_path("reference.md").read_text(encoding="utf-8")),
+            headers=_no_store_headers(),
+        )
 
     @app.get("/wire-list.csv")
     def wire_list_csv_endpoint() -> Response:
@@ -458,6 +473,88 @@ def _no_store_headers() -> dict[str, str]:
     }
 
 
+def _doc_path(name: str) -> Path:
+    return Path(__file__).resolve().parents[2] / "docs" / name
+
+
+def _markdown_doc_html(title: str, markdown: str) -> str:
+    """Render a small, dependency-free Markdown subset for local docs."""
+
+    body: list[str] = []
+    code_lines: list[str] = []
+    in_code = False
+    in_list = False
+
+    def close_list() -> None:
+        nonlocal in_list
+        if in_list:
+            body.append("</ul>")
+            in_list = False
+
+    for raw_line in markdown.splitlines():
+        line = raw_line.rstrip()
+        if line.startswith("```"):
+            if in_code:
+                body.append(f"<pre><code>{html.escape(chr(10).join(code_lines))}</code></pre>")
+                code_lines = []
+                in_code = False
+            else:
+                close_list()
+                in_code = True
+            continue
+        if in_code:
+            code_lines.append(line)
+            continue
+        if not line.strip():
+            close_list()
+            continue
+        if line.startswith("#"):
+            close_list()
+            level = min(len(line) - len(line.lstrip("#")), 3)
+            text = html.escape(line.lstrip("#").strip())
+            body.append(f"<h{level}>{text}</h{level}>")
+            continue
+        if line.startswith("- "):
+            if not in_list:
+                body.append("<ul>")
+                in_list = True
+            body.append(f"<li>{html.escape(line[2:].strip())}</li>")
+            continue
+        close_list()
+        body.append(f"<p>{html.escape(line)}</p>")
+    close_list()
+    if in_code:
+        body.append(f"<pre><code>{html.escape(chr(10).join(code_lines))}</code></pre>")
+
+    safe_title = html.escape(title)
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <title>{safe_title}</title>
+  <style>
+    body {{ margin: 0; background: #f8fafc; color: #0f172a; font-family: "Segoe UI", Arial, Helvetica, sans-serif; }}
+    main {{ max-width: 980px; margin: 0 auto; padding: 32px 28px 56px; }}
+    h1 {{ margin-top: 0; font-size: 32px; }}
+    h2 {{ margin-top: 32px; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; }}
+    h3 {{ margin-top: 24px; }}
+    p, li {{ line-height: 1.55; }}
+    code {{ font-family: Consolas, "Courier New", monospace; }}
+    pre {{ overflow: auto; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; }}
+    ul {{ padding-left: 22px; }}
+  </style>
+</head>
+<body>
+  <main>
+    {''.join(body)}
+  </main>
+</body>
+</html>
+"""
+
+
 def _snapshot_export_args(
     snapshot: dict[str, Any] | None,
 ) -> tuple[bytes | None, float | None, float | None, dict[str, float] | None, dict[int | str, dict[str, str]] | None]:
@@ -622,33 +719,41 @@ def _editor_html(path: Path, asset_version: str = "") -> str:
     return f"""
 <main class="app-shell editor-shell">
   <header class="toolbar">
-    <div>
+    <div class="toolbar-status">
       <h1>PanelViz Editor</h1>
       <p id="status">Loading panel...</p>
       <p class="editor-path">{path}</p>
     </div>
-    <div class="editor-route-panel">
-      <div id="editor-route">Editing locked. Enable Edit to change wiring or layout.</div>
-      <label>Net <input id="editor-net" type="text" placeholder="optional"></label>
-      <label>AWG <input id="editor-awg" type="number" min="1" placeholder="default"></label>
-      <button id="editor-save-route" type="button">Save Route</button>
-      <button id="editor-cancel-route" type="button">Cancel</button>
+    <div class="toolbar-group edit-toolbar-group" aria-label="Edit controls">
+      <button id="editor-edit-toggle" class="toolbar-button primary-action" type="button" aria-pressed="false">Enable Edit</button>
+      <div class="editor-route-panel" aria-hidden="true">
+        <div id="editor-route">Editing locked. Enable Edit to change wiring or layout.</div>
+        <label>Net <input id="editor-net" type="text" placeholder="optional"></label>
+        <label>AWG <input id="editor-awg" type="number" min="1" placeholder="default"></label>
+        <button id="editor-save-route" class="toolbar-button" type="button">Save Route</button>
+        <button id="editor-cancel-route" class="toolbar-button" type="button">Cancel</button>
+      </div>
     </div>
-    <div class="diagnostic-actions" role="group" aria-label="Diagnostic highlighting">
-      <button id="show-unconnected" type="button">Unconnected</button>
-      <button id="show-multiconnected" type="button">Multi-connected</button>
-      <button id="show-isolated" type="button">No Connections</button>
+    <div class="toolbar-group mode-toolbar-group" role="radiogroup" aria-label="Highlight mode">
+      <span class="toolbar-label">Select</span>
+      <label class="segmented-option"><input type="radio" name="highlight-mode" value="wire" checked><span>Wire</span></label>
+      <label class="segmented-option"><input type="radio" name="highlight-mode" value="net"><span>Net</span></label>
     </div>
-    <div class="controls" role="group" aria-label="Highlight mode">
-      <label><input type="radio" name="highlight-mode" value="wire" checked> Wire</label>
-      <label><input type="radio" name="highlight-mode" value="net"> Net</label>
-      <a class="toolbar-link" href="/wire-list.csv" download>Download CSV</a>
-      <button id="editor-download-pdfs" class="toolbar-link" type="button">Download PDFs</button>
-      <button id="editor-edit-toggle" type="button" aria-pressed="false">Enable Edit</button>
-      <button id="editor-help-button" type="button" aria-haspopup="dialog" aria-expanded="false" title="Help">?</button>
-      <button id="toggle-reference-grid" type="button" aria-pressed="false">Ref Grid</button>
-      <button id="toggle-wire-table" type="button">Hide Wires</button>
-      <button id="clear-selection" type="button">Clear</button>
+    <div class="toolbar-group diagnostic-actions" role="group" aria-label="Diagnostic highlighting">
+      <span class="toolbar-label">Diagnostics</span>
+      <button id="show-unconnected" class="toolbar-button" type="button" aria-pressed="false">Unconnected</button>
+      <button id="show-multiconnected" class="toolbar-button" type="button" aria-pressed="false">Multi-connected</button>
+      <button id="show-isolated" class="toolbar-button" type="button" aria-pressed="false">No Connections</button>
+      <button id="clear-selection" class="toolbar-button clear-button" type="button">Clear</button>
+    </div>
+    <div class="toolbar-group docs-toolbar-group" role="group" aria-label="Documentation and exports">
+      <a class="toolbar-link toolbar-button" href="/wire-list.csv" download>CSV</a>
+      <button id="editor-download-pdfs" class="toolbar-button" type="button">PDFs</button>
+      <a class="toolbar-link toolbar-button" href="/docs/getting-started" target="_blank" rel="noopener">Getting Started</a>
+      <a class="toolbar-link toolbar-button" href="/docs/reference" target="_blank" rel="noopener">Reference</a>
+      <button id="editor-help-button" class="toolbar-button icon-button" type="button" aria-haspopup="dialog" aria-expanded="false" title="Help">?</button>
+      <button id="toggle-reference-grid" class="toolbar-button" type="button" aria-pressed="false">Ref Grid</button>
+      <button id="toggle-wire-table" class="toolbar-button wire-panel-toggle" type="button" aria-expanded="true" title="Collapse wire list">Wire List &lt;</button>
     </div>
   </header>
   <dialog id="editor-help-dialog" class="help-dialog">
@@ -696,6 +801,107 @@ def _editor_html(path: Path, asset_version: str = "") -> str:
 
 def _editor_css() -> str:
     return """
+.editor-shell .toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(320px, 1.8fr) auto auto minmax(420px, 1.6fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+}
+.toolbar-status {
+  min-width: 0;
+}
+.toolbar-group {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #f8fafc;
+  white-space: nowrap;
+}
+.toolbar-label {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.toolbar-button,
+.toolbar-link {
+  box-sizing: border-box;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #94a3b8;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font: 700 12px/1.1 "Segoe UI", Arial, Helvetica, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+.toolbar-button:hover,
+.toolbar-link:hover {
+  background: #eff6ff;
+  border-color: #64748b;
+}
+.primary-action {
+  min-width: 92px;
+}
+.icon-button {
+  width: 30px;
+  padding: 0;
+  border-radius: 999px;
+  font-weight: 900;
+}
+.clear-button {
+  margin-left: 4px;
+}
+.diagnostic-actions .toolbar-button[aria-pressed="true"],
+.mode-toolbar-group input:checked + span {
+  background: #dbeafe;
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+.mode-toolbar-group {
+  gap: 0;
+}
+.mode-toolbar-group .toolbar-label {
+  margin-right: 6px;
+}
+.segmented-option {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+}
+.segmented-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.segmented-option span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #94a3b8;
+  border-left-width: 0;
+  padding: 0 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+}
+.segmented-option:first-of-type span {
+  border-left-width: 1px;
+  border-radius: 6px 0 0 6px;
+}
+.segmented-option:last-of-type span {
+  border-radius: 0 6px 6px 0;
+}
 .editor-route-panel {
   min-width: 360px;
   display: grid;
@@ -703,6 +909,9 @@ def _editor_css() -> str:
   align-items: center;
   gap: 8px;
   font-size: 12px;
+}
+.editor-route-panel[aria-hidden="true"] {
+  display: none;
 }
 .editor-route-panel input {
   width: 86px;
@@ -721,12 +930,6 @@ def _editor_css() -> str:
   background: #dbeafe;
   border-color: #2563eb;
   color: #1d4ed8;
-}
-#editor-help-button {
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  font-weight: 800;
 }
 .help-dialog {
   width: min(720px, calc(100vw - 48px));
@@ -768,24 +971,6 @@ def _editor_css() -> str:
   color: #334155;
   line-height: 1.35;
 }
-.toolbar-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  border: 1px solid #94a3b8;
-  border-radius: 4px;
-  padding: 0 9px;
-  background: #ffffff;
-  color: #0f172a;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-}
-.toolbar-link:hover {
-  background: #f8fafc;
-  border-color: #64748b;
-}
 #editor-route {
   min-width: 240px;
   max-width: 520px;
@@ -799,6 +984,25 @@ def _editor_css() -> str:
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+@media (max-width: 1500px) {
+  .editor-shell .toolbar {
+    grid-template-columns: minmax(220px, 1fr) minmax(300px, 1.4fr) auto;
+  }
+  .docs-toolbar-group {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 980px) {
+  .editor-shell .toolbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .toolbar-group,
+  .editor-route-panel {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
 }
 .pin-box.editor-route-selected {
   stroke: #0f172a;
@@ -1053,6 +1257,7 @@ function setEditEnabled(enabled) {
   editorEditToggleEl.setAttribute('aria-pressed', String(editorState.editEnabled));
   editorEditToggleEl.textContent = editorState.editEnabled ? 'Edit On' : 'Enable Edit';
   editorRoutePanelEl?.setAttribute('aria-disabled', String(!editorState.editEnabled));
+  editorRoutePanelEl?.setAttribute('aria-hidden', String(!editorState.editEnabled));
   [editorNetEl, editorAwgEl, editorSaveEl, editorCancelEl].forEach((control) => {
     control.disabled = !editorState.editEnabled;
   });
