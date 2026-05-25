@@ -239,3 +239,7 @@ components:
     x: 1752.416
     y: 531.844
     rotation: 0
+  driver_power:
+    x: 2083.374
+    y: 1469.389
+    rotation: 270
