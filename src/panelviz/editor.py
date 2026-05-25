@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import csv
+import re
 import secrets
 import socket
 import zipfile
@@ -24,6 +25,7 @@ from panelviz.reports import WIRE_LIST_COLUMNS, wire_list_rows
 from panelviz.routing import WireRouter
 from panelviz.viewer import _viewer_css, _viewer_js, update_scene_bounds, update_transformed_endpoint_geometry, viewer_data
 from panelviz.visualization import component_visual_config_from_visualization
+from panelviz.wire_labels import paginate_wire_labels, render_wire_label_pdf, wire_label_groups
 
 
 class EditorError(ValueError):
@@ -345,6 +347,11 @@ class EditorSession:
         with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr(f"{self.path.stem}_schematic.pdf", schematic.content)
             archive.writestr(f"{self.path.stem}_wire_list.pdf", wire_list_pdf)
+            for tag, labels in sorted(wire_label_groups(router).items()):
+                safe_tag = _safe_archive_tag(tag)
+                for page_index, cells in enumerate(paginate_wire_labels(labels, parsed.config.labels), start=1):
+                    suffix = "" if page_index == 1 else str(page_index)
+                    archive.writestr(f"wirelabel_{safe_tag}{suffix}.pdf", render_wire_label_pdf(cells, parsed.config.labels))
         return output.getvalue()
 
     def append_route(self, payload: dict[str, Any]) -> None:
@@ -489,6 +496,11 @@ def _snapshot_wire_refs(raw_refs: Any) -> dict[int | str, dict[str, str]] | None
         except (TypeError, ValueError):
             pass
     return refs or None
+
+
+def _safe_archive_tag(tag: str) -> str:
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", tag.strip())
+    return safe or "untagged"
 
 
 def _validate_roundtrip_yaml(yaml: YAML, data: Any) -> None:

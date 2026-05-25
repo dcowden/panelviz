@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PanelViz Viewer</title>
-  <link rel="stylesheet" href="viewer.css?v=9cd8d420c201">
+  <link rel="stylesheet" href="viewer.css?v=eb850f66b952">
   <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.2.4/dist/svg.min.js"></script>
 </head>
 <body>
@@ -29,6 +29,7 @@
       <div class="controls" role="group" aria-label="Highlight mode">
         <label><input type="radio" name="highlight-mode" value="wire" checked> Wire</label>
         <label><input type="radio" name="highlight-mode" value="net"> Net</label>
+        <button id="toggle-reference-grid" type="button" aria-pressed="false">Ref Grid</button>
         <button id="toggle-wire-table" type="button">Hide Wires</button>
         <button id="clear-selection" type="button">Clear</button>
       </div>
@@ -38,8 +39,10 @@
       <div id="wire-table-resizer" aria-hidden="true"></div>
       <aside class="wire-table-panel" aria-label="Wire list">
         <div class="wire-table-header">
-          <h2>Wire List</h2>
+          <h2>Wire List <span id="wire-table-count" class="wire-table-count">0 wires</span></h2>
           <div class="wire-table-actions">
+            <label class="wire-tag-filter">Tag <input id="wire-tag-filter" type="search" list="wire-tag-options" placeholder="all"></label>
+            <datalist id="wire-tag-options"></datalist>
             <button id="toggle-wire-columns" type="button">Split Columns</button>
           </div>
         </div>
@@ -52,6 +55,6 @@
       </aside>
     </section>
   </main>
-  <script src="viewer.js?v=9cd8d420c201"></script>
+  <script src="viewer.js?v=eb850f66b952"></script>
 </body>
 </html>

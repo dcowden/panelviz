@@ -23,6 +23,7 @@ from panelviz.components import (
 from panelviz.parser import (
     ComponentParseResult,
     DefaultsConfig,
+    LabelConfig,
     PanelParseError,
     PanelConfig,
     NetStyle,
@@ -74,6 +75,16 @@ from panelviz.visualization import (
     write_wiring_diagram_svg,
 )
 from panelviz.viewer import VIEWER_FILES, viewer_data, write_static_viewer
+from panelviz.wire_labels import (
+    WireLabelCalculator,
+    WireLabelCell,
+    WireLabelLayout,
+    paginate_wire_labels,
+    render_wire_label_pdf,
+    wire_label_groups,
+    wire_label_layout,
+    write_wire_label_pdfs,
+)
 
 __all__ = [
     "BusBlock",
@@ -95,6 +106,7 @@ __all__ = [
     "Vfd",
     "ComponentParseResult",
     "DefaultsConfig",
+    "LabelConfig",
     "PanelParseError",
     "PanelConfig",
     "NetStyle",
@@ -142,4 +154,12 @@ __all__ = [
     "VIEWER_FILES",
     "viewer_data",
     "write_static_viewer",
+    "WireLabelCalculator",
+    "WireLabelCell",
+    "WireLabelLayout",
+    "paginate_wire_labels",
+    "render_wire_label_pdf",
+    "wire_label_groups",
+    "wire_label_layout",
+    "write_wire_label_pdfs",
 ]

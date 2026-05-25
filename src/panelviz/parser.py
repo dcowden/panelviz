@@ -115,6 +115,66 @@ class DrawingConfig(BaseModel):
     title: str = "PanelViz Wiring Schematic"
 
 
+class LabelConfig(BaseModel):
+    """Printable wire-label PDF configuration."""
+
+    style: dict[str, str] = Field(default_factory=lambda: {"font-family": "Helvetica", "font-weight": "bold"})
+    font_face: str = "Helvetica"
+    font_height: float = 0.12
+    font_height_unit: str = "in"
+    left_margin: float = 0.25
+    right_margin: float = 0.25
+    page_margin: float = 0.25
+    text_clearance: float = 2.0
+    text_clearance_unit: str = "pt"
+    width_increment: float = 0.5
+    whitespace: list[float] = Field(default_factory=lambda: [1.0, 1.5, 2.0])
+
+    @field_validator("style", mode="before")
+    @classmethod
+    def _style_is_string_map(cls, value: Any) -> dict[str, str]:
+        if value is None:
+            return {}
+        if not isinstance(value, Mapping):
+            raise ValueError("labels.style must be a mapping")
+        return {str(key): str(item) for key, item in value.items()}
+
+    @field_validator("font_face")
+    @classmethod
+    def _font_face_is_non_empty(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("labels.font_face must be non-empty")
+        return value.strip()
+
+    @field_validator("font_height", "left_margin", "right_margin", "page_margin", "text_clearance")
+    @classmethod
+    def _label_dimensions_are_non_negative(cls, value: float) -> float:
+        if value < 0:
+            raise ValueError("label dimensions must be non-negative")
+        return value
+
+    @field_validator("width_increment")
+    @classmethod
+    def _width_increment_is_positive(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError("labels.width_increment must be positive")
+        return value
+
+    @field_validator("font_height_unit", "text_clearance_unit")
+    @classmethod
+    def _label_unit_is_supported(cls, value: str) -> str:
+        if value not in {"in", "pt"}:
+            raise ValueError("label units must be 'in' or 'pt'")
+        return value
+
+    @field_validator("whitespace")
+    @classmethod
+    def _whitespace_is_non_negative(cls, value: list[float]) -> list[float]:
+        if any(item < 0 for item in value):
+            raise ValueError("labels.whitespace values must be non-negative")
+        return value
+
+
 class PanelConfig(BaseModel):
     """Top-level PanelViz configuration."""
 
@@ -122,6 +182,7 @@ class PanelConfig(BaseModel):
     wiring_mode: WiringMode = "wires"
     defaults: DefaultsConfig = Field(default_factory=DefaultsConfig)
     drawing: DrawingConfig = Field(default_factory=DrawingConfig)
+    labels: LabelConfig = Field(default_factory=LabelConfig)
     units: UnitsConfig = Field(default_factory=UnitsConfig)
     visualization: VisualizationConfig = Field(default_factory=VisualizationConfig)
 

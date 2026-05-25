@@ -1,7 +1,7 @@
 html, body {
   height: 100%;
   margin: 0;
-  font-family: Inter, Segoe UI, Arial, sans-serif;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   color: #0f172a;
   background: #e5e7eb;
 }
@@ -61,6 +61,20 @@ p {
   align-items: center;
   gap: 6px;
 }
+.wire-tag-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #475569;
+  font-size: 12px;
+}
+.wire-tag-filter input {
+  width: 96px;
+  border: 1px solid #94a3b8;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font: inherit;
+}
 button {
   border: 1px solid #94a3b8;
   background: #f8fafc;
@@ -111,6 +125,13 @@ button {
 h2 {
   margin: 0;
   font-size: 14px;
+}
+.wire-table-count {
+  display: inline-block;
+  margin-left: 8px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
 }
 .wire-table-scroll {
   overflow: auto;
@@ -186,29 +207,30 @@ svg {
   cursor: grabbing;
 }
 .component.selected .component-body {
-  stroke-width: 2.4;
+  stroke-width: 1.4;
 }
 .component.group-selected .component-body,
 .component.group-selected .component-outline-overlay {
   stroke: #2563eb;
-  stroke-width: 2.6;
+  stroke-width: 1.4;
 }
 .component-body {
   fill: #ffffff;
   stroke: #1f2937;
-  stroke-width: 1.8;
+  stroke-width: 0.9;
   filter: drop-shadow(0 3px 6px rgb(15 23 42 / 0.14));
 }
 .component-outline-overlay {
   fill: none;
   stroke: #1f2937;
-  stroke-width: 1.8;
+  stroke-width: 0.9;
   pointer-events: none;
 }
 .component-center {
   fill: #ffffff;
 }
 .component-name {
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   text-anchor: middle;
   dominant-baseline: middle;
   fill: #0f172a;
@@ -216,6 +238,7 @@ svg {
   pointer-events: none;
 }
 .component-type {
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   text-anchor: middle;
   dominant-baseline: middle;
   fill: #64748b;
@@ -225,38 +248,39 @@ svg {
 .pin-box {
   fill: #f8fafc;
   stroke: #94a3b8;
-  stroke-width: 0.75;
+  stroke-width: 0.4;
   cursor: pointer;
 }
 .pin-label {
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   text-anchor: middle;
   dominant-baseline: middle;
   fill: #0f172a;
   pointer-events: none;
 }
-.pin-net-label {
-  text-anchor: middle;
-  dominant-baseline: middle;
-  fill: #2563eb;
-  font-weight: 700;
-  pointer-events: none;
-}
 .no-connect-stub {
   stroke: #dc2626;
-  stroke-width: 1.6;
+  stroke-width: 0.9;
   stroke-linecap: round;
   pointer-events: none;
 }
 .no-connect-dot {
   fill: #dc2626;
   stroke: #ffffff;
-  stroke-width: 1;
+  stroke-width: 0.45;
   pointer-events: none;
 }
 .no-connect-x {
   stroke: #dc2626;
-  stroke-width: 1.8;
+  stroke-width: 1.0;
   stroke-linecap: round;
+  pointer-events: none;
+}
+.scene-layer {
+  isolation: isolate;
+}
+.debug-layer,
+.interaction-layer {
   pointer-events: none;
 }
 .wire-stub {
@@ -269,18 +293,18 @@ svg {
 .wire-dot {
   fill: var(--net-color, #475569);
   stroke: #ffffff;
-  stroke-width: 1.2;
+  stroke-width: 0.45;
 }
 .wire-label-bg {
   fill: #ffffff;
   stroke: var(--net-color, #475569);
-  stroke-width: 0.8;
+  stroke-width: 0.45;
 }
 .wire-label-text {
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   text-anchor: middle;
   dominant-baseline: middle;
-  font-size: 11px;
-  font-weight: 800;
+  font-weight: 900;
   fill: #0f172a;
   pointer-events: none;
 }
@@ -297,23 +321,36 @@ svg {
 .selected .wire-dot,
 .selected.wire-dot {
   stroke: var(--net-color, #475569);
-  stroke-width: 3;
+  stroke-width: 1;
 }
 .selected .wire-label-bg,
 .selected.wire-label-bg,
 .selected.pin-box,
 .diagnostic-selected.pin-box {
   stroke: var(--net-color, #475569);
-  stroke-width: 2.4;
+  stroke-width: 1.2;
   fill: color-mix(in srgb, var(--net-color, #475569) 12%, white);
 }
 .diagnostic-selected.pin-box {
   --net-color: #dc2626;
 }
+.diagnostic-selected .wire-label-bg,
+.diagnostic-selected.wire-label-bg {
+  stroke: #dc2626;
+  stroke-width: 1.2;
+  fill: color-mix(in srgb, #dc2626 10%, white);
+}
+.diagnostic-selected .wire-stub {
+  stroke: #dc2626;
+  stroke-width: 1.8;
+}
+.diagnostic-selected .wire-dot {
+  fill: #dc2626;
+}
 .diagnostic-selected.component .component-body,
 .diagnostic-selected.component .component-outline-overlay {
   stroke: #dc2626;
-  stroke-width: 2.8;
+  stroke-width: 1.6;
 }
 .selection-marquee {
   fill: rgb(37 99 235 / 0.12);
@@ -321,4 +358,31 @@ svg {
   stroke-width: 1.5;
   stroke-dasharray: 7 4;
   pointer-events: none;
+}
+.reference-grid-layer {
+  display: none;
+  pointer-events: none;
+}
+.reference-grid-layer.visible {
+  display: block;
+}
+.reference-grid-line {
+  stroke: #f97316;
+  stroke-width: 0.85;
+  stroke-dasharray: 8 6;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.6;
+}
+.reference-grid-label {
+  fill: #c2410c;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  opacity: 0.48;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+  vector-effect: non-scaling-stroke;
 }

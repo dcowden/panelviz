@@ -19,6 +19,7 @@ from panelviz.reports import (
 from panelviz.routing import WireRouter
 from panelviz.viewer import write_static_viewer
 from panelviz.visualization import component_visual_config_from_visualization, write_wiring_diagram_svg
+from panelviz.wire_labels import write_wire_label_pdfs
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -80,6 +81,7 @@ def run(input_file: str | Path, output_dir: str | Path = ".", include_viewer: bo
             wiring_mode="labels",
         ),
     ]
+    outputs.extend(write_wire_label_pdfs(router, destination, parsed.config.labels))
     if include_viewer:
         outputs.extend(write_static_viewer(router, destination, units=parsed.config.units, columns=3, config=visual_config))
     return outputs

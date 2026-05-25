@@ -32,6 +32,38 @@ def test_cli_run_writes_required_outputs_to_selected_directory():
     assert 'class="wire-line wire-label-stub ' in (output_dir / "wiring_diagram.svg").read_text(encoding="utf-8")
 
 
+def test_cli_run_writes_wire_label_pdfs_for_tagged_wires():
+    output_dir = TEST_OUTPUTS / "cli_wire_labels"
+    source = TEST_OUTPUTS / "cli_wire_labels.yml"
+    source.write_text(
+        """
+components:
+  source:
+    type: connector
+    tags: [row_a]
+    size: {width: 1, height: 1}
+    pins:
+      right: [A]
+  load:
+    type: connector
+    tags: [row_b]
+    size: {width: 1, height: 1}
+    pins:
+      left: [A]
+connections:
+  wires:
+    - {from: source.A, to: load.A, net: SIG}
+""",
+        encoding="utf-8",
+    )
+
+    outputs = run(source, output_dir)
+
+    assert output_dir / "wirelabel_row_a.pdf" in outputs
+    assert output_dir / "wirelabel_row_b.pdf" in outputs
+    assert (output_dir / "wirelabel_row_a.pdf").read_bytes().startswith(b"%PDF-")
+
+
 def test_cli_main_uses_current_directory_when_output_dir_is_omitted(monkeypatch, capsys):
     output_dir = TEST_OUTPUTS / "cli_default"
     output_dir.mkdir(parents=True, exist_ok=True)

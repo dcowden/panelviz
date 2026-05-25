@@ -11,11 +11,13 @@ const state = {
   selectedComponents: [],
   viewBox: null,
   canvas: null,
+  scene: null,
   data: null,
   components: new Map(),
   tableMode: 'combined',
   sortKey: 'index',
   sortDirection: 'asc',
+  tagFilter: '',
   diagnosticNodes: [],
   diagnosticComponents: [],
 };
@@ -25,9 +27,13 @@ const workspace = document.querySelector('.workspace');
 const statusEl = document.getElementById('status');
 const wireTableHead = document.getElementById('wire-table-head');
 const wireTableBody = document.getElementById('wire-table-body');
+const wireTableCount = document.getElementById('wire-table-count');
 const toggleWireColumnsButton = document.getElementById('toggle-wire-columns');
 const toggleWireTableButton = document.getElementById('toggle-wire-table');
+const toggleReferenceGridButton = document.getElementById('toggle-reference-grid');
 const wireTableResizer = document.getElementById('wire-table-resizer');
+const wireTagFilterInput = document.getElementById('wire-tag-filter');
+const wireTagOptions = document.getElementById('wire-tag-options');
 
 document.querySelectorAll('input[name="highlight-mode"]').forEach((input) => {
   input.addEventListener('change', () => {
@@ -73,7 +79,22 @@ toggleWireTableButton.addEventListener('click', () => {
   toggleWireTableButton.textContent = workspace.classList.contains('table-collapsed') ? 'Show Wires' : 'Hide Wires';
 });
 
-fetch('panel-data.json')
+if (wireTagFilterInput) {
+  wireTagFilterInput.addEventListener('input', () => {
+    state.tagFilter = wireTagFilterInput.value.trim().toLowerCase();
+    renderWireTable(state.data.wires);
+    applyHighlight();
+  });
+}
+
+toggleReferenceGridButton.addEventListener('click', () => {
+  const svg = host.querySelector('svg');
+  const layer = host.querySelector('.reference-grid-layer');
+  const visible = !(layer?.classList.contains('visible') ?? false);
+  updateReferenceGrid(svg, visible);
+});
+
+fetch('panel-data.json', { cache: 'no-store' })
   .then((response) => response.json().then((data) => {
     if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
     return data;
@@ -99,16 +120,22 @@ function render(data, options = {}) {
     endpointOriginY: component.y,
     rotation: component.rotation || 0,
   }]));
-  state.canvas = data.canvas;
-  state.viewBox = preservedViewBox || { x: 0, y: 0, width: data.canvas.width, height: data.canvas.height };
-  const svg = createCanvas(data.canvas);
+  state.canvas = normalizeBounds(data.canvas);
+  state.scene = normalizeBounds(data.scene || data.canvas);
+  state.viewBox = preservedViewBox || fitBoundsToViewport(state.scene, 72);
+  const svg = createCanvas(state.canvas);
+  const layers = createSceneLayers(svg);
+
+  data.components.forEach((component) => renderComponent(layers.physical, component));
+  data.wires.forEach((wire) => renderWireEndpointGroups(wire, layers.labels));
+  sortEndpointLayers();
+  state.scene = renderedSceneBounds(svg, state.scene);
+  updateReferenceGrid(svg, false);
+  if (!preservedViewBox) {
+    state.viewBox = fitBoundsToViewport(state.scene, 72);
+  }
   setViewBox(svg);
-
-  const componentsLayer = el('g', { class: 'components-layer' });
-  svg.appendChild(componentsLayer);
-
-  data.components.forEach((component) => renderComponent(componentsLayer, component));
-  data.wires.forEach((wire) => renderWireEndpointGroups(wire));
+  populateTagFilterOptions(data.wires);
   renderWireTable(data.wires);
 
   enableDrag(svg);
@@ -138,7 +165,8 @@ function refreshData(data, options = {}) {
   }
 
   state.data = data;
-  state.canvas = data.canvas;
+  state.canvas = normalizeBounds(data.canvas);
+  state.scene = normalizeBounds(data.scene || data.canvas);
   data.components.forEach((component) => {
     const existing = state.components.get(component.name) || {};
     state.components.set(component.name, {
@@ -153,10 +181,16 @@ function refreshData(data, options = {}) {
     });
   });
 
-  document.querySelectorAll('.component-endpoint-layer').forEach((layer) => {
-    layer.textContent = '';
-  });
-  data.wires.forEach((wire) => renderWireEndpointGroups(wire));
+  const labelsLayer = host.querySelector('.wire-label-layer');
+  if (labelsLayer) labelsLayer.textContent = '';
+  data.wires.forEach((wire) => renderWireEndpointGroups(wire, labelsLayer));
+  const svg = host.querySelector('svg');
+  const oldGrid = host.querySelector('.reference-grid-layer');
+  const gridVisible = oldGrid?.classList.contains('visible') ?? false;
+  sortEndpointLayers();
+  state.scene = renderedSceneBounds(svg, state.scene);
+  updateReferenceGrid(svg, gridVisible);
+  populateTagFilterOptions(data.wires);
   renderWireTable(data.wires);
   applyHighlight();
   statusEl.textContent = `${data.components.length} components, ${data.wires.length} wires. SVG.js ${window.SVG ? 'loaded' : 'fallback renderer active'}.`;
@@ -164,19 +198,158 @@ function refreshData(data, options = {}) {
 
 function createCanvas(canvas) {
   if (window.SVG) {
-    const draw = SVG().addTo(host).viewbox(0, 0, canvas.width, canvas.height).attr({
+    const draw = SVG().addTo(host).viewbox(canvas.x, canvas.y, canvas.width, canvas.height).attr({
       role: 'img',
       'aria-label': 'PanelViz interactive wiring viewer',
     });
     return draw.node;
   }
   const svg = el('svg', {
-    viewBox: `0 0 ${canvas.width} ${canvas.height}`,
+    viewBox: `${canvas.x} ${canvas.y} ${canvas.width} ${canvas.height}`,
     role: 'img',
     'aria-label': 'PanelViz interactive wiring viewer',
   });
   host.appendChild(svg);
   return svg;
+}
+
+function createSceneLayers(svg) {
+  const physical = el('g', { class: 'scene-layer physical-layer components-layer' });
+  const labels = el('g', { class: 'scene-layer wire-label-layer' });
+  const interaction = el('g', { class: 'scene-layer interaction-layer' });
+  const debug = el('g', { class: 'scene-layer debug-layer' });
+  svg.appendChild(physical);
+  svg.appendChild(labels);
+  svg.appendChild(interaction);
+  svg.appendChild(debug);
+  return { physical, labels, interaction, debug };
+}
+
+function updateReferenceGrid(svg, visible = false) {
+  const debugLayer = host.querySelector('.debug-layer');
+  if (!debugLayer) return;
+  debugLayer.textContent = '';
+  if (!svg) return;
+  const bounds = renderedSceneBounds(svg, state.scene || state.canvas);
+  const grid = referenceGridFromBounds(bounds, state.data?.reference_grid);
+  if (state.data) state.data.reference_grid = grid;
+  applyWireReferences(grid);
+  renderReferenceGrid(debugLayer, grid, visible);
+  if (state.data && wireTableBody.children.length) renderWireTable(state.data.wires);
+}
+
+function referenceGridFromBounds(bounds, fallbackGrid = {}) {
+  const normalized = normalizeBounds(bounds);
+  const columns = Math.max(8, Math.min(80, Number(fallbackGrid?.columns) || Math.ceil(normalized.width / 90)));
+  const rows = Math.max(4, Math.min(26, Number(fallbackGrid?.rows) || Math.ceil(normalized.height / 90)));
+  const verticals = [];
+  const horizontals = [];
+  for (let index = 0; index <= columns; index += 1) {
+    verticals.push(normalized.x + (normalized.width * index) / columns);
+  }
+  for (let index = 0; index <= rows; index += 1) {
+    horizontals.push(normalized.y + (normalized.height * index) / rows);
+  }
+  const labels = [];
+  for (let row = 0; row < rows; row += 1) {
+    const rowLabel = String.fromCharCode('A'.charCodeAt(0) + row);
+    for (let col = 0; col < columns; col += 1) {
+      labels.push({
+        ref: `${rowLabel}${col + 1}`,
+        x: (verticals[col] + verticals[col + 1]) / 2,
+        y: (horizontals[row] + horizontals[row + 1]) / 2,
+      });
+    }
+  }
+  return {
+    columns: columns || fallbackGrid.columns || 8,
+    rows: rows || fallbackGrid.rows || 4,
+    verticals,
+    horizontals,
+    labels,
+  };
+}
+
+function renderReferenceGrid(parentLayer, grid, visible = false) {
+  if (!parentLayer || !grid || !grid.verticals?.length || !grid.horizontals?.length) return;
+  const gridGroup = el('g', {
+    class: `reference-grid-layer${visible ? ' visible' : ''}`,
+    'data-columns': grid.columns,
+    'data-rows': grid.rows,
+  });
+  const minY = grid.horizontals[0];
+  const maxY = grid.horizontals[grid.horizontals.length - 1];
+  const minX = grid.verticals[0];
+  const maxX = grid.verticals[grid.verticals.length - 1];
+  grid.verticals.forEach((x) => {
+    gridGroup.appendChild(el('line', {
+      class: 'reference-grid-line',
+      x1: x,
+      y1: minY,
+      x2: x,
+      y2: maxY,
+    }));
+  });
+  grid.horizontals.forEach((y) => {
+    gridGroup.appendChild(el('line', {
+      class: 'reference-grid-line',
+      x1: minX,
+      y1: y,
+      x2: maxX,
+      y2: y,
+    }));
+  });
+  grid.labels.forEach((label) => {
+    gridGroup.appendChild(textEl(label.ref, {
+      class: 'reference-grid-label',
+      x: label.x,
+      y: label.y,
+    }));
+  });
+  parentLayer.appendChild(gridGroup);
+  toggleReferenceGridButton.setAttribute('aria-pressed', String(visible));
+}
+
+function applyWireReferences(grid) {
+  if (!state.data?.wires || !grid?.verticals?.length || !grid?.horizontals?.length) return;
+  state.data.wires.forEach((wire) => {
+    const fromAnchor = renderedEndpointAnchor(wire, wire.endpoints?.[0]);
+    const toAnchor = renderedEndpointAnchor(wire, wire.endpoints?.[1]);
+    wire.from_ref = fromAnchor ? referenceForPoint(grid, fromAnchor.x, fromAnchor.y) : '';
+    wire.to_ref = toAnchor ? referenceForPoint(grid, toAnchor.x, toAnchor.y) : '';
+  });
+}
+
+function renderedEndpointAnchor(wire, endpoint) {
+  if (!endpoint) return null;
+  const component = state.components.get(endpoint.component);
+  const pin = component?.pins?.find((item) => item.node === endpoint.node);
+  if (component && pin) {
+    return transformComponentLocalPoint(component, pinBoundaryPoint(pin));
+  }
+  return endpoint.anchor || null;
+}
+
+function transformComponentLocalPoint(component, point) {
+  const rotated = rotatePoint(
+    point,
+    { x: component.width / 2, y: component.height / 2 },
+    Number(component.rotation || 0),
+  );
+  return {
+    x: Number(component.x) + rotated.x,
+    y: Number(component.y) + rotated.y,
+  };
+}
+
+function referenceForPoint(grid, x, y) {
+  let col = 0;
+  while (col + 1 < grid.verticals.length && Number(x) >= grid.verticals[col + 1]) col += 1;
+  let row = 0;
+  while (row + 1 < grid.horizontals.length && Number(y) >= grid.horizontals[row + 1]) row += 1;
+  col = Math.max(0, Math.min(grid.columns - 1, col));
+  row = Math.max(0, Math.min(grid.rows - 1, row));
+  return `${String.fromCharCode('A'.charCodeAt(0) + row)}${col + 1}`;
 }
 
 function renderComponent(layer, component) {
@@ -212,20 +385,29 @@ function renderComponent(layer, component) {
   group.appendChild(center);
   const centerX = component.center.x + component.center.width / 2;
   const centerY = component.center.y + component.center.height / 2;
-  const fittedNameSize = fitTextSize(component.name, component.font.name, component.center.width - 8, 7);
-  const typeFontSize = fitTextSize(component.type, Math.max(6, fittedNameSize * 0.58), component.center.width - 8, 5.5);
+  const preferredNameSize = Math.max(component.font.name * 2.2, Math.min(22, Math.max(12, component.center.height * 0.16)));
+  const thinCenterText = centerTextOrientation(component, component.rotation || 0, component.name, preferredNameSize) === 'vertical';
+  const centerFitWidth = centerTextFitWidth(component, component.rotation || 0, thinCenterText ? 'vertical' : 'horizontal');
+  const fittedNameSize = fitTextSize(component.name, preferredNameSize, centerFitWidth, 8);
+  const preferredTypeSize = Math.max(5, fittedNameSize * 0.62);
+  const componentSubtitle = componentSubtitleText(component);
+  const typeFontSize = Math.min(fittedNameSize * 0.72, fitTextSize(componentSubtitle, preferredTypeSize, centerFitWidth, 4.5));
   group.appendChild(textEl(component.name, {
     class: 'component-name',
     'data-text-role': 'name',
+    'data-preferred-size': preferredNameSize,
+    'data-center-orientation': thinCenterText ? 'vertical' : 'horizontal',
     'data-center-x': centerX,
     'data-center-y': centerY,
     x: centerX,
     y: centerY - typeFontSize * 0.55,
     'font-size': fittedNameSize,
   }));
-  group.appendChild(textEl(component.type, {
+  group.appendChild(textEl(componentSubtitle, {
     class: 'component-type',
     'data-text-role': 'type',
+    'data-preferred-size': preferredTypeSize,
+    'data-center-orientation': thinCenterText ? 'vertical' : 'horizontal',
     'data-center-x': centerX,
     'data-center-y': centerY,
     x: centerX,
@@ -234,6 +416,7 @@ function renderComponent(layer, component) {
   }));
 
   component.pins.forEach((pin) => {
+    const terminalFontSize = terminalTextFontSize(component, pin);
     const pinBox = el('rect', {
       class: 'pin-box',
       'data-node': pin.node,
@@ -248,14 +431,14 @@ function renderComponent(layer, component) {
       selectPin(pin.node);
     });
     group.appendChild(pinBox);
-    group.appendChild(textEl(pin.pin, {
+    const pinLabel = textEl(pin.pin, {
       class: 'pin-label',
+      'data-side': pin.side,
       x: pin.x + pin.width / 2,
       y: pin.y + pin.height / 2,
-      'font-size': component.font.pin,
-    }));
-    renderPinNetLabel(group, component, pin);
-    renderNoConnectMarker(group, pin);
+      'font-size': terminalFontSize,
+    });
+    group.appendChild(pinLabel);
   });
   group.appendChild(el('rect', {
     class: 'component-outline-overlay',
@@ -270,24 +453,16 @@ function renderComponent(layer, component) {
     class: 'component-endpoint-layer',
     'data-component': component.name,
   }));
+  const markerLayer = el('g', { class: 'component-marker-layer' });
+  component.pins.forEach((pin) => renderNoConnectMarker(markerLayer, pin));
+  group.appendChild(markerLayer);
   updateComponentTransform(group, storedComponent);
   layer.appendChild(group);
 }
 
-function renderPinNetLabel(group, component, pin) {
-  if (!pin.nets || !pin.nets.length) return;
-  const label = pin.nets.join(', ');
-  const fontSize = Math.max(4.8, Math.min(7, component.font.pin * 0.72));
-  const geometry = pinInteriorLabelGeometry(component, pin, fontSize);
-  const labelNode = textEl(label, {
-    class: 'pin-net-label',
-    'data-text-role': 'pin-net',
-    x: geometry.x,
-    y: geometry.y,
-    'font-size': fontSize,
-    'text-anchor': geometry.anchor,
-  });
-  group.appendChild(labelNode);
+function terminalTextFontSize(component, pin) {
+  const terminalDepth = Math.max(pin.width, pin.height);
+  return Math.max(component.font.pin, Math.min(4.2, terminalDepth * 0.32));
 }
 
 function renderNoConnectMarker(group, pin) {
@@ -304,7 +479,8 @@ function renderNoConnectMarker(group, pin) {
     x: stub.x + vector.x * markerGap,
     y: stub.y + vector.y * markerGap,
   };
-  const size = Math.max(3.6, Math.min(6.2, Math.max(pin.width, pin.height) * 0.24));
+  const terminalPitch = Math.min(pin.width, pin.height);
+  const size = Math.max(1.8, terminalPitch * 0.38);
   group.appendChild(el('path', {
     class: 'no-connect-stub',
     'data-node': pin.node,
@@ -315,7 +491,7 @@ function renderNoConnectMarker(group, pin) {
     'data-node': pin.node,
     cx: anchor.x,
     cy: anchor.y,
-    r: 2.2,
+    r: Math.max(0.8, Math.min(1.25, Math.max(pin.width, pin.height) * 0.16)),
   }));
   [
     [center.x - size, center.y - size, center.x + size, center.y + size],
@@ -330,42 +506,6 @@ function renderNoConnectMarker(group, pin) {
       y2,
     }));
   });
-}
-
-function pinInteriorLabelGeometry(component, pin, fontSize) {
-  const text = pin.nets.join(', ');
-  const textWidth = estimateTextWidth(text, fontSize);
-  const pad = Math.max(4, fontSize * 0.8);
-  const centerLeft = component.center.x + pad;
-  const centerRight = component.center.x + component.center.width - pad;
-  const centerTop = component.center.y + pad + fontSize * 0.25;
-  const centerBottom = component.center.y + component.center.height - pad;
-  if (pin.side === 'left') {
-    return {
-      x: clamp(centerLeft, pad, component.width - textWidth - pad),
-      y: pin.y + pin.height / 2,
-      anchor: 'start',
-    };
-  }
-  if (pin.side === 'right') {
-    return {
-      x: clamp(centerRight, textWidth + pad, component.width - pad),
-      y: pin.y + pin.height / 2,
-      anchor: 'end',
-    };
-  }
-  if (pin.side === 'top') {
-    return {
-      x: clamp(pin.x + pin.width / 2, centerLeft + textWidth / 2, centerRight - textWidth / 2),
-      y: centerTop,
-      anchor: 'middle',
-    };
-  }
-  return {
-    x: clamp(pin.x + pin.width / 2, centerLeft + textWidth / 2, centerRight - textWidth / 2),
-    y: centerBottom,
-    anchor: 'middle',
-  };
 }
 
 function pinBoundaryPoint(pin) {
@@ -389,11 +529,14 @@ function bindComponentSelectTarget(target, group, componentName) {
 function renderWireTable(wires) {
   renderWireTableHeader();
   wireTableBody.textContent = '';
-  sortedWires(wires).forEach((wire) => {
+  const visibleWires = sortedWires(wires);
+  updateWireTableCount(visibleWires.length, wires.length);
+  visibleWires.forEach((wire) => {
     const row = document.createElement('tr');
     row.className = 'wire-table-row';
     row.dataset.wire = String(wire.index);
     row.dataset.net = wire.net;
+    row.dataset.tags = wire.tags || '';
     setNetStyle(row, wire.style);
     row.innerHTML = state.tableMode === 'combined'
       ? `
@@ -402,15 +545,21 @@ function renderWireTable(wires) {
         <td>${escapeHtml(wire.to)}</td>
         <td>${escapeHtml(wire.net)}</td>
         <td>${escapeHtml(wire.awg)}</td>
+        <td>${escapeHtml(wire.tags || '')}</td>
+        <td>${escapeHtml(wire.from_ref || '')}</td>
+        <td>${escapeHtml(wire.to_ref || '')}</td>
       `
       : `
         <td><span class="wire-chip">${escapeHtml(wire.label)}</span></td>
         <td>${escapeHtml(wire.from_component)}</td>
         <td>${escapeHtml(wire.from_pin)}</td>
+        <td>${escapeHtml(wire.from_ref || '')}</td>
         <td>${escapeHtml(wire.to_component)}</td>
         <td>${escapeHtml(wire.to_pin)}</td>
+        <td>${escapeHtml(wire.to_ref || '')}</td>
         <td>${escapeHtml(wire.net)}</td>
         <td>${escapeHtml(wire.awg)}</td>
+        <td>${escapeHtml(wire.tags || '')}</td>
       `;
     row.addEventListener('click', () => {
       selectWire(String(wire.index), wire.net);
@@ -418,6 +567,13 @@ function renderWireTable(wires) {
     });
     wireTableBody.appendChild(row);
   });
+}
+
+function updateWireTableCount(visibleCount, totalCount) {
+  if (!wireTableCount) return;
+  const visible = Number(visibleCount) || 0;
+  const total = Number(totalCount) || 0;
+  wireTableCount.textContent = visible === total ? `${total} wires` : `${visible} of ${total} wires`;
 }
 
 function renderWireTableHeader() {
@@ -430,22 +586,28 @@ function renderWireTableHeader() {
         ${sortableHeader('To', 'to', marker('to'))}
         ${sortableHeader('Net', 'net', marker('net'))}
         ${sortableHeader('AWG', 'awg', marker('awg'))}
+        ${sortableHeader('Tags', 'tags', marker('tags'))}
+        ${sortableHeader('From Ref', 'from_ref', marker('from_ref'))}
+        ${sortableHeader('To Ref', 'to_ref', marker('to_ref'))}
       </tr>
     `;
   } else {
     wireTableHead.innerHTML = `
       <tr>
         <th rowspan="2">${sortButton('Wire', 'label', marker('label'))}</th>
-        <th colspan="2">From</th>
-        <th colspan="2">To</th>
+        <th colspan="3">From</th>
+        <th colspan="3">To</th>
         <th rowspan="2">${sortButton('Net', 'net', marker('net'))}</th>
         <th rowspan="2">${sortButton('AWG', 'awg', marker('awg'))}</th>
+        <th rowspan="2">${sortButton('Tags', 'tags', marker('tags'))}</th>
       </tr>
       <tr>
         ${sortableHeader('Component', 'from_component', marker('from_component'))}
         ${sortableHeader('Terminal', 'from_pin', marker('from_pin'))}
+        ${sortableHeader('Ref', 'from_ref', marker('from_ref'))}
         ${sortableHeader('Component', 'to_component', marker('to_component'))}
         ${sortableHeader('Terminal', 'to_pin', marker('to_pin'))}
+        ${sortableHeader('Ref', 'to_ref', marker('to_ref'))}
       </tr>
     `;
   }
@@ -475,7 +637,7 @@ function sortWireTable(key) {
 
 function sortedWires(wires) {
   const direction = state.sortDirection === 'asc' ? 1 : -1;
-  return [...wires].sort((left, right) => {
+  return filterWiresByTag(wires).sort((left, right) => {
     const leftValue = wireSortValue(left, state.sortKey);
     const rightValue = wireSortValue(right, state.sortKey);
     if (leftValue < rightValue) return -1 * direction;
@@ -484,16 +646,43 @@ function sortedWires(wires) {
   });
 }
 
+function filterWiresByTag(wires) {
+  if (!state.tagFilter) return [...wires];
+  return wires.filter((wire) => wireTags(wire).some((tag) => tag.toLowerCase() === state.tagFilter));
+}
+
+function wireTags(wire) {
+  return String(wire.tags || '')
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function populateTagFilterOptions(wires) {
+  if (!wireTagOptions) return;
+  const tags = [...new Set(wires.flatMap(wireTags))].sort((left, right) => left.localeCompare(right));
+  wireTagOptions.textContent = '';
+  tags.forEach((tag) => {
+    const option = document.createElement('option');
+    option.value = tag;
+    wireTagOptions.appendChild(option);
+  });
+}
+
+function componentSubtitleText(component) {
+  if (Array.isArray(component.tags) && component.tags.length) return component.tags.join(', ');
+  return component.type || '';
+}
+
 function wireSortValue(wire, key) {
   if (key === 'index') return wire.index;
   if (key === 'awg') return Number(wire.awg || 0);
   return String(wire[key] || '').toLowerCase();
 }
 
-function renderWireEndpointGroups(wire) {
+function renderWireEndpointGroups(wire, endpointLayer = host.querySelector('.wire-label-layer')) {
   wire.endpoints.forEach((endpoint) => {
     const component = state.components.get(endpoint.component);
-    const endpointLayer = document.querySelector(`.component-endpoint-layer[data-component="${cssEscape(endpoint.component)}"]`);
     if (!component || !endpointLayer) return;
     const localEndpoint = endpointToLocal(endpoint, component);
     const group = el('g', {
@@ -511,11 +700,13 @@ function renderWireEndpointGroups(wire) {
     group.dataset.anchorY = localEndpoint.anchor.y;
     group.dataset.side = endpoint.side;
     group.dataset.stubLength = endpoint.stub_length;
+    group.dataset.stubDistance = localEndpoint.stub_distance || endpoint.stub_distance || endpoint.stub_length;
     group.dataset.labelGap = endpoint.label_gap;
-    group.dataset.labelWidth = endpoint.label.width || Math.max(44, wire.label.length * 7.2 + 12);
+    group.dataset.labelWidth = endpoint.label.width || Math.max(8, wire.label.length * 4 + 1.5);
     group.dataset.labelHeight = endpoint.label.height || 17;
     group.dataset.slot = endpoint.label.slot || 0;
     group.dataset.slotCount = endpoint.label.slot_count || 1;
+    group.setAttribute('transform', componentTransform(component));
     setNetStyle(group, wire.style);
 
     group.appendChild(el('path', {
@@ -526,7 +717,7 @@ function renderWireEndpointGroups(wire) {
       class: 'wire-dot',
       cx: localEndpoint.anchor.x,
       cy: localEndpoint.anchor.y,
-      r: 3,
+      r: localEndpoint.dot_radius || endpoint.dot_radius || 1.15,
     }));
 
     group.dataset.labelX = localEndpoint.label.x;
@@ -537,7 +728,46 @@ function renderWireEndpointGroups(wire) {
   });
 }
 
+function sortEndpointLayers() {
+  const layer = host.querySelector('.wire-label-layer');
+  if (!layer) return;
+  [...layer.querySelectorAll('.wire-endpoint-group')]
+    .sort((left, right) => Number(right.dataset.slot || 0) - Number(left.dataset.slot || 0))
+    .forEach((group) => layer.appendChild(group));
+}
+
 function endpointToLocal(endpoint, component) {
+  const pin = component.pins.find((item) => item.node === endpoint.node);
+  if (!pin) {
+    return absoluteEndpointToLocal(endpoint, component);
+  }
+  const slot = Number(endpoint.label.slot || 0);
+  const vector = sideVector(endpoint.side);
+  const anchor = pinBoundaryPoint(pin);
+  const stubLength = Number(endpoint.stub_length || 0);
+  const labelWidth = Number(endpoint.label.width || 44);
+  const labelGap = Number(endpoint.label_gap || 0);
+  const stubDistance = stubLength + slot * (labelWidth + stubLength);
+  const labelOffset = labelGap + labelWidth / 2;
+  const stub = {
+    x: anchor.x + vector.x * stubDistance,
+    y: anchor.y + vector.y * stubDistance,
+  };
+  return {
+    ...endpoint,
+    anchor,
+    stub,
+    stub_distance: stubDistance,
+    label: {
+      ...endpoint.label,
+      x: stub.x + vector.x * labelOffset,
+      y: stub.y + vector.y * labelOffset,
+      rotation: readableLabelLocalRotation(endpoint.side, component.rotation || 0),
+    },
+  };
+}
+
+function absoluteEndpointToLocal(endpoint, component) {
   const originX = component.endpointOriginX ?? component.x;
   const originY = component.endpointOriginY ?? component.y;
   return {
@@ -554,7 +784,7 @@ function endpointToLocal(endpoint, component) {
       ...endpoint.label,
       x: endpoint.label.x - originX,
       y: endpoint.label.y - originY,
-      rotation: labelLocalRotation(endpoint.side, component.rotation || 0),
+      rotation: readableLabelLocalRotation(endpoint.side, component.rotation || 0),
     },
   };
 }
@@ -567,8 +797,9 @@ function renderWireLabel(wire, endpoint) {
     'data-node': endpoint.node,
     'data-component': endpoint.component,
   });
-  const width = endpoint.label.width || Math.max(44, wire.label.length * 7.2 + 12);
+  const width = endpoint.label.width || Math.max(8, wire.label.length * 4 + 1.5);
   const height = endpoint.label.height || 17;
+  const cornerRadius = endpoint.label.corner_radius || 2;
   const transform = endpoint.label.rotation
     ? `rotate(${endpoint.label.rotation} ${endpoint.label.x} ${endpoint.label.y})`
     : '';
@@ -581,13 +812,14 @@ function renderWireLabel(wire, endpoint) {
     y: endpoint.label.y - height / 2,
     width,
     height,
-    rx: 4,
-    ry: 4,
+    rx: cornerRadius,
+    ry: cornerRadius,
   }));
   label.appendChild(textEl(wire.label, {
     class: 'wire-label-text',
     x: endpoint.label.x,
     y: endpoint.label.y,
+    'font-size': endpoint.label.font_size || 5,
   }));
   label.addEventListener('click', (event) => {
     event.stopPropagation();
@@ -647,6 +879,7 @@ function enableDrag(svg) {
       item.component.x = x;
       item.component.y = y;
       updateComponentTransform(item.element, item.component);
+      updateComponentEndpoints(item.component);
     });
   });
   svg.addEventListener('pointerup', () => endDrag(true));
@@ -670,6 +903,8 @@ function enableDrag(svg) {
       }
     }
     active.items.forEach((item) => dispatchComponentLayout(item.name, item.component));
+    state.scene = renderedSceneBounds(svg, state.scene);
+    updateReferenceGrid(svg, host.querySelector('.reference-grid-layer')?.classList.contains('visible') ?? false);
     active = null;
   }
 }
@@ -695,7 +930,8 @@ function enableMarqueeSelect(svg) {
       width: 0,
       height: 0,
     });
-    svg.appendChild(rect);
+    const interactionLayer = svg.querySelector('.interaction-layer') || svg;
+    interactionLayer.appendChild(rect);
     activeMarquee = {
       pointerId: event.pointerId,
       start,
@@ -798,11 +1034,16 @@ function enablePan(svg) {
 function enableZoom(svg) {
   svg.addEventListener('wheel', (event) => {
     event.preventDefault();
-    if (!state.viewBox || !state.canvas) return;
+    if (!state.viewBox || !state.canvas || !state.scene) return;
+    state.scene = renderedSceneBounds(svg, state.scene);
     const pointer = pointerToSvg(svg, event);
     const zoomFactor = event.deltaY > 0 ? 1.12 : 0.89;
-    const nextWidth = clamp(state.viewBox.width * zoomFactor, state.canvas.width / 8, state.canvas.width * 3);
-    const nextHeight = clamp(state.viewBox.height * zoomFactor, state.canvas.height / 8, state.canvas.height * 3);
+    const fitBox = fitBoundsToViewport(state.scene, 96);
+    const aspect = state.viewBox.height / Math.max(state.viewBox.width, 1);
+    const minWidth = Math.max(24, fitBox.width / 80);
+    const maxWidth = fitBox.width * 1.15;
+    const nextWidth = clamp(state.viewBox.width * zoomFactor, minWidth, maxWidth);
+    const nextHeight = nextWidth * aspect;
     const ratioX = (pointer.x - state.viewBox.x) / state.viewBox.width;
     const ratioY = (pointer.y - state.viewBox.y) / state.viewBox.height;
     state.viewBox = {
@@ -871,6 +1112,7 @@ function rotateComponent(componentName) {
   updateComponentTransform(group, component);
   updateComponentEndpoints(component);
   dispatchComponentLayout(componentName, component);
+  updateReferenceGrid(host.querySelector('svg'), host.querySelector('.reference-grid-layer')?.classList.contains('visible') ?? false);
 }
 
 function dispatchComponentLayout(componentName, component) {
@@ -885,34 +1127,62 @@ function dispatchComponentLayout(componentName, component) {
 }
 
 function updateComponentTransform(group, component) {
-  group.setAttribute(
-    'transform',
-    `translate(${component.x} ${component.y}) rotate(${component.rotation || 0} ${component.width / 2} ${component.height / 2})`,
-  );
+  group.setAttribute('transform', componentTransform(component));
   group.dataset.x = component.x;
   group.dataset.y = component.y;
   group.dataset.rotation = component.rotation || 0;
   updateReadableComponentText(group, component.rotation || 0);
 }
 
+function componentTransform(component) {
+  return `translate(${component.x} ${component.y}) rotate(${component.rotation || 0} ${component.width / 2} ${component.height / 2})`;
+}
+
 function updateReadableComponentText(group, rotation) {
   const normalized = ((rotation % 360) + 360) % 360;
-  group.querySelectorAll('.pin-label,.pin-net-label,.component-name,.component-type').forEach((text) => {
+  updateCenterTextMetrics(group, rotation);
+  group.querySelectorAll('.pin-label,.component-name,.component-type').forEach((text) => {
     let x = Number(text.getAttribute('x'));
     let y = Number(text.getAttribute('y'));
     const role = text.dataset.textRole;
     if (role === 'name' || role === 'type') {
       const centerX = Number(text.dataset.centerX);
       const centerY = Number(text.dataset.centerY);
-      const offset = role === 'name' ? -Number(text.getAttribute('font-size')) * 0.45 : Number(text.getAttribute('font-size')) * 1.15;
-      const localOffset = inverseRotateVector(0, offset, normalized);
+      const centerOrientation = text.dataset.centerOrientation === 'vertical' ? 'vertical' : 'horizontal';
+      const offsetMagnitude = role === 'name' ? -Number(text.getAttribute('font-size')) * 0.45 : Number(text.getAttribute('font-size')) * 1.15;
+      const offsetVector = centerOrientation === 'vertical'
+        ? { x: offsetMagnitude, y: 0 }
+        : { x: 0, y: offsetMagnitude };
+      const localOffset = inverseRotateVector(offsetVector.x, offsetVector.y, normalized);
       x = centerX + localOffset.x;
       y = centerY + localOffset.y;
       text.setAttribute('x', x);
       text.setAttribute('y', y);
     }
-    text.setAttribute('transform', `rotate(${-rotation} ${x} ${y})`);
+    const textRotation = role === 'name' || role === 'type'
+      ? readableCenterTextLocalRotation(text.dataset.centerOrientation, rotation)
+      : readableLabelLocalRotation(text.dataset.side, rotation);
+    text.setAttribute('transform', `rotate(${textRotation} ${x} ${y})`);
   });
+}
+
+function updateCenterTextMetrics(group, rotation) {
+  const component = state.components.get(group.dataset.component);
+  if (!component) return;
+  const nameText = group.querySelector('.component-name');
+  const typeText = group.querySelector('.component-type');
+  if (!nameText || !typeText) return;
+  const preferredNameSize = Number(nameText.dataset.preferredSize || nameText.getAttribute('font-size') || component.font.name || 10);
+  const centerOrientation = centerTextOrientation(component, rotation, nameText.textContent, preferredNameSize);
+  const fitWidth = centerTextFitWidth(component, rotation, centerOrientation);
+  const fittedNameSize = fitTextSize(nameText.textContent, preferredNameSize, fitWidth, 8);
+  const preferredTypeSize = Math.max(5, fittedNameSize * 0.62);
+  const typeFontSize = Math.min(fittedNameSize * 0.72, fitTextSize(typeText.textContent, preferredTypeSize, fitWidth, 4.5));
+  [nameText, typeText].forEach((text) => {
+    text.dataset.centerOrientation = centerOrientation;
+  });
+  nameText.setAttribute('font-size', fittedNameSize);
+  typeText.setAttribute('font-size', typeFontSize);
 }
 
 function inverseRotateVector(x, y, rotation) {
@@ -924,13 +1194,13 @@ function inverseRotateVector(x, y, rotation) {
 
 function updateComponentEndpoints(component) {
   document.querySelectorAll(`.wire-endpoint-group[data-component="${cssEscape(component.name)}"]`).forEach((group) => {
-    const side = rotateSide(group.dataset.side, component.rotation || 0);
+    group.setAttribute('transform', componentTransform(component));
     const label = {
       x: Number(group.dataset.labelX),
       y: Number(group.dataset.labelY),
       width: Number(group.dataset.labelWidth),
       height: Number(group.dataset.labelHeight),
-      rotation: labelLocalRotation(side, component.rotation || 0),
+      rotation: readableLabelLocalRotation(group.dataset.side, component.rotation || 0),
     };
     setEndpointLabelGeometry(group, label);
   });
@@ -984,12 +1254,51 @@ function fanOffset(side, slot, slotCount, spacing) {
   return { x: offset, y: 0 };
 }
 
-function labelRotation(side) {
-  return side === 'top' || side === 'bottom' ? 90 : 0;
+function readableScreenRotation(side) {
+  return readableScreenTextRotationForSide(side, 0);
 }
 
-function labelLocalRotation(screenSide, componentRotation) {
-  return normalizeRotation(labelRotation(screenSide) - componentRotation);
+function readableLabelLocalRotation(localSide, componentRotation) {
+  return readableLocalTextRotation(
+    readableScreenTextRotationForSide(localSide, componentRotation || 0),
+    componentRotation || 0,
+  );
+}
+
+function readableCenterTextLocalRotation(centerOrientation, componentRotation) {
+  return readableLocalTextRotation(centerOrientation === 'vertical' ? -90 : 0, componentRotation || 0);
+}
+
+function centerTextOrientation(component, componentRotation, text, preferredSize) {
+  const screenSize = centerScreenSize(component, componentRotation || 0);
+  const screenWidth = Math.max(1, screenSize.width);
+  const screenHeight = Math.max(1, screenSize.height);
+  if (screenWidth < screenHeight * 0.62) return 'vertical';
+  if (estimateTextWidth(text, preferredSize) > Math.max(1, screenWidth - 8)) return 'vertical';
+  return 'horizontal';
+}
+
+function centerTextFitWidth(component, componentRotation, centerOrientation) {
+  const screenSize = centerScreenSize(component, componentRotation || 0);
+  const fitSpan = centerOrientation === 'vertical' ? screenSize.height : screenSize.width;
+  return Math.max(8, fitSpan - 8);
+}
+
+function centerScreenSize(component, componentRotation) {
+  const rotation = normalizeRotation(componentRotation || 0);
+  if (Math.abs(rotation) === 90) {
+    return { width: component.center.height, height: component.center.width };
+  }
+  return { width: component.center.width, height: component.center.height };
+}
+
+function readableScreenTextRotationForSide(localSide, componentRotation) {
+  const screenSide = rotateSide(localSide, componentRotation || 0);
+  return screenSide === 'top' || screenSide === 'bottom' ? -90 : 0;
+}
+
+function readableLocalTextRotation(targetScreenRotation, componentRotation) {
+  return normalizeRotation(targetScreenRotation - (componentRotation || 0));
 }
 
 function normalizeRotation(rotation) {
@@ -1009,6 +1318,70 @@ function pointerToSvg(svg, event) {
   return {
     x: viewBox.x + ((event.clientX - rect.left) / Math.max(rect.width, 1)) * viewBox.width,
     y: viewBox.y + ((event.clientY - rect.top) / Math.max(rect.height, 1)) * viewBox.height,
+  };
+}
+
+function normalizeBounds(bounds) {
+  return {
+    x: Number(bounds?.x ?? 0),
+    y: Number(bounds?.y ?? 0),
+    width: Math.max(1, Number(bounds?.width ?? 1)),
+    height: Math.max(1, Number(bounds?.height ?? 1)),
+  };
+}
+
+function fitBoundsToViewport(bounds, padding = 48) {
+  const normalized = normalizeBounds(bounds);
+  const rect = host.getBoundingClientRect();
+  const viewportAspect = Math.max(rect.width, 1) / Math.max(rect.height, 1);
+  let width = normalized.width + padding * 2;
+  let height = normalized.height + padding * 2;
+  if (width / height < viewportAspect) {
+    width = height * viewportAspect;
+  } else {
+    height = width / viewportAspect;
+  }
+  const centerX = normalized.x + normalized.width / 2;
+  const centerY = normalized.y + normalized.height / 2;
+  return {
+    x: centerX - width / 2,
+    y: centerY - height / 2,
+    width,
+    height,
+  };
+}
+
+function renderedSceneBounds(svg, fallbackBounds) {
+  if (!svg || !svg.getScreenCTM) return normalizeBounds(fallbackBounds);
+  const inverse = svg.getScreenCTM()?.inverse();
+  if (!inverse) return normalizeBounds(fallbackBounds);
+  const items = [...svg.querySelectorAll('.component,.wire-endpoint-group,.no-connect-marker,.no-connect-stub,.no-connect-dot')];
+  const points = [];
+  items.forEach((item) => {
+    const rect = item.getBoundingClientRect();
+    if (!rect.width && !rect.height) return;
+    [
+      [rect.left, rect.top],
+      [rect.right, rect.top],
+      [rect.right, rect.bottom],
+      [rect.left, rect.bottom],
+    ].forEach(([x, y]) => {
+      const point = svg.createSVGPoint();
+      point.x = x;
+      point.y = y;
+      points.push(point.matrixTransform(inverse));
+    });
+  });
+  if (!points.length) return normalizeBounds(fallbackBounds);
+  const minX = Math.min(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const maxY = Math.max(...points.map((point) => point.y));
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(1, maxX - minX),
+    height: Math.max(1, maxY - minY),
   };
 }
 
@@ -1105,6 +1478,9 @@ function applyHighlight() {
   state.diagnosticNodes.forEach((node) => {
     const pin = document.querySelector(`.pin-box[data-node="${cssEscape(node)}"]`);
     if (pin) pin.classList.add('diagnostic-selected');
+    document.querySelectorAll(`.wire-endpoint-group[data-node="${cssEscape(node)}"]`).forEach((endpoint) => {
+      endpoint.classList.add('diagnostic-selected');
+    });
   });
   state.diagnosticComponents.forEach((componentName) => {
     const component = document.querySelector(`.component[data-component="${cssEscape(componentName)}"]`);

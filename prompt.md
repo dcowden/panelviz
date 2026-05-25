@@ -38,7 +38,7 @@ I have created an example file called mycnc.yml that has full example. The detai
 ### Top-level file shape
 
 The top-level yaml sections are:
-  * `config`: global settings including `wire_label_format`, `wiring_mode`, defaults, drawing metadata, units, and visualization styling.
+  * `config`: global settings including `wire_label_format`, `wiring_mode`, defaults, drawing metadata, units, visualization styling, and printable label-sheet settings.
   * `components`: a mapping of component names to component definitions.
   * `connections`: a section containing the physical wire list.
   * `no_connects`: a list of pins intentionally marked not connected.
@@ -52,6 +52,7 @@ The top-level yaml sections are:
 `config.units.length` controls physical component dimensions. Supported length units are `mm` and `in`.
 `config.visualization` controls net styling used by both the static SVG diagram and the interactive viewer.
 `config.visualization.terminal_width` controls the physical size of component terminal boxes. It defaults to `0.1` with `terminal_width_unit: in`, matching common compact terminal pitch.
+`config.labels` controls printable wire-label PDF sheets. Labels are grouped into separate PDFs by component tag.
 
 Visualization style fields:
   * `default_net_style`: fallback style for any net not explicitly configured.
@@ -88,6 +89,21 @@ config:
       220L: { color: "#2563eb", line_weight: 1.8, line_style: solid }
       220N: { color: "#2563eb", line_weight: 1.8, line_style: solid }
       earth: { color: "#16a34a", line_weight: 2.0, line_style: solid }
+  labels:
+    style:
+      font-family: Helvetica
+      font-weight: bold
+      color: "#000000"
+    font_face: Helvetica
+    font_height: 0.12
+    font_height_unit: in
+    left_margin: 0.25
+    right_margin: 0.25
+    page_margin: 0.25
+    text_clearance: 2
+    text_clearance_unit: pt
+    width_increment: 0.5
+    whitespace: [1, 1.5, 2]
 ```
 
 ### Component definitions
@@ -258,6 +274,12 @@ PDF export requirements:
   * The wire-list PDF should include a border and title block with source YAML file name, printed date, and page number/total pages.
   * The first wire-list PDF page should include wire count and component count.
   * The wire-list PDF must be generated after the schematic PDF, so it can add a diagram reference column such as `A1`, showing the drawing zone where one end of each wire can be found.
+  * Printable wire-label sheets should be generated on US Letter portrait pages, one PDF per distinct component tag, named `wirelabel_<tag>.pdf`; additional pages should be named `wirelabel_<tag>2.pdf`, `wirelabel_<tag>3.pdf`, and so on.
+  * Wire-label sheet cells should be cut-friendly rectangles with visible grid/cut lines. Label widths are based on the printed wire name plus left/right margins, snapped up to a configurable increment such as `0.5in`, and never smaller than `1in`.
+  * Wire-label sheets should preserve full-page vertical cutter lines by calculating each label width first, grouping labels by snapped width, and placing each width group onto fixed-width column pages. Some blank space is acceptable when it keeps paper-cutter lines aligned.
+  * Wire-label sheets should include a small configurable top/bottom text clearance such as `2pt`, so the first and last text stripes do not sit directly on the cut line.
+  * Wire-label sheet height is computed from the configured font height and whitespace pattern. Each label begins and ends with wire text, with alternating whitespace multiples between text stripes, for example `whitespace: [1, 1.5, 2]`.
+  * Wire-label PDFs intentionally duplicate labels across tags when a wire connects components in different tagged rows, because a physical wire needs a label at each end.
 
 The interactive viewer should be a no-build static web app using SVG.js plus plain JavaScript/CSS. It should be generated into the output directory as `viewer.html`, `viewer.css`, `viewer.js`, and `panel-data.json`. Running `panelviz --view <input_file> [output_dir]` should generate the normal outputs, generate the viewer bundle, serve the output directory on a local static HTTP server, and launch the browser.
 

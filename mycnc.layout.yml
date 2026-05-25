@@ -112,12 +112,12 @@ components:
     y: -660.907
     rotation: 0
   estop_panel:
-    x: 2115.837
-    y: -598.383
+    x: 2062.39
+    y: -604.559
     rotation: 0
   secondary_estop:
-    x: 2190.652
-    y: -598.383
+    x: 2263.177
+    y: -596.095
     rotation: 0
   spindle:
     x: 2117.213
@@ -128,8 +128,8 @@ components:
     y: 1230.862
     rotation: 270
   live_power_t:
-    x: 1790.116
-    y: 995.916
+    x: 1943.666
+    y: 1486.33
     rotation: 270
   wall_plug:
     x: 2047.354

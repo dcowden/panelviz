@@ -254,6 +254,37 @@ def test_editor_session_exports_schematic_and_wire_list_pdf_bundle():
     assert len(wire_list) > 1000
 
 
+def test_editor_session_pdf_bundle_includes_wire_label_pdfs_for_tags():
+    path = write_editor_yaml(
+        "editor_label_pdf_bundle.yml",
+        """
+components:
+  source:
+    type: connector
+    tags: [row_a]
+    size: {width: 1, height: 1}
+    pins:
+      right: [A]
+  load:
+    type: connector
+    tags: [row_b]
+    size: {width: 1, height: 1}
+    pins:
+      left: [A]
+connections:
+  wires:
+    - {from: source.A, to: load.A, net: SIG}
+""",
+    )
+
+    bundle = EditorSession(path).drawing_pdf_bundle()
+
+    with ZipFile(BytesIO(bundle)) as archive:
+        assert "wirelabel_row_a.pdf" in archive.namelist()
+        assert "wirelabel_row_b.pdf" in archive.namelist()
+        assert archive.read("wirelabel_row_a.pdf").startswith(b"%PDF-")
+
+
 def test_editor_session_exports_pdf_bundle_from_schematic_snapshot():
     path = write_editor_yaml("editor_pdf_snapshot_bundle.yml", LAYOUT_YAML)
     first_label = routed(path).routed_wires[0].wire_label

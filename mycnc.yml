@@ -7,6 +7,21 @@ config:
     company: ""
     author: ""
     title: "PanelViz Wiring Schematic"
+  labels:
+    style:
+      font-family: Helvetica
+      font-weight: bold
+      color: "#000000"
+    font_face: Helvetica
+    font_height: 0.12
+    font_height_unit: in
+    left_margin: 0.1
+    right_margin: 0.1
+    page_margin: 0.3
+    text_clearance: 2
+    text_clearance_unit: pt
+    width_increment: 0.25
+    whitespace: [1, 1.5, 2, 2.5]
   units:
     length: in
   visualization:
@@ -744,15 +759,11 @@ connections:
     - [36V_X2.GND, vfd_earth.earth]
     - [36V_X2.110N, switched_110N.110N_SWITCHED]
     - [36V_X2.110L, switched_110L.110L_SWITCHED]
-    - [contactor_110.A1, contactor_220.A1]
-    - [contactor_110.A2, contactor_220.A2]
+    - [contactor_110.A1, coil_t.COIL+]
+    - [contactor_220.A1, coil_t.COIL+]
+    - [contactor_110.A2, coil_t.COIL-]
+    - [contactor_220.A2, coil_t.COIL-]
     - [vfd.GND, vfd_earth.earth]
-    - from: contactor_110.A2
-      to: coil_t.COIL-
-      net: COIL-
-    - from: contactor_110.A1
-      to: coil_t.COIL+
-      net: COIL+
     - route: [48v.110N, switched_110N.110N_SWITCHED]
       net: 110N_SWITCHED
 
@@ -926,7 +937,6 @@ connections:
     - [opto_board.6+, safety_5v.5V]
     - [opto_board.7+, safety_5v.5V]
     - [opto_board.8+, safety_5v.5V]
-    - [x1_motor.shield, spindle.w]
 
 
 
