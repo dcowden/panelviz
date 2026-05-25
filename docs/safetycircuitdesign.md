@@ -2,6 +2,8 @@
 
 This panel uses the Arduino Nano as a small run-permissive controller, not as the primary emergency-stop device. The goal is to make the machine fail safe in all practical cases available with the installed hardware, while keeping the logic simple enough to inspect and troubleshoot.
 
+The electrical schematic for this circuit is maintained as `docs/safety_circuit_schematic.svg`.
+
 ## Objectives
 
 - A physical E-stop must directly remove contactor coil power without depending on UCCNC, the AXBB-E, or Arduino code.

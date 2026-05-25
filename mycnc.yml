@@ -767,10 +767,14 @@ connections:
     - route: [48v.110N, switched_110N.110N_SWITCHED]
       net: 110N_SWITCHED
 
-    - [z_motor.ma+, cnc_terminals.1, Z_cl57s.A+]
-    - [z_motor.ma-, cnc_terminals.2, Z_cl57s.A-]
-    - [z_motor.mb+, cnc_terminals.3, Z_cl57s.B+]
-    - [z_motor.mb-, cnc_terminals.4, Z_cl57s.B-]
+    - route: [z_motor.ma+, cnc_terminals.1, Z_cl57s.A+]
+      awg: 16
+    - route: [z_motor.ma-, cnc_terminals.2, Z_cl57s.A-]
+      awg: 16
+    - route: [z_motor.mb+, cnc_terminals.3, Z_cl57s.B+]
+      awg: 16
+    - route: [z_motor.mb-, cnc_terminals.4, Z_cl57s.B-]
+      awg: 16
     - [z_motor.shield, connector_earth.shield]
     - [z_control.eb+, cnc_terminals.5, Z_cl57s.EB+]
     - [z_control.eb-, cnc_terminals.6, Z_cl57s.EB-]
@@ -784,10 +788,14 @@ connections:
     - [z_limits.ll, cnc_terminals.13, axbb-e.ZLL]
     - [z_limits.5v0, cnc_terminals.14, terminals_5v0.5V0]
     - [z_limits.shield, connector_earth.shield]
-    - [y_motor.ma+, cnc_terminals.15, y_cl57s.A+]
-    - [y_motor.ma-, cnc_terminals.16, y_cl57s.A-]
-    - [y_motor.mb+, cnc_terminals.17, y_cl57s.B+]
-    - [y_motor.mb-, cnc_terminals.18, y_cl57s.B-]
+    - route: [y_motor.ma+, cnc_terminals.15, y_cl57s.A+]
+      awg: 16
+    - route: [y_motor.ma-, cnc_terminals.16, y_cl57s.A-]
+      awg: 16
+    - route: [y_motor.mb+, cnc_terminals.17, y_cl57s.B+]
+      awg: 16
+    - route: [y_motor.mb-, cnc_terminals.18, y_cl57s.B-]
+      awg: 16
     - [y_motor.shield, connector_earth.shield]
     - [y_control.eb+, cnc_terminals.19, y_cl57s.EB+]
     - [y_control.eb-, cnc_terminals.20, y_cl57s.EB-]
@@ -801,8 +809,10 @@ connections:
     - [y_limits.ll, cnc_terminals.27, axbb-e.YLL]
     - [y_limits.5v0, cnc_terminals.28, terminals_5v0.5V0]
     - [y_limits.shield, connector_earth.shield]
-    - [x1_motor.M+, cnc_terminals.29, 36V_X1.36V_X1]
-    - [x1_motor.M-, cnc_terminals.30, 36V_X1.36V0_X1]
+    - route: [x1_motor.M+, cnc_terminals.29, 36V_X1.36V_X1]
+      awg: 16
+    - route: [x1_motor.M-, cnc_terminals.30, 36V_X1.36V0_X1]
+      awg: 16
     - [x1_motor.shield, connector_earth.shield]
     - [x1_control.alrm+, cnc_terminals.31, opto_board.5-]
     - [x1_control.alrm-, cnc_terminals.32, terminals_5v0.5V0]
@@ -815,8 +825,10 @@ connections:
     - [x1_limits.ll, cnc_terminals.39, axbb-e.X1LL]
     - [x1_limits.5v0, cnc_terminals.40, terminals_5v0.5V0]
     - [x1_limits.shield, connector_earth.shield]
-    - [x2_motor.M+, cnc_terminals.41, 36V_X2.36V_X2]
-    - [x2_motor.M-, cnc_terminals.42, 36V_X2.36V0_X2]
+    - route: [x2_motor.M+, cnc_terminals.41, 36V_X2.36V_X2]
+      awg: 16
+    - route: [x2_motor.M-, cnc_terminals.42, 36V_X2.36V0_X2]
+      awg: 16
     - [x2_motor.shield, connector_earth.shield]
     - [x2_control.alrm+, cnc_terminals.43, opto_board.6-]
     - [x2_control.alrm-, cnc_terminals.44, terminals_5v0.5V0]
@@ -839,9 +851,12 @@ connections:
     - [estop_panel.light+, cnc_terminals.59, terminals_24v.24V]
     - [estop_panel.light-, cnc_terminals.60, run_relay.NC]
     - [secondary_estop.estop-, cnc_terminals.64, coil_t.COIL+]
-    - [spindle.u, cnc_terminals.61, vfd.U]
-    - [spindle.v, cnc_terminals.62, vfd.V]
-    - [spindle.w, cnc_terminals.63, vfd.W]
+    - route: [spindle.u, cnc_terminals.61, vfd.U]
+      awg: 16
+    - route: [spindle.v, cnc_terminals.62, vfd.V]
+      awg: 16
+    - route: [spindle.w, cnc_terminals.63, vfd.W]
+      awg: 16
     - [spindle.shield, connector_earth.shield]
     - [run_relay.DC-, safety_5v0.5V0]
     - [run_relay.DC+, safety_5v.5V]

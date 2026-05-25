@@ -98,15 +98,15 @@ wirenumber,from_component,from_pin,to_component,to_pin,netname,awg,tags
 5V0-38,opto_board,2-,safety_5v0,4A,5V0,20,safety
 5V0-39,opto_board,3-,safety_5v0,4B,5V0,20,safety
 5V0-40,opto_board,4-,safety_5v0,5A,5V0,20,safety
-COIL+-1,contactor_110,A1,contactor_220,A1,COIL+,20,vfd
-COIL+-2,contactor_110,A1,coil_t,1A,COIL+,20,"vfd, safety"
+COIL+-1,contactor_110,A1,coil_t,1A,COIL+,20,vfd
+COIL+-2,contactor_220,A1,coil_t,1B,COIL+,20,vfd
 COIL+-3,secondary_estop,estop-,cnc_terminals,64A,COIL+,20,terminals
-COIL+-4,cnc_terminals,64B,coil_t,1B,COIL+,20,"terminals, safety"
-COIL+-5,axbb-e,I6+,coil_t,2A,COIL+,20,"control, safety"
-COIL--1,contactor_110,A2,contactor_220,A2,COIL-,20,vfd
-COIL--2,contactor_110,A2,coil_t,5A,COIL-,20,"vfd, safety"
-COIL--3,axbb-e,I6-,coil_t,5B,COIL-,20,"control, safety"
-COIL--4,run_relay,NO,coil_t,6A,COIL-,20,safety
+COIL+-4,cnc_terminals,64B,coil_t,2A,COIL+,20,"terminals, vfd"
+COIL+-5,axbb-e,I6+,coil_t,2B,COIL+,20,"control, vfd"
+COIL--1,contactor_110,A2,coil_t,5A,COIL-,20,vfd
+COIL--2,contactor_220,A2,coil_t,5B,COIL-,20,vfd
+COIL--3,axbb-e,I6-,coil_t,6A,COIL-,20,"control, vfd"
+COIL--4,run_relay,NO,coil_t,6B,COIL-,20,"safety, vfd"
 DRIVER_48V-1,y_cl57s,+VDC,48v,48V,DRIVER_48V,20,"control, vfd"
 DRIVER_48V-2,Z_cl57s,+VDC,48v,48V,DRIVER_48V,20,"control, vfd"
 DRIVER_GND-1,z_control,gnd,cnc_terminals,10A,DRIVER_GND,20,terminals
@@ -181,14 +181,13 @@ shield-8,x1_limits,shield,connector_earth,4B,shield,20,terminals
 shield-9,x2_motor,shield,connector_earth,5A,shield,20,terminals
 shield-10,x2_limits,shield,connector_earth,5B,shield,20,terminals
 shield-11,probe,shield,connector_earth,6A,shield,20,terminals
-shield-12,spindle,w,cnc_terminals,63A,shield,20,terminals
-shield-13,cnc_terminals,63B,vfd,W,shield,20,"terminals, vfd"
-shield-14,spindle,shield,connector_earth,6B,shield,20,terminals
-shield-15,x1_motor,shield,spindle,w,shield,20,terminals
-spindle.u-1,spindle,u,cnc_terminals,61A,spindle.u,20,terminals
-spindle.u-2,cnc_terminals,61B,vfd,U,spindle.u,20,"terminals, vfd"
-spindle.v-1,spindle,v,cnc_terminals,62A,spindle.v,20,terminals
-spindle.v-2,cnc_terminals,62B,vfd,V,spindle.v,20,"terminals, vfd"
+shield-12,spindle,shield,connector_earth,6B,shield,20,terminals
+spindle.u-1,spindle,u,cnc_terminals,61A,spindle.u,16,terminals
+spindle.u-2,cnc_terminals,61B,vfd,U,spindle.u,16,"terminals, vfd"
+spindle.v-1,spindle,v,cnc_terminals,62A,spindle.v,16,terminals
+spindle.v-2,cnc_terminals,62B,vfd,V,spindle.v,16,"terminals, vfd"
+spindle.w-1,spindle,w,cnc_terminals,63A,spindle.w,16,terminals
+spindle.w-2,cnc_terminals,63B,vfd,W,spindle.w,16,"terminals, vfd"
 transformer.220L-1,transformer,220L,contactor_220,T1,transformer.220L,20,vfd
 transformer.220N-1,transformer,220N,contactor_220,T2,transformer.220N,20,vfd
 vfd.R-1,vfd,R,contactor_220,L1,vfd.R,20,vfd
@@ -197,18 +196,18 @@ x1_control.alrm+-1,x1_control,alrm+,cnc_terminals,31A,x1_control.alrm+,20,termin
 x1_control.alrm+-2,cnc_terminals,31B,opto_board,5-,x1_control.alrm+,20,"terminals, safety"
 x1_limits.ul-1,x1_limits,ul,cnc_terminals,38A,x1_limits.ul,20,terminals
 x1_limits.ul-2,cnc_terminals,38B,opto_board,1+,x1_limits.ul,20,"terminals, safety"
-x1_motor.M+-1,x1_motor,M+,cnc_terminals,29A,x1_motor.M+,20,terminals
-x1_motor.M+-2,cnc_terminals,29B,36V_X1,36V_X1,x1_motor.M+,20,"terminals, vfd"
-x1_motor.M--1,x1_motor,M-,cnc_terminals,30A,x1_motor.M-,20,terminals
-x1_motor.M--2,cnc_terminals,30B,36V_X1,36V0_X1,x1_motor.M-,20,"terminals, vfd"
+x1_motor.M+-1,x1_motor,M+,cnc_terminals,29A,x1_motor.M+,16,terminals
+x1_motor.M+-2,cnc_terminals,29B,36V_X1,36V_X1,x1_motor.M+,16,"terminals, vfd"
+x1_motor.M--1,x1_motor,M-,cnc_terminals,30A,x1_motor.M-,16,terminals
+x1_motor.M--2,cnc_terminals,30B,36V_X1,36V0_X1,x1_motor.M-,16,"terminals, vfd"
 x2_control.alrm+-1,x2_control,alrm+,cnc_terminals,43A,x2_control.alrm+,20,terminals
 x2_control.alrm+-2,cnc_terminals,43B,opto_board,6-,x2_control.alrm+,20,"terminals, safety"
 x2_limits.ul-1,x2_limits,ul,cnc_terminals,50A,x2_limits.ul,20,terminals
 x2_limits.ul-2,cnc_terminals,50B,opto_board,2+,x2_limits.ul,20,"terminals, safety"
-x2_motor.M+-1,x2_motor,M+,cnc_terminals,41A,x2_motor.M+,20,terminals
-x2_motor.M+-2,cnc_terminals,41B,36V_X2,36V_X2,x2_motor.M+,20,"terminals, vfd"
-x2_motor.M--1,x2_motor,M-,cnc_terminals,42A,x2_motor.M-,20,terminals
-x2_motor.M--2,cnc_terminals,42B,36V_X2,36V0_X2,x2_motor.M-,20,"terminals, vfd"
+x2_motor.M+-1,x2_motor,M+,cnc_terminals,41A,x2_motor.M+,16,terminals
+x2_motor.M+-2,cnc_terminals,41B,36V_X2,36V_X2,x2_motor.M+,16,"terminals, vfd"
+x2_motor.M--1,x2_motor,M-,cnc_terminals,42A,x2_motor.M-,16,terminals
+x2_motor.M--2,cnc_terminals,42B,36V_X2,36V0_X2,x2_motor.M-,16,"terminals, vfd"
 y_cl57s.ALM-1,y_cl57s,ALM,opto_board,7-,y_cl57s.ALM,20,"control, safety"
 y_control.ea+-1,y_control,ea+,cnc_terminals,21A,y_control.ea+,20,terminals
 y_control.ea+-2,cnc_terminals,21B,y_cl57s,EA+,y_control.ea+,20,"terminals, control"
@@ -222,14 +221,14 @@ y_control.vcc-1,y_control,vcc,cnc_terminals,23A,y_control.vcc,20,terminals
 y_control.vcc-2,cnc_terminals,23B,y_cl57s,VCC,y_control.vcc,20,"terminals, control"
 y_limits.ul-1,y_limits,ul,cnc_terminals,26A,y_limits.ul,20,terminals
 y_limits.ul-2,cnc_terminals,26B,opto_board,3+,y_limits.ul,20,"terminals, safety"
-y_motor.ma+-1,y_motor,ma+,cnc_terminals,15A,y_motor.ma+,20,terminals
-y_motor.ma+-2,cnc_terminals,15B,y_cl57s,A+,y_motor.ma+,20,"terminals, control"
-y_motor.ma--1,y_motor,ma-,cnc_terminals,16A,y_motor.ma-,20,terminals
-y_motor.ma--2,cnc_terminals,16B,y_cl57s,A-,y_motor.ma-,20,"terminals, control"
-y_motor.mb+-1,y_motor,mb+,cnc_terminals,17A,y_motor.mb+,20,terminals
-y_motor.mb+-2,cnc_terminals,17B,y_cl57s,B+,y_motor.mb+,20,"terminals, control"
-y_motor.mb--1,y_motor,mb-,cnc_terminals,18A,y_motor.mb-,20,terminals
-y_motor.mb--2,cnc_terminals,18B,y_cl57s,B-,y_motor.mb-,20,"terminals, control"
+y_motor.ma+-1,y_motor,ma+,cnc_terminals,15A,y_motor.ma+,16,terminals
+y_motor.ma+-2,cnc_terminals,15B,y_cl57s,A+,y_motor.ma+,16,"terminals, control"
+y_motor.ma--1,y_motor,ma-,cnc_terminals,16A,y_motor.ma-,16,terminals
+y_motor.ma--2,cnc_terminals,16B,y_cl57s,A-,y_motor.ma-,16,"terminals, control"
+y_motor.mb+-1,y_motor,mb+,cnc_terminals,17A,y_motor.mb+,16,terminals
+y_motor.mb+-2,cnc_terminals,17B,y_cl57s,B+,y_motor.mb+,16,"terminals, control"
+y_motor.mb--1,y_motor,mb-,cnc_terminals,18A,y_motor.mb-,16,terminals
+y_motor.mb--2,cnc_terminals,18B,y_cl57s,B-,y_motor.mb-,16,"terminals, control"
 z_control.ea+-1,z_control,ea+,cnc_terminals,7A,z_control.ea+,20,terminals
 z_control.ea+-2,cnc_terminals,7B,Z_cl57s,EA+,z_control.ea+,20,"terminals, control"
 z_control.ea--1,z_control,ea-,cnc_terminals,8A,z_control.ea-,20,terminals
@@ -242,11 +241,11 @@ z_control.vcc-1,z_control,vcc,cnc_terminals,9A,z_control.vcc,20,terminals
 z_control.vcc-2,cnc_terminals,9B,Z_cl57s,VCC,z_control.vcc,20,"terminals, control"
 z_limits.ul-1,z_limits,ul,cnc_terminals,12A,z_limits.ul,20,terminals
 z_limits.ul-2,cnc_terminals,12B,opto_board,4+,z_limits.ul,20,"terminals, safety"
-z_motor.ma+-1,z_motor,ma+,cnc_terminals,1A,z_motor.ma+,20,terminals
-z_motor.ma+-2,cnc_terminals,1B,Z_cl57s,A+,z_motor.ma+,20,"terminals, control"
-z_motor.ma--1,z_motor,ma-,cnc_terminals,2A,z_motor.ma-,20,terminals
-z_motor.ma--2,cnc_terminals,2B,Z_cl57s,A-,z_motor.ma-,20,"terminals, control"
-z_motor.mb+-1,z_motor,mb+,cnc_terminals,3A,z_motor.mb+,20,terminals
-z_motor.mb+-2,cnc_terminals,3B,Z_cl57s,B+,z_motor.mb+,20,"terminals, control"
-z_motor.mb--1,z_motor,mb-,cnc_terminals,4A,z_motor.mb-,20,terminals
-z_motor.mb--2,cnc_terminals,4B,Z_cl57s,B-,z_motor.mb-,20,"terminals, control"
+z_motor.ma+-1,z_motor,ma+,cnc_terminals,1A,z_motor.ma+,16,terminals
+z_motor.ma+-2,cnc_terminals,1B,Z_cl57s,A+,z_motor.ma+,16,"terminals, control"
+z_motor.ma--1,z_motor,ma-,cnc_terminals,2A,z_motor.ma-,16,terminals
+z_motor.ma--2,cnc_terminals,2B,Z_cl57s,A-,z_motor.ma-,16,"terminals, control"
+z_motor.mb+-1,z_motor,mb+,cnc_terminals,3A,z_motor.mb+,16,terminals
+z_motor.mb+-2,cnc_terminals,3B,Z_cl57s,B+,z_motor.mb+,16,"terminals, control"
+z_motor.mb--1,z_motor,mb-,cnc_terminals,4A,z_motor.mb-,16,terminals
+z_motor.mb--2,cnc_terminals,4B,Z_cl57s,B-,z_motor.mb-,16,"terminals, control"
