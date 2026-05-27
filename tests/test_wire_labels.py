@@ -61,7 +61,29 @@ def test_wire_label_calculator_packs_width_columns_without_starting_each_width_o
 
     assert len(pages) == 1
     assert {cell.width_in for cell in pages[0]} == {1.0, 2.0, 2.5}
-    assert sorted({cell.x_in for cell in pages[0]}) == [0.25, 2.75, 4.75]
+    assert [cell.text for cell in pages[0]] == labels
+    assert {cell.y_in for cell in pages[0]} == {0.25}
+    assert sorted({cell.x_in for cell in pages[0]}) == [0.25, 1.25, 2.25, 4.75, 5.75]
+
+
+def test_wire_label_calculator_fills_across_before_down():
+    config = LabelConfig(
+        font_height=0.1,
+        left_margin=0.25,
+        right_margin=0.25,
+        text_clearance=0,
+        width_increment=0.5,
+        whitespace=[1],
+    )
+
+    pages = WireLabelCalculator(config).paginate([f"W{index}" for index in range(10)])
+
+    first_page = pages[0]
+    assert [cell.text for cell in first_page[:8]] == [f"W{index}" for index in range(8)]
+    assert {cell.y_in for cell in first_page[:8]} == {0.25}
+    assert [cell.text for cell in first_page[8:]] == ["W8", "W9"]
+    assert [cell.y_in for cell in first_page[8:]] == pytest.approx([0.55, 0.55])
+    assert [cell.x_in for cell in first_page[8:]] == [0.25, 1.25]
 
 
 def test_wire_label_calculator_pushes_partial_columns_to_later_pages():
@@ -118,6 +140,31 @@ connections:
     groups = wire_label_groups(router)
 
     assert groups == {"dc_power": ["VBUS-1"], "control": ["VBUS-1"]}
+
+
+def test_wire_label_groups_include_both_ends_when_endpoints_share_tag():
+    router = _router(
+        """
+components:
+  source:
+    type: connector
+    tags: [vfd]
+    pins:
+      right: [L]
+  load:
+    type: connector
+    tags: [vfd]
+    pins:
+      left: [L]
+connections:
+  wires:
+    - {from: source.L, to: load.L, net: 110L_SWITCHED}
+"""
+    )
+
+    groups = wire_label_groups(router)
+
+    assert groups == {"vfd": ["110L_SWITCHED-1", "110L_SWITCHED-1"]}
 
 
 def test_render_wire_label_pdf_repeats_label_for_each_configured_stripe():

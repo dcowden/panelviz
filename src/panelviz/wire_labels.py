@@ -10,7 +10,6 @@ from pathlib import Path
 from fpdf import FPDF
 
 from panelviz.parser import LabelConfig
-from panelviz.reports import wire_list_rows
 from panelviz.routing import WireRouter
 
 PT_PER_IN = 72.0
@@ -66,55 +65,77 @@ class WireLabelCalculator:
         )
 
     def paginate(self, labels: list[str]) -> list[list[WireLabelCell]]:
-        """Pack labels into fixed-width columns so every page has stable cut lines."""
+        """Pack labels row-first into fixed-width columns for cutter-friendly pages."""
 
         if not labels:
             return []
-        labels_by_width: dict[float, list[str]] = {}
         row_height = self.layout_for_text(labels[0]).height_in
-        for label in labels:
-            layout = self.layout_for_text(label)
-            labels_by_width.setdefault(layout.width_in, []).append(label)
-
-        pages: list[list[WireLabelCell]] = []
         printable_width = LETTER_WIDTH_IN - 2 * self.config.page_margin
         printable_height = LETTER_HEIGHT_IN - 2 * self.config.page_margin
         rows_per_page = max(1, math.floor(printable_height / row_height + 1e-9))
+        pages: list[list[WireLabelCell]] = []
+        index = 0
 
-        column_chunks: list[tuple[float, list[str]]] = []
-        for width in sorted(labels_by_width, reverse=True):
-            group = labels_by_width[width]
-            for start in range(0, len(group), rows_per_page):
-                column_chunks.append((width, group[start : start + rows_per_page]))
-        column_chunks.sort(key=lambda item: (len(item[1]) < rows_per_page, -item[0]))
+        while index < len(labels):
+            columns: list[float] = []
+            rows: list[list[str | None]] = [[] for _ in range(rows_per_page)]
 
-        packed_pages: list[list[tuple[float, list[str]]]] = []
-        used_widths: list[float] = []
-        for width, chunk in column_chunks:
-            for page_index, used_width in enumerate(used_widths):
-                if used_width + width <= printable_width + 1e-9:
-                    packed_pages[page_index].append((width, chunk))
-                    used_widths[page_index] += width
+            while index < len(labels):
+                label = labels[index]
+                required_width = self.layout_for_text(label).width_in
+                if columns and sum(columns) + required_width > printable_width + 1e-9:
                     break
-            else:
-                packed_pages.append([(width, chunk)])
-                used_widths.append(width)
+                columns.append(min(required_width, printable_width))
+                for existing_row in rows:
+                    existing_row.append(None)
+                rows[0][len(columns) - 1] = label
+                index += 1
 
-        for page_columns in packed_pages:
+            if not columns:
+                label = labels[index]
+                columns.append(printable_width)
+                for existing_row in rows:
+                    existing_row.append(None)
+                rows[0][0] = label
+                index += 1
+
+            page_full = index >= len(labels)
+            for row in range(1, rows_per_page):
+                if page_full:
+                    break
+                for column in range(len(columns)):
+                    if index >= len(labels):
+                        page_full = True
+                        break
+                    label = labels[index]
+                    required_width = self.layout_for_text(label).width_in
+                    if required_width > columns[column]:
+                        growth = required_width - columns[column]
+                        if sum(columns) + growth > printable_width + 1e-9:
+                            page_full = True
+                            break
+                        columns[column] = required_width
+                    rows[row][column] = label
+                    index += 1
+
+            x_positions = [self.config.page_margin]
+            for width in columns[:-1]:
+                x_positions.append(x_positions[-1] + width)
+
             page_cells: list[WireLabelCell] = []
-            x = self.config.page_margin
-            for width, chunk in page_columns:
-                for row, label in enumerate(chunk):
+            for row_index, row in enumerate(rows):
+                for column_index, label in enumerate(row):
+                    if label is None:
+                        continue
                     page_cells.append(
                         WireLabelCell(
                             label,
-                            x,
-                            self.config.page_margin + row * row_height,
-                            width,
+                            x_positions[column_index],
+                            self.config.page_margin + row_index * row_height,
+                            columns[column_index],
                             row_height,
                         )
                     )
-                x += width
             pages.append(page_cells)
         return pages
 
@@ -123,12 +144,11 @@ def wire_label_groups(router: WireRouter) -> dict[str, list[str]]:
     """Return wire labels grouped by endpoint component tags."""
 
     groups: dict[str, list[str]] = {}
-    for row in wire_list_rows(router, grouped=False):
-        tags = [tag.strip() for tag in row.tags.split(",") if tag.strip()]
-        for tag in tags:
-            groups.setdefault(tag, [])
-            if row.wirenumber not in groups[tag]:
-                groups[tag].append(row.wirenumber)
+    for wire in router.routed_wires:
+        label = wire.wire_label or ""
+        for endpoint in (wire.from_pin, wire.to_pin):
+            for tag in router.components[endpoint.component].tags:
+                groups.setdefault(tag, []).append(label)
     return groups
 
 

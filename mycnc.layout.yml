@@ -14,15 +14,15 @@ components:
   36V_X1:
     x: 1684.119
     y: 1766.188
-    rotation: 0
+    rotation: 180
   48v:
-    x: 2029.873
-    y: 1761.533
-    rotation: 0
+    x: 2035.286
+    y: 1827.648
+    rotation: 180
   36V_X2:
     x: 1344.62
     y: 1767.224
-    rotation: 0
+    rotation: 180
   transformer:
     x: 1473.164
     y: 2608.988
@@ -32,12 +32,12 @@ components:
     y: 886.473
     rotation: 0
   contactor_220:
-    x: 1803.414
-    y: 1376.109
+    x: 1605.236
+    y: 869.67
     rotation: 0
   contactor_110:
-    x: 1658.273
-    y: 1387.636
+    x: 1741.809
+    y: 871.207
     rotation: 0
   24v:
     x: 1891.141
@@ -124,24 +124,24 @@ components:
     y: -713.25
     rotation: 0
   vfd:
-    x: 2263.99
-    y: 1221.963
+    x: 2554.088
+    y: 1183.135
     rotation: 270
   live_power_t:
-    x: 1943.666
-    y: 1486.33
+    x: 1961.702
+    y: 1454.366
     rotation: 270
   wall_plug:
     x: 2047.354
     y: 2768.71
     rotation: 270
   switched_110N:
-    x: 1562.504
-    y: 1485.444
+    x: 1893.387
+    y: 1465.852
     rotation: 90
   switched_110L:
-    x: 1521.055
-    y: 1486.729
+    x: 1847.472
+    y: 1465.081
     rotation: 90
   terminals_5v:
     x: 2200.743
@@ -194,7 +194,7 @@ components:
   safety_24v:
     x: 2296.513
     y: 590.404
-    rotation: 90
+    rotation: 270
   safety_24v0:
     x: 2321.218
     y: 580.257
@@ -206,30 +206,30 @@ components:
   dc_power_5v:
     x: 2173.303
     y: 1008.854
-    rotation: 90
+    rotation: 270
   dc_power_5v0:
     x: 2201.698
     y: 1011.621
-    rotation: 90
+    rotation: 270
   dc_power_24v:
     x: 2240.241
     y: 1011.621
-    rotation: 90
+    rotation: 270
   dc_power_24v0:
     x: 2272.326
     y: 1007.931
-    rotation: 90
+    rotation: 270
   dc_power_earth:
     x: 2316.403
     y: 1015.311
     rotation: 90
   coil_t:
-    x: 2007.127
-    y: 1477.668
-    rotation: 90
+    x: 1502.703
+    y: 989.052
+    rotation: 270
   vfd_earth:
-    x: 1890.317
-    y: 1495.351
+    x: 2199.278
+    y: 1459.314
     rotation: 90
   upper_limits_ok_relay:
     x: 1662.6
@@ -240,6 +240,6 @@ components:
     y: 531.844
     rotation: 0
   driver_power:
-    x: 2083.374
-    y: 1469.389
+    x: 2140.979
+    y: 1449.116
     rotation: 270
