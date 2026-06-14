@@ -19,6 +19,14 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
+from panelviz.label_assignment import (
+    apply_label_assignment,
+    assign_labels,
+    component_label_rows,
+    labels_path_for_panel,
+    load_label_assignment,
+    save_label_assignment,
+)
 from panelviz.parser import parse_panel_yaml
 from panelviz.pdf_export import DrawingMeta, diagram_reference_grid, export_schematic_pdf, export_wire_list_pdf
 from panelviz.references import attach_wire_references
@@ -26,7 +34,14 @@ from panelviz.reports import WIRE_LIST_COLUMNS, wire_list_rows
 from panelviz.routing import WireRouter
 from panelviz.viewer import _viewer_css, _viewer_js, update_scene_bounds, update_transformed_endpoint_geometry, viewer_data
 from panelviz.visualization import component_visual_config_from_visualization
-from panelviz.wire_labels import paginate_wire_labels, render_wire_label_pdf, wire_label_groups
+from panelviz.wire_labels import (
+    all_wire_labels,
+    paginate_wire_labels,
+    render_component_label_sheet_pdf,
+    render_wire_label_pages_pdf,
+    render_wire_label_pdf,
+    wire_label_groups,
+)
 
 
 class EditorError(ValueError):
@@ -245,6 +260,23 @@ def run_editor(
             },
         )
 
+    @app.post("/api/assign-labels", response_model=None)
+    async def assign_labels_endpoint(payload: dict[str, Any]) -> Response:
+        try:
+            order = [str(component) for component in payload.get("component_order", [])]
+            bundle = session.assign_labels(order)
+        except Exception as error:
+            return Response(str(error), status_code=422, media_type="text/plain", headers=_no_store_headers())
+        filename = f"{session.path.stem}_component_label_sheets.zip"
+        return Response(
+            bundle,
+            media_type="application/zip",
+            headers={
+                **_no_store_headers(),
+                "Content-Disposition": f'attachment; filename="{filename}"',
+            },
+        )
+
     @app.post("/api/append-route", response_model=None)
     async def append_route_endpoint(payload: dict[str, Any]) -> dict[str, Any] | JSONResponse:
         try:
@@ -319,8 +351,10 @@ class EditorSession:
     def panel_data(self) -> dict[str, Any]:
         parsed = parse_panel_yaml(self.path.read_text(encoding="utf-8"))
         router = WireRouter.route_parse_result(parsed)
+        self._apply_labels(router)
         visual_config = component_visual_config_from_visualization(parsed.config.visualization)
         data = viewer_data(router, units=parsed.config.units, columns=3, config=visual_config)
+        data["labels"] = {"assigned": labels_path_for_panel(self.path).exists(), "path": str(labels_path_for_panel(self.path))}
         self._apply_layout(data)
         update_transformed_endpoint_geometry(data)
         update_scene_bounds(data)
@@ -330,6 +364,7 @@ class EditorSession:
 
     def wire_list_csv(self) -> str:
         router = _router(self.path)
+        self._apply_labels(router)
         output = StringIO()
         writer = csv.DictWriter(output, fieldnames=WIRE_LIST_COLUMNS)
         writer.writeheader()
@@ -339,6 +374,7 @@ class EditorSession:
     def drawing_pdf_bundle(self, snapshot: dict[str, Any] | None = None) -> bytes:
         parsed = parse_panel_yaml(self.path.read_text(encoding="utf-8"))
         router = WireRouter.route_parse_result(parsed)
+        self._apply_labels(router)
         visual_config = component_visual_config_from_visualization(parsed.config.visualization)
         data = viewer_data(router, units=parsed.config.units, columns=3, config=visual_config)
         self._apply_layout(data)
@@ -362,6 +398,61 @@ class EditorSession:
         with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr(f"{self.path.stem}_schematic.pdf", schematic.content)
             archive.writestr(f"{self.path.stem}_wire_list.pdf", wire_list_pdf)
+            labels = all_wire_labels(router)
+            if labels:
+                archive.writestr("all_labels.pdf", render_wire_label_pages_pdf(paginate_wire_labels(labels, parsed.config.labels), parsed.config.labels))
+            for tag, labels in sorted(wire_label_groups(router).items()):
+                safe_tag = _safe_archive_tag(tag)
+                for page_index, cells in enumerate(paginate_wire_labels(labels, parsed.config.labels), start=1):
+                    suffix = "" if page_index == 1 else str(page_index)
+                    archive.writestr(f"wirelabel_{safe_tag}{suffix}.pdf", render_wire_label_pdf(cells, parsed.config.labels))
+            assignment = load_label_assignment(labels_path_for_panel(self.path))
+            if assignment is not None:
+                component_views = {str(component["name"]): component for component in data.get("components", [])}
+                for component_name, rows in component_label_rows(router, assignment).items():
+                    if rows:
+                        archive.writestr(
+                            f"component_labels_{_safe_archive_tag(component_name)}.pdf",
+                            render_component_label_sheet_pdf(
+                                component_name,
+                                rows,
+                                parsed.config.labels,
+                                component_views.get(component_name),
+                            ),
+                        )
+        return output.getvalue()
+
+    def assign_labels(self, component_order: list[str]) -> bytes:
+        parsed = parse_panel_yaml(self.path.read_text(encoding="utf-8"))
+        router = WireRouter.route_parse_result(parsed)
+        assignment = assign_labels(router, component_order, parsed.config.wire_label_format)
+        save_label_assignment(self.path, assignment)
+        apply_label_assignment(router, assignment)
+        visual_config = component_visual_config_from_visualization(parsed.config.visualization)
+        data = viewer_data(router, units=parsed.config.units, columns=3, config=visual_config)
+        self._apply_layout(data)
+        update_transformed_endpoint_geometry(data)
+        update_scene_bounds(data)
+        component_views = {str(component["name"]): component for component in data.get("components", [])}
+        rows_by_component = component_label_rows(router, assignment)
+        output = BytesIO()
+        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for component_name in assignment.component_order:
+                rows = rows_by_component.get(component_name, [])
+                if not rows:
+                    continue
+                archive.writestr(
+                    f"component_labels_{_safe_archive_tag(component_name)}.pdf",
+                    render_component_label_sheet_pdf(
+                        component_name,
+                        rows,
+                        parsed.config.labels,
+                        component_views.get(component_name),
+                    ),
+                )
+            labels = all_wire_labels(router)
+            if labels:
+                archive.writestr("all_labels.pdf", render_wire_label_pages_pdf(paginate_wire_labels(labels, parsed.config.labels), parsed.config.labels))
             for tag, labels in sorted(wire_label_groups(router).items()):
                 safe_tag = _safe_archive_tag(tag)
                 for page_index, cells in enumerate(paginate_wire_labels(labels, parsed.config.labels), start=1):
@@ -410,6 +501,9 @@ class EditorSession:
             dy = float(component.get("y", original_y)) - original_y
             if dx or dy:
                 _shift_component_endpoint_geometry(data, str(component_name), dx, dy)
+
+    def _apply_labels(self, router: WireRouter) -> None:
+        apply_label_assignment(router, load_label_assignment(labels_path_for_panel(self.path)))
 
 
 def _load_roundtrip_yaml(path: str | Path) -> tuple[YAML, Any]:
@@ -749,6 +843,7 @@ def _editor_html(path: Path, asset_version: str = "") -> str:
     <div class="toolbar-group docs-toolbar-group" role="group" aria-label="Documentation and exports">
       <a class="toolbar-link toolbar-button" href="/wire-list.csv" download>CSV</a>
       <button id="editor-download-pdfs" class="toolbar-button" type="button">PDFs</button>
+      <button id="assign-labels-button" class="toolbar-button primary-action" type="button">Assign Labels</button>
       <a class="toolbar-link toolbar-button" href="/docs/getting-started" target="_blank" rel="noopener">Getting Started</a>
       <a class="toolbar-link toolbar-button" href="/docs/reference" target="_blank" rel="noopener">Reference</a>
       <button id="editor-help-button" class="toolbar-button icon-button" type="button" aria-haspopup="dialog" aria-expanded="false" title="Help">?</button>
@@ -771,6 +866,22 @@ def _editor_html(path: Path, asset_version: str = "") -> str:
         <dt>Wire edits</dt><dd>With Edit enabled, click a wire label and press Delete to remove it, or drag an endpoint dot onto another terminal to relocate it.</dd>
         <dt>Layout edits</dt><dd>With Edit enabled, drag component bodies to move them. Right-click a component to rotate it 90 degrees. Shift-drag empty canvas to select a group.</dd>
       </dl>
+    </form>
+  </dialog>
+  <dialog id="assign-labels-dialog" class="assign-labels-dialog">
+    <form method="dialog">
+      <div class="help-dialog-header">
+        <h2>Assign Labels</h2>
+        <button type="submit" aria-label="Close assign labels">Close</button>
+      </div>
+      <p class="assign-labels-note">Order components in the sequence you want final wire numbers assigned. Label sheets for every connected component will download as a ZIP.</p>
+      <select id="assign-labels-list" size="16" aria-label="Component label assignment order"></select>
+      <div class="assign-labels-actions">
+        <button id="assign-labels-up" class="toolbar-button" type="button">Up</button>
+        <button id="assign-labels-down" class="toolbar-button" type="button">Down</button>
+        <button id="assign-labels-layout" class="toolbar-button" type="button">Sort By Layout</button>
+        <button id="assign-labels-submit" class="toolbar-button primary-action" type="button">Generate Sheets</button>
+      </div>
     </form>
   </dialog>
   <section class="workspace">
@@ -938,6 +1049,39 @@ def _editor_css() -> str:
   color: #0f172a;
   box-shadow: 0 24px 70px rgb(15 23 42 / 0.28);
 }
+.assign-labels-dialog {
+  width: min(620px, calc(100vw - 48px));
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  color: #0f172a;
+  box-shadow: 0 24px 70px rgb(15 23 42 / 0.28);
+}
+.assign-labels-dialog::backdrop {
+  background: rgb(15 23 42 / 0.36);
+}
+.assign-labels-dialog form {
+  margin: 0;
+}
+.assign-labels-note {
+  margin: 0 0 12px;
+  color: #475569;
+  line-height: 1.35;
+}
+#assign-labels-list {
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px;
+  font: 13px/1.35 Consolas, "Courier New", monospace;
+}
+.assign-labels-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
 .help-dialog::backdrop {
   background: rgb(15 23 42 / 0.36);
 }
@@ -1055,6 +1199,13 @@ const editorEditToggleEl = document.getElementById('editor-edit-toggle');
 const editorHelpButtonEl = document.getElementById('editor-help-button');
 const editorHelpDialogEl = document.getElementById('editor-help-dialog');
 const editorRoutePanelEl = document.querySelector('.editor-route-panel');
+const assignLabelsButtonEl = document.getElementById('assign-labels-button');
+const assignLabelsDialogEl = document.getElementById('assign-labels-dialog');
+const assignLabelsListEl = document.getElementById('assign-labels-list');
+const assignLabelsUpEl = document.getElementById('assign-labels-up');
+const assignLabelsDownEl = document.getElementById('assign-labels-down');
+const assignLabelsLayoutEl = document.getElementById('assign-labels-layout');
+const assignLabelsSubmitEl = document.getElementById('assign-labels-submit');
 
 window.PanelVizCanEdit = () => editorState.editEnabled;
 
@@ -1090,6 +1241,14 @@ editorHelpButtonEl.addEventListener('pointerdown', (event) => {
 editorHelpDialogEl?.addEventListener('close', () => {
   editorHelpButtonEl.setAttribute('aria-expanded', 'false');
 });
+assignLabelsButtonEl.addEventListener('click', () => openAssignLabelsDialog());
+assignLabelsButtonEl.addEventListener('pointerdown', (event) => {
+  event.stopPropagation();
+});
+assignLabelsUpEl.addEventListener('click', () => moveSelectedAssignLabelComponent(-1));
+assignLabelsDownEl.addEventListener('click', () => moveSelectedAssignLabelComponent(1));
+assignLabelsLayoutEl.addEventListener('click', () => populateAssignLabelsList(layoutSortedComponents()));
+assignLabelsSubmitEl.addEventListener('click', () => submitAssignLabels());
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     if (editorState.route.length) clearEditorRoute();
@@ -1219,6 +1378,66 @@ function deleteSelectedWire() {
   });
 }
 
+function openAssignLabelsDialog() {
+  populateAssignLabelsList(layoutSortedComponents());
+  if (assignLabelsDialogEl?.showModal) {
+    assignLabelsDialogEl.showModal();
+  }
+}
+
+function layoutSortedComponents() {
+  const components = state?.data?.components || [];
+  return [...components]
+    .sort((left, right) => (left.y - right.y) || (left.x - right.x) || left.name.localeCompare(right.name))
+    .map((component) => component.name);
+}
+
+function populateAssignLabelsList(componentNames) {
+  assignLabelsListEl.replaceChildren();
+  componentNames.forEach((componentName) => {
+    const option = document.createElement('option');
+    option.value = componentName;
+    option.textContent = componentName;
+    assignLabelsListEl.appendChild(option);
+  });
+}
+
+function moveSelectedAssignLabelComponent(direction) {
+  const index = assignLabelsListEl.selectedIndex;
+  if (index < 0) return;
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= assignLabelsListEl.options.length) return;
+  const option = assignLabelsListEl.options[index];
+  const reference = direction < 0 ? assignLabelsListEl.options[targetIndex] : assignLabelsListEl.options[targetIndex].nextSibling;
+  assignLabelsListEl.insertBefore(option, reference);
+  assignLabelsListEl.selectedIndex = targetIndex;
+}
+
+async function submitAssignLabels() {
+  const componentOrder = [...assignLabelsListEl.options].map((option) => option.value);
+  try {
+    assignLabelsSubmitEl.disabled = true;
+    assignLabelsSubmitEl.textContent = 'Generating...';
+    const response = await fetch('/api/assign-labels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ component_order: componentOrder }),
+    });
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || response.statusText);
+    }
+    await downloadResponseBlob(response, 'component_label_sheets.zip');
+    assignLabelsDialogEl.close();
+    reloadPanelData();
+  } catch (error) {
+    showEditorError(error.message);
+  } finally {
+    assignLabelsSubmitEl.disabled = false;
+    assignLabelsSubmitEl.textContent = 'Generate Sheets';
+  }
+}
+
 function saveComponentLayout(detail) {
   if (!editorState.editEnabled) return;
   if (!detail || !detail.component) return;
@@ -1307,15 +1526,7 @@ async function downloadDrawingPdfs() {
       const message = await response.text();
       throw new Error(message || response.statusText);
     }
-    const blob = await response.blob();
-    const downloadUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = pdfBundleFilename(response) || 'panelviz_drawing_pdfs.zip';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(downloadUrl);
+    await downloadResponseBlob(response, 'panelviz_drawing_pdfs.zip');
     editorRouteEl.textContent = 'PDF bundle generated.';
     editorPdfEl.textContent = originalLabel;
   } catch (error) {
@@ -1323,7 +1534,7 @@ async function downloadDrawingPdfs() {
   } finally {
     editorPdfEl.disabled = false;
     if (editorPdfEl.textContent === 'Preparing PDFs...') {
-      editorPdfEl.textContent = 'Download PDFs';
+      editorPdfEl.textContent = 'PDFs';
     }
   }
 }
@@ -1458,6 +1669,18 @@ function pdfBundleFilename(response) {
   const disposition = response.headers.get('Content-Disposition') || '';
   const match = disposition.match(/filename="?([^"]+)"?/i);
   return match ? match[1] : null;
+}
+
+async function downloadResponseBlob(response, fallbackName) {
+  const blob = await response.blob();
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = pdfBundleFilename(response) || fallbackName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(downloadUrl);
 }
 
 function showEditorError(message) {

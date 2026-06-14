@@ -2,6 +2,9 @@ from pathlib import Path
 
 from panelviz import cli
 from panelviz.cli import main, run
+from panelviz.label_assignment import assign_labels, save_label_assignment
+from panelviz.parser import parse_panel_yaml
+from panelviz.routing import WireRouter
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -59,9 +62,43 @@ connections:
 
     outputs = run(source, output_dir)
 
+    assert output_dir / "all_labels.pdf" in outputs
     assert output_dir / "wirelabel_row_a.pdf" in outputs
     assert output_dir / "wirelabel_row_b.pdf" in outputs
+    assert (output_dir / "all_labels.pdf").read_bytes().startswith(b"%PDF-")
     assert (output_dir / "wirelabel_row_a.pdf").read_bytes().startswith(b"%PDF-")
+
+
+def test_cli_run_uses_assigned_label_sidecar_when_present():
+    output_dir = TEST_OUTPUTS / "cli_assigned_labels"
+    source = TEST_OUTPUTS / "cli_assigned_labels.yml"
+    source.write_text(
+        """
+components:
+  source:
+    type: connector
+    size: {width: 1, height: 1}
+    pins:
+      right: [A]
+  load:
+    type: connector
+    size: {width: 1, height: 1}
+    pins:
+      left: [A]
+connections:
+  wires:
+    - {from: source.A, to: load.A, net: SIG}
+""",
+        encoding="utf-8",
+    )
+    parsed = parse_panel_yaml(source.read_text(encoding="utf-8"))
+    router = WireRouter.route_parse_result(parsed)
+    save_label_assignment(source, assign_labels(router, ["load", "source"], "FINAL-%seq"))
+
+    run(source, output_dir)
+
+    assert "FINAL-1" in (output_dir / "wire_list.csv").read_text(encoding="utf-8")
+    assert "FINAL-1" in (output_dir / "wire_list.txt").read_text(encoding="utf-8")
 
 
 def test_run_uses_selected_output_directory():

@@ -102,6 +102,7 @@ config:
     page_margin: 0.25
     text_clearance: 2
     text_clearance_unit: pt
+    tail_length: 0.75
     width_increment: 0.5
     whitespace: [1, 1.5, 2]
 ```
@@ -279,7 +280,11 @@ PDF export requirements:
   * Wire-label sheets should preserve full-page vertical cutter lines by calculating each label width first, grouping labels by snapped width, and placing each width group onto fixed-width column pages. Some blank space is acceptable when it keeps paper-cutter lines aligned.
   * Wire-label sheets should include a small configurable top/bottom text clearance such as `2pt`, so the first and last text stripes do not sit directly on the cut line.
   * Wire-label sheet height is computed from the configured font height and whitespace pattern. Each label begins and ends with wire text, with alternating whitespace multiples between text stripes, for example `whitespace: [1, 1.5, 2]`.
+  * Wire-label sheets support a configurable blank `tail_length`, defaulting to `0.75in`, below the printed text stripes for clear tape labels that wrap around a wire and adhere to themselves.
   * Wire-label PDFs intentionally duplicate labels across tags when a wire connects components in different tagged rows, because a physical wire needs a label at each end.
+  * The editor should also support a final component-by-component label assignment workflow. The user chooses a component processing order, the app walks every physical wire incident to those components, assigns final unique wire labels using `config.wire_label_format`, and writes those bindings to `<input_stem>.labels.yaml`.
+  * `<input_stem>.labels.yaml` is a sidecar source of final label truth. It should contain only component order and physical-wire label bindings, not component definitions or route YAML. When present, reports, the interactive wire list, CSV export, schematic PDFs, and wire-list PDFs should use these assigned labels instead of temporary route-order labels.
+  * The label assignment workflow should generate a ZIP of component label sheets. Each sheet shows a compact per-component connection table at the top and printable labels for all physical wires touching that component below it. This lets a user wire first by nets and then label component-by-component after the physical panel is built.
 
 The interactive viewer should be a no-build SVG.js plus plain JavaScript/CSS experience shared by the local web app and generated static viewer bundle. The normal command-line workflow is `panelviz <input_file>`, which launches the local NiceGUI/FastAPI app bound to `127.0.0.1`.
 
@@ -324,6 +329,7 @@ Editor requirements:
   * Component positions and rotations changed in the editor should be saved to a sidecar YAML file next to the panel file, named `<input_stem>.layout.yml`. The sidecar should contain only non-critical layout state, currently component `x`, `y`, and `rotation`; it must not duplicate wiring or component definitions from the main YAML.
   * Editor wire edits should reload the routed panel data in place instead of refreshing the whole browser page. Preserve the current pan and zoom view when updating the SVG after route creation, route deletion, or endpoint relocation.
   * The editor should provide downloads for the wire-list CSV and a bundled PDF export containing the schematic PDF and paginated wire-list PDF.
+  * The editor should provide an `Assign Labels` action. It opens a component-ordering dialog, lets the user reorder components manually or sort by layout, saves `<input_stem>.labels.yaml`, downloads component label-sheet PDFs as a ZIP, and reloads the routed panel data in place so the UI displays final labels.
 
 Renderer alternatives considered:
   * D2: attractive modern diagram DSL with SVG/PNG/PDF export, but it adds another external CLI and is less proven for component pin/port-heavy diagrams.
@@ -368,6 +374,7 @@ Project structure:
   * CLI entry points are `panelviz`, `panelvis`, and `panenvis`, all calling the same command.
   * CLI syntax is `panelviz [--port PORT] [--no-open] <input_file>`.
   * Documentation export outputs are `wire_list.csv`, `wire_list.txt`, `component_summary.csv`, `component_summary.txt`, and `wiring_diagram.svg`. The diagram uses label mode.
+  * If `<input_stem>.labels.yaml` exists next to the input YAML, report and diagram generation uses the assigned labels from that sidecar. Otherwise labels are generated deterministically from route order.
   * The CLI launches the NiceGUI/FastAPI editor by default. Editing is locked until the user enables edit mode in the UI. Saved component layout state lives in a separate `<input_stem>.layout.yml` sidecar file next to the input YAML.
   * The project depends on `fpdf2` for PDF exports.
   * The interactive viewer includes pan, zoom, component drag, component rotation, wire/net/component/terminal highlighting, a sortable and resizable wire-list panel, and diagnostic highlighting for unconnected, multi-connected, and isolated components.

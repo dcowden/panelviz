@@ -1,5 +1,5 @@
 config:
-  wire_label_format: "%netname-%seq"
+  wire_label_format: "%netname/%seq"
   wiring_mode: labels
   defaults:
     awg: 20
@@ -8,6 +8,7 @@ config:
     author: ""
     title: "PanelViz Wiring Schematic"
   labels:
+    stock: premium_2_625x1_split
     style:
       font-family: Helvetica
       font-weight: bold
@@ -20,6 +21,7 @@ config:
     page_margin: 0.3
     text_clearance: 2
     text_clearance_unit: pt
+    tail_length: 0.75
     width_increment: 0.25
     whitespace: [2]
   units:
@@ -181,6 +183,39 @@ components:
       height: 1
     pins:
       right: [GND, 1, 2]
+  wall_power_t:
+    type: terminal_block
+    tags: [vfd]
+    size:
+      width: 2
+      height: 0.118
+    pins:
+      left: [A]
+      right: [B]
+    positions: 1
+    nets:
+      - name: 110L
+        positions: [1]
+  power_switch:
+    type: switch
+    tags: [vfd]
+    size:
+      width: 1.5
+      height: 1.5
+      terminal_width: 0.25
+    pins:
+      left: [L_IN]
+      right: [L_OUT]
+  breaker:
+    type: switch
+    tags: [vfd]
+    size:
+      width: 1.5
+      height: 1.5
+      terminal_width: 0.25
+    pins:
+      left: [L_IN]
+      right: [L_OUT]
   run_relay:
     type: relay
     tags: [safety]
@@ -752,6 +787,18 @@ connections:
       net: earth
       awg: 12
     - from: wall_plug.1
+      to: wall_power_t.1A
+      net: 110L
+      awg: 12
+    - from: wall_power_t.1B
+      to: power_switch.L_IN
+      net: 110L
+      awg: 12
+    - from: power_switch.L_OUT
+      to: breaker.L_IN
+      net: 110L
+      awg: 12
+    - from: breaker.L_OUT
       to: live_power_t.110L
       net: 110L
       awg: 12

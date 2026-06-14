@@ -271,38 +271,25 @@ class WireRouter(BaseModel):
     def resolve_nets_and_labels(self, wire_label_format: str = "%netname-%seq") -> None:
         """Resolve electrical nets and assign wire labels to routed wires."""
 
-        electrical_graph = nx.Graph()
-        electrical_graph.add_nodes_from(self.physical_graph.nodes)
-        for from_node, to_node in self.physical_graph.edges(keys=False):
-            electrical_graph.add_edge(from_node, to_node)
+        internal_graph = self._internal_net_graph()
+        self._validate_physical_wire_forest(internal_graph)
+        electrical_graph = internal_graph.copy()
+        for wire in self.routed_wires:
+            electrical_graph.add_edge(str(wire.from_pin), str(wire.to_pin), wire=True, wire_index=wire.index)
 
-        for component in self.components.values():
-            if isinstance(component, TerminalBlock):
-                for pins in component.position_pin_groups():
-                    electrical_graph.add_nodes_from(f"{component.name}.{pin}" for pin in pins)
-                    for pin in pins[1:]:
-                        electrical_graph.add_edge(
-                            f"{component.name}.{pins[0]}",
-                            f"{component.name}.{pin}",
-                            internal=True,
-                            terminal_position=True,
-                        )
-            for net_name in component.net_names():
-                pins = [f"{component.name}.{pin}" for pin in component.pins_for_net(net_name)]
-                if not pins:
-                    continue
-                electrical_graph.add_nodes_from(pins)
-                for pin in pins[1:]:
-                    electrical_graph.add_edge(pins[0], pin, internal=True, net_name=net_name)
-
-        node_to_net = self._resolve_node_net_names(electrical_graph)
+        node_to_net, net_aliases = self._resolve_node_net_names(electrical_graph)
         sequence_by_net: dict[str, int] = defaultdict(int)
         global_sequence = 0
         self.net_graph = nx.Graph()
 
         for net_name in sorted(set(node_to_net.values())):
             members = sorted(node for node, node_net in node_to_net.items() if node_net == net_name)
-            self.net_graph.add_node(net_name, name=net_name, member_pins=members)
+            self.net_graph.add_node(
+                net_name,
+                name=net_name,
+                aliases=sorted(net_aliases.get(net_name, {net_name})),
+                member_pins=members,
+            )
 
         for wire in self.routed_wires:
             net_name = node_to_net[str(wire.from_pin)]
@@ -314,32 +301,67 @@ class WireRouter(BaseModel):
             self.physical_graph.edges[str(wire.from_pin), str(wire.to_pin), wire.index]["net_name"] = wire.net_name
             self.physical_graph.edges[str(wire.from_pin), str(wire.to_pin), wire.index]["wire_label"] = wire.wire_label
 
-    def _resolve_node_net_names(self, electrical_graph: nx.Graph) -> dict[str, str]:
+    def _internal_net_graph(self) -> nx.Graph:
+        """Return component-defined net equivalences without physical wire edges."""
+
+        graph = nx.Graph()
+        graph.add_nodes_from(self.physical_graph.nodes)
+
+        for component in self.components.values():
+            if isinstance(component, TerminalBlock):
+                for pins in component.position_pin_groups():
+                    nodes = [f"{component.name}.{pin}" for pin in pins]
+                    graph.add_nodes_from(nodes)
+                    for pin in nodes[1:]:
+                        graph.add_edge(nodes[0], pin, internal=True, terminal_position=True)
+            for net_name in component.net_names():
+                pins = [f"{component.name}.{pin}" for pin in component.pins_for_net(net_name)]
+                if not pins:
+                    continue
+                graph.add_nodes_from(pins)
+                for pin in pins[1:]:
+                    graph.add_edge(pins[0], pin, internal=True, net_name=net_name)
+        return graph
+
+    def _validate_physical_wire_forest(self, internal_graph: nx.Graph) -> None:
+        """Reject physical wires that add loops after internal nets are contracted."""
+
+        node_to_group: dict[str, int] = {}
+        for group_index, members in enumerate(nx.connected_components(internal_graph)):
+            for node in members:
+                node_to_group[node] = group_index
+
+        contracted_wire_graph = nx.Graph()
+        contracted_wire_graph.add_nodes_from(node_to_group.values())
+        for wire in self.routed_wires:
+            from_node = str(wire.from_pin)
+            to_node = str(wire.to_pin)
+            from_group = node_to_group[from_node]
+            to_group = node_to_group[to_node]
+            if from_group == to_group:
+                raise RoutingError(
+                    f"Physical wire {wire.index} creates a self-loop within one net group: "
+                    f"{from_node} -> {to_node}"
+                )
+            if nx.has_path(contracted_wire_graph, from_group, to_group):
+                raise RoutingError(
+                    f"Physical wire {wire.index} creates a net cycle: {from_node} -> {to_node}"
+                )
+            contracted_wire_graph.add_edge(from_group, to_group, wire_index=wire.index)
+
+    def _resolve_node_net_names(self, electrical_graph: nx.Graph) -> tuple[dict[str, str], dict[str, set[str]]]:
         node_to_net: dict[str, str] = {}
+        net_aliases: dict[str, set[str]] = {}
         wire_by_node = self._first_wire_by_node()
 
         for members in nx.connected_components(electrical_graph):
             member_set = set(members)
-            explicit_net_names = {
-                wire.explicit_net_name
-                for node in member_set
-                for wire in wire_by_node.get(node, [])
-                if wire.explicit_net_name
-            }
-            candidate_net_names = {
-                net_name
-                for node in member_set
-                for net_name in self.physical_graph.nodes[node].get("exposed_nets", [])
-            }
-            if len(explicit_net_names) > 1:
-                raise RoutingError(f"Net conflict between wire-declared nets: {sorted(explicit_net_names)}")
-            if len(candidate_net_names) > 1:
-                raise RoutingError(f"Net conflict between named nets: {sorted(candidate_net_names)}")
-
+            explicit_net_names = self._explicit_net_names_for_members(member_set, wire_by_node)
+            candidate_net_names = self._candidate_net_names_for_members(member_set)
             if explicit_net_names:
-                net_name = next(iter(explicit_net_names))
+                net_name = explicit_net_names[0]
             elif candidate_net_names:
-                net_name = next(iter(candidate_net_names))
+                net_name = candidate_net_names[0]
             else:
                 first_wire = min(
                     (wire for node in member_set for wire in wire_by_node.get(node, [])),
@@ -348,9 +370,34 @@ class WireRouter(BaseModel):
                 )
                 net_name = str(first_wire.from_pin) if first_wire else sorted(member_set)[0]
 
+            net_aliases.setdefault(net_name, set()).update(explicit_net_names)
+            net_aliases[net_name].update(candidate_net_names)
+            net_aliases[net_name].add(net_name)
             for node in member_set:
                 node_to_net[node] = net_name
-        return node_to_net
+        return node_to_net, net_aliases
+
+    def _explicit_net_names_for_members(
+        self,
+        members: set[str],
+        wire_by_node: dict[str, list[RoutedWire]],
+    ) -> list[str]:
+        names: list[str] = []
+        for wire in sorted(
+            {wire.index: wire for node in members for wire in wire_by_node.get(node, [])}.values(),
+            key=lambda wire: wire.index,
+        ):
+            if wire.explicit_net_name and wire.explicit_net_name not in names:
+                names.append(wire.explicit_net_name)
+        return names
+
+    def _candidate_net_names_for_members(self, members: set[str]) -> list[str]:
+        names: list[str] = []
+        for node in sorted(members):
+            for net_name in self.physical_graph.nodes[node].get("exposed_nets", []):
+                if net_name not in names:
+                    names.append(net_name)
+        return names
 
     def _first_wire_by_node(self) -> dict[str, list[RoutedWire]]:
         wires_by_node: dict[str, list[RoutedWire]] = defaultdict(list)

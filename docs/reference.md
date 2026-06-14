@@ -56,6 +56,7 @@ Printable wire-label PDF settings:
 
 ```yaml
 labels:
+  stock: premium_2_625x1_split
   style:
     font-family: Helvetica
     font-weight: bold
@@ -68,11 +69,17 @@ labels:
   page_margin: 0.3
   text_clearance: 2
   text_clearance_unit: pt
+  tail_length: 0.75
   width_increment: 0.25
   whitespace: [1, 1.5, 2, 2.5]
 ```
 
 `style`: CSS-like string map for label styling metadata.
+
+`stock`: `freeform` or `premium_2_625x1_split`. `freeform` generates
+cutter-friendly variable-width labels. `premium_2_625x1_split` targets
+Premium Label Supply/Avery-compatible 2.625" x 1" 30-up address labels, and
+prints two wire labels per sticker with a center cut line.
 
 `font_face`: PDF font name.
 
@@ -88,6 +95,10 @@ wire text.
 `text_clearance`: Clearance above the first stripe and below the last stripe.
 
 `text_clearance_unit`: `in` or `pt`.
+
+`tail_length`: Blank/unprinted label length, in inches, added below the printed
+text stripes. This is useful for clear tape labels that wrap around the wire and
+stick back onto themselves.
 
 `width_increment`: Label widths are rounded up to this increment so cut lines
 remain aligned.
@@ -270,3 +281,49 @@ mycnc.layout.yml
 
 The sidecar is intentionally layout-only. Wiring, components, and nets remain in
 the main YAML file.
+
+## Sidecar Labels
+
+Final wire labels can be assigned from the app with `Assign Labels`. The app
+saves a sidecar file next to the input YAML:
+
+```text
+mycnc.labels.yaml
+```
+
+Shape:
+
+```yaml
+source: mycnc.yml
+component_order: [wall_plug, live_power_t, transformer]
+wires:
+  - key: row:0:segment:0
+    label: 110L-1
+    net: 110L
+    from: wall_plug.1
+    to: live_power_t.1A
+    assigned_component: wall_plug
+```
+
+`component_order`: The order used when assigning final labels.
+
+`wires[].key`: Stable source-route key for a physical wire segment.
+
+`wires[].label`: Final printable wire label.
+
+`wires[].net`, `from`, `to`: Human-readable context for reviewing the sidecar.
+
+`assigned_component`: The component whose processing step first assigned this
+wire label.
+
+When this sidecar exists, PanelViz uses it for the interactive wire list, CSV
+exports, schematic PDFs, wire-list PDFs, and CLI-generated reports. The main YAML
+continues to describe the design by components, nets, and routes.
+
+`Assign Labels` and drawing PDF exports also create pure wire-label PDFs using
+the configured label stock. `all_labels.pdf` is a multi-page PDF containing two
+labels for every physical wire, sorted alphabetically with matching labels
+together. Tag-oriented PDFs named `wirelabel_<tag>.pdf` contain no component
+diagrams. Tag labels are sorted by net and then by wire label. For each physical
+wire, every endpoint tag receives two copies of the wire label, including wires
+that span multiple tags.

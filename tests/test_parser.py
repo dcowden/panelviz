@@ -16,6 +16,7 @@ config:
     author: Dave
     title: Example Drawing
   labels:
+    stock: premium_2_625x1_split
     style:
       font-family: Helvetica
       font-weight: bold
@@ -28,6 +29,7 @@ config:
     page_margin: 0.25
     text_clearance: 2
     text_clearance_unit: pt
+    tail_length: 0.75
     width_increment: 0.5
     whitespace: [1, 1.5, 2]
   units:
@@ -89,12 +91,14 @@ def test_parse_panel_yaml_builds_typed_components_from_components_tree():
     assert result.config.drawing.company == "Example Controls"
     assert result.config.drawing.author == "Dave"
     assert result.config.drawing.title == "Example Drawing"
+    assert result.config.labels.stock == "premium_2_625x1_split"
     assert result.config.labels.style["font-family"] == "Helvetica"
     assert result.config.labels.font_height == 0.1
     assert result.config.labels.left_margin == 0.2
     assert result.config.labels.right_margin == 0.3
     assert result.config.labels.text_clearance == 2
     assert result.config.labels.text_clearance_unit == "pt"
+    assert result.config.labels.tail_length == 0.75
     assert result.config.labels.whitespace == [1, 1.5, 2]
     assert result.config.units.length == "mm"
     assert result.config.visualization.default_net_style.line_style == "dashed"

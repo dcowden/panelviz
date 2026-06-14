@@ -118,6 +118,7 @@ class DrawingConfig(BaseModel):
 class LabelConfig(BaseModel):
     """Printable wire-label PDF configuration."""
 
+    stock: str = "freeform"
     style: dict[str, str] = Field(default_factory=lambda: {"font-family": "Helvetica", "font-weight": "bold"})
     font_face: str = "Helvetica"
     font_height: float = 0.12
@@ -127,8 +128,17 @@ class LabelConfig(BaseModel):
     page_margin: float = 0.25
     text_clearance: float = 2.0
     text_clearance_unit: str = "pt"
+    tail_length: float = 0.75
     width_increment: float = 0.5
     whitespace: list[float] = Field(default_factory=lambda: [1.0, 1.5, 2.0])
+
+    @field_validator("stock")
+    @classmethod
+    def _stock_is_supported(cls, value: str) -> str:
+        supported = {"freeform", "premium_2_625x1_split"}
+        if value not in supported:
+            raise ValueError(f"labels.stock must be one of: {', '.join(sorted(supported))}")
+        return value
 
     @field_validator("style", mode="before")
     @classmethod
@@ -146,7 +156,7 @@ class LabelConfig(BaseModel):
             raise ValueError("labels.font_face must be non-empty")
         return value.strip()
 
-    @field_validator("font_height", "left_margin", "right_margin", "page_margin", "text_clearance")
+    @field_validator("font_height", "left_margin", "right_margin", "page_margin", "text_clearance", "tail_length")
     @classmethod
     def _label_dimensions_are_non_negative(cls, value: float) -> float:
         if value < 0:

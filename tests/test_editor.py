@@ -21,6 +21,7 @@ from panelviz.editor import (
     relocate_wire_endpoint_in_yaml,
     save_component_layout,
 )
+from panelviz.label_assignment import labels_path_for_panel
 from panelviz.parser import parse_panel_yaml
 from panelviz.routing import WireRouter
 
@@ -33,17 +34,17 @@ components:
   source:
     type: connector
     pins:
-      right: [A, B]
+      right: [A, B, C]
   block:
     type: terminal_block
-    positions: 2
+    positions: 3
     pins:
       left: [A]
       right: [B]
   load:
     type: connector
     pins:
-      left: [A, B]
+      left: [A, B, C]
 connections:
   wires:
     - [source.A, block.1, load.A]
@@ -96,11 +97,11 @@ def test_append_route_to_yaml_writes_short_and_object_route_rows():
     path = write_editor_yaml("editor_append.yml")
 
     append_route_to_yaml(path, ["source.B", "block.2", "load.B"])
-    append_route_to_yaml(path, ["load.A", "block.1A"], net="RETURN", awg=18)
+    append_route_to_yaml(path, ["load.C", "block.3A"], net="RETURN", awg=18)
 
     text = path.read_text(encoding="utf-8")
     assert "- [source.B, block.2, load.B]" in text
-    assert "route: [load.A, block.1A]" in text
+    assert "route: [load.C, block.3A]" in text
     assert "net: RETURN" in text
     assert "awg: 18" in text
 
@@ -134,7 +135,7 @@ def test_relocate_wire_endpoint_updates_source_yaml_route_endpoint():
     assert str(router.routed_wires[1].to_pin) == "load.B"
 
 
-CONFLICT_YAML = """
+CYCLE_YAML = """
 components:
   source:
     type: connector
@@ -142,45 +143,51 @@ components:
       right: [A, B]
     nets:
       - name: ONE
-        pins: [A]
+        pins: [A, B]
   load:
     type: connector
     pins:
       left: [A, B]
     nets:
       - name: TWO
-        pins: [B]
+        pins: [A, B]
+  spare:
+    type: connector
+    pins:
+      left: [A]
 connections:
   wires:
     - [source.B, load.A]
 """
 
 
-def test_append_route_rejects_net_conflict_without_writing():
-    path = write_editor_yaml("editor_append_conflict.yml", CONFLICT_YAML)
+def test_append_route_rejects_net_cycle_without_writing():
+    path = write_editor_yaml("editor_append_cycle.yml", CYCLE_YAML)
     before = path.read_text(encoding="utf-8")
 
     try:
         append_route_to_yaml(path, ["source.A", "load.B"])
     except Exception as error:
-        assert "Net conflict" in str(error)
+        assert "net cycle" in str(error)
     else:  # pragma: no cover - defensive assertion
-        raise AssertionError("Expected net conflict")
+        raise AssertionError("Expected net cycle")
 
     assert path.read_text(encoding="utf-8") == before
 
 
-def test_relocate_endpoint_rejects_net_conflict_without_writing():
-    path = write_editor_yaml("editor_relocate_conflict.yml", CONFLICT_YAML)
-    path.write_text(path.read_text(encoding="utf-8").replace("[source.B, load.A]", "[source.A, load.A]"), encoding="utf-8")
+def test_relocate_endpoint_rejects_net_cycle_without_writing():
+    path = write_editor_yaml(
+        "editor_relocate_cycle.yml",
+        CYCLE_YAML.replace("    - [source.B, load.A]", "    - [source.A, load.A]\n    - [source.B, spare.A]"),
+    )
     before = path.read_text(encoding="utf-8")
 
     try:
-        relocate_wire_endpoint_in_yaml(path, 1, "load.A", "load.B")
+        relocate_wire_endpoint_in_yaml(path, 2, "spare.A", "load.B")
     except Exception as error:
-        assert "Net conflict" in str(error)
+        assert "net cycle" in str(error)
     else:  # pragma: no cover - defensive assertion
-        raise AssertionError("Expected net conflict")
+        raise AssertionError("Expected net cycle")
 
     assert path.read_text(encoding="utf-8") == before
 
@@ -246,12 +253,14 @@ def test_editor_session_exports_schematic_and_wire_list_pdf_bundle():
     bundle_path.write_bytes(EditorSession(path).drawing_pdf_bundle())
 
     with ZipFile(bundle_path) as archive:
-        assert archive.namelist() == ["editor_pdf_bundle_schematic.pdf", "editor_pdf_bundle_wire_list.pdf"]
+        assert archive.namelist() == ["editor_pdf_bundle_schematic.pdf", "editor_pdf_bundle_wire_list.pdf", "all_labels.pdf"]
         schematic = archive.read("editor_pdf_bundle_schematic.pdf")
         wire_list = archive.read("editor_pdf_bundle_wire_list.pdf")
+        all_labels = archive.read("all_labels.pdf")
 
     assert schematic.startswith(b"%PDF-")
     assert wire_list.startswith(b"%PDF-")
+    assert all_labels.startswith(b"%PDF-")
     assert len(schematic) > 1000
     assert len(wire_list) > 1000
 
@@ -282,9 +291,56 @@ connections:
     bundle = EditorSession(path).drawing_pdf_bundle()
 
     with ZipFile(BytesIO(bundle)) as archive:
+        assert "all_labels.pdf" in archive.namelist()
         assert "wirelabel_row_a.pdf" in archive.namelist()
         assert "wirelabel_row_b.pdf" in archive.namelist()
+        assert archive.read("all_labels.pdf").startswith(b"%PDF-")
         assert archive.read("wirelabel_row_a.pdf").startswith(b"%PDF-")
+
+
+def test_editor_session_assign_labels_saves_sidecar_and_returns_component_sheets():
+    path = write_editor_yaml(
+        "editor_assign_labels.yml",
+        """
+components:
+  source:
+    type: connector
+    tags: [row_a]
+    size: {width: 1, height: 1}
+    pins:
+      right: [A]
+  load:
+    type: connector
+    tags: [row_b]
+    size: {width: 1, height: 1}
+    pins:
+      left: [A]
+connections:
+  wires:
+    - {from: source.A, to: load.A, net: SIG}
+""",
+    )
+
+    bundle = EditorSession(path).assign_labels(["load", "source"])
+
+    label_path = labels_path_for_panel(path)
+    assert label_path.exists()
+    assert "SIG-1" in label_path.read_text(encoding="utf-8")
+    with ZipFile(BytesIO(bundle)) as archive:
+        assert archive.namelist() == [
+            "component_labels_load.pdf",
+            "component_labels_source.pdf",
+            "all_labels.pdf",
+            "wirelabel_row_a.pdf",
+            "wirelabel_row_b.pdf",
+        ]
+        assert archive.read("component_labels_load.pdf").startswith(b"%PDF-")
+        assert archive.read("all_labels.pdf").startswith(b"%PDF-")
+        assert archive.read("wirelabel_row_a.pdf").startswith(b"%PDF-")
+
+    data = EditorSession(path).panel_data()
+    assert data["labels"]["assigned"] is True
+    assert data["wires"][0]["label"] == "SIG-1"
 
 
 def test_editor_session_exports_pdf_bundle_from_schematic_snapshot():
@@ -346,6 +402,15 @@ def test_editor_js_exports_rendered_svg_snapshot_for_pdf_bundle():
     assert "source_bounds: bounds" in js
 
 
+def test_editor_js_posts_component_order_to_assign_labels_api():
+    js = _editor_js()
+
+    assert "/api/assign-labels" in js
+    assert "component_order: componentOrder" in js
+    assert "component_label_sheets.zip" in js
+    assert "reloadPanelData();" in js
+
+
 def _pdf_stream_text(content: bytes) -> str:
     parts = [content]
     for match in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", content, flags=re.DOTALL):
@@ -368,6 +433,8 @@ def test_editor_document_cache_busts_local_assets():
     assert ">CSV<" in html
     assert 'id="editor-download-pdfs"' in html
     assert ">PDFs<" in html
+    assert 'id="assign-labels-button"' in html
+    assert 'id="assign-labels-dialog"' in html
     assert 'id="editor-edit-toggle"' in html
     assert "Enable Edit" in html
     assert 'class="editor-route-panel" aria-hidden="true"' in html

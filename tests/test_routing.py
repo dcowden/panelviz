@@ -313,13 +313,105 @@ connections:
     assert router.physical_graph.edges["wall_plug.1", "power_t.1A", 1]["awg"] == 12
 
 
-def test_conflicting_wire_declared_net_names_are_rejected():
+def test_wire_declared_net_names_on_same_transitive_net_are_preserved_as_aliases():
     router = make_router()
     router.route_wire("wall_plug.1", "power_t.110L", net_name="line_a")
     router.route_wire("wall_plug.2", "power_t.110L", net_name="line_b")
 
-    with pytest.raises(RoutingError, match="wire-declared nets"):
-        router.resolve_nets_and_labels()
+    router.resolve_nets_and_labels()
+
+    assert [wire.net_name for wire in router.routed_wires] == ["line_a", "line_a"]
+    assert router.net_graph.nodes["line_a"]["aliases"] == ["110L", "line_a", "line_b"]
+
+
+def test_component_defined_nets_can_transitively_merge_named_nets():
+    parsed = parse_panel_yaml(
+        """
+components:
+  board:
+    type: pcb
+    pins:
+      left: [A, B]
+    nets:
+      - name: LEFT_A
+        pins: [A]
+      - name: LINK
+        pins: [A, B]
+      - name: LEFT_B
+        pins: [B]
+  source:
+    type: connector
+    pins:
+      right: [SIG]
+  load:
+    type: connector
+    pins:
+      left: [SIG]
+connections:
+  wires:
+    - [source.SIG, board.LEFT_A]
+    - [load.SIG, board.LEFT_B]
+"""
+    )
+
+    router = WireRouter.route_parse_result(parsed)
+
+    assert [wire.net_name for wire in router.routed_wires] == ["LEFT_A", "LEFT_A"]
+    assert router.net_graph.nodes["LEFT_A"]["aliases"] == ["LEFT_A", "LEFT_B", "LINK"]
+    assert sorted(router.net_graph.nodes["LEFT_A"]["member_pins"]) == [
+        "board.A",
+        "board.B",
+        "load.SIG",
+        "source.SIG",
+    ]
+
+
+def test_physical_wire_self_loop_within_contracted_net_is_rejected():
+    parsed = parse_panel_yaml(
+        """
+components:
+  block:
+    type: terminal_block
+    positions: 1
+    pins:
+      left: [A]
+      right: [B]
+connections:
+  wires:
+    - [block.1A, block.1B]
+"""
+    )
+
+    with pytest.raises(RoutingError, match="self-loop"):
+        WireRouter.route_parse_result(parsed)
+
+
+def test_physical_wire_cycle_between_contracted_nets_is_rejected():
+    parsed = parse_panel_yaml(
+        """
+components:
+  a:
+    type: connector
+    pins:
+      right: [P]
+  b:
+    type: connector
+    pins:
+      right: [P]
+  c:
+    type: connector
+    pins:
+      right: [P]
+connections:
+  wires:
+    - [a.P, b.P]
+    - [b.P, c.P]
+    - [c.P, a.P]
+"""
+    )
+
+    with pytest.raises(RoutingError, match="net cycle"):
+        WireRouter.route_parse_result(parsed)
 
 
 def test_resolve_endpoint_reports_unknown_components_pins_and_exhausted_nets():

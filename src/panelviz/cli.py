@@ -8,6 +8,7 @@ import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from panelviz.label_assignment import apply_label_assignment, labels_path_for_panel, load_label_assignment
 from panelviz.editor import run_editor
 from panelviz.parser import parse_panel_yaml
 from panelviz.reports import (
@@ -50,6 +51,7 @@ def run(input_file: str | Path, output_dir: str | Path = ".", include_viewer: bo
 
     parsed = parse_panel_yaml(input_path.read_text(encoding="utf-8"))
     router = WireRouter.route_parse_result(parsed)
+    apply_label_assignment(router, load_label_assignment(labels_path_for_panel(input_path)))
     visual_config = component_visual_config_from_visualization(parsed.config.visualization)
 
     outputs = [

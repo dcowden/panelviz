@@ -192,6 +192,36 @@ The app can download:
 - schematic PDF
 - wire list PDF with diagram references
 - per-tag wire-label PDFs
+- component-by-component label sheets from `Assign Labels`
 
 The programmatic `panelviz.cli.run()` function can also write CSV, text, SVG,
 and PDF outputs to a selected directory.
+
+## Assign Final Labels
+
+Before final label assignment, PanelViz shows deterministic temporary wire labels
+based on the route order in the YAML file. Click `Assign Labels` when you are
+ready to create final labels. The dialog lets you choose the component processing
+order, then saves:
+
+```text
+mycnc.labels.yaml
+```
+
+That sidecar stores only final wire-label bindings and the component order. It
+does not rewrite the main YAML file. After it exists, the UI, CSV export, wire
+list PDFs, and diagrams use those assigned labels automatically. Deleting the
+sidecar returns the project to deterministic temporary labels.
+
+The `Assign Labels` action downloads a ZIP of component label-sheet PDFs. Each
+component sheet includes a compact connection table plus printable labels for
+all wires touching that component. The same ZIP also includes pure
+`all_labels.pdf` and `wirelabel_<tag>.pdf` pages. `all_labels.pdf` is one
+multi-page print containing every wire label alphabetically, with matching ends
+together. The tag pages contain only labels, grouped by net and sorted by wire
+label. Every wire contributes two labels to every tag it touches, so cross-row
+wires can be fully labelled from either row's sheet.
+
+Clear tape labels can use `config.labels.tail_length` to add a blank unprinted
+tail below the repeated wire text. The default is `0.75in`, which gives the
+sticker material room to wrap around the wire and adhere to itself.

@@ -1,27 +1,27 @@
 components:
   axbb-e:
-    x: 1639.089
-    y: -32.865
-    rotation: 270
+    x: 1915.807
+    y: -26.299
+    rotation: 90
   Z_cl57s:
-    x: 2007.667
-    y: -186.048
+    x: 1565.386
+    y: -163.066
     rotation: 270
   y_cl57s:
-    x: 2011.11
-    y: 32.725
+    x: 1558.98
+    y: 58.521
     rotation: 90
   36V_X1:
-    x: 1684.119
-    y: 1766.188
+    x: 1329.484
+    y: 1822.38
     rotation: 180
   48v:
     x: 2035.286
     y: 1827.648
     rotation: 180
   36V_X2:
-    x: 1344.62
-    y: 1767.224
+    x: 1678.027
+    y: 1824.665
     rotation: 180
   transformer:
     x: 1473.164
@@ -132,8 +132,20 @@ components:
     y: 1454.366
     rotation: 270
   wall_plug:
-    x: 2047.354
-    y: 2768.71
+    x: 2109.816
+    y: 3137.898
+    rotation: 270
+  wall_power_t:
+    x: 2143.804
+    y: 2993.036
+    rotation: 270
+  power_switch:
+    x: 2104.683
+    y: 2755.621
+    rotation: 270
+  breaker:
+    x: 2059.733
+    y: 2543.863
     rotation: 270
   switched_110N:
     x: 1893.387
@@ -150,7 +162,7 @@ components:
   terminals_5v0:
     x: 2250.632
     y: -426.283
-    rotation: 90
+    rotation: 270
   terminals_24v:
     x: 2295.021
     y: -404.891
