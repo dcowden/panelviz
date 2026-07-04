@@ -927,24 +927,24 @@ connections:
       to: cnc_terminals.58A
       net: estop_panel.estop-
     - from: cnc_terminals.58B
-      to: cnc_terminals.65B
+      to: cnc_terminals.61B
       net: estop_panel.estop-
     - from: secondary_estop.estop+
-      to: cnc_terminals.65A
+      to: cnc_terminals.61A
       net: secondary_estop.estop+
     - [estop_panel.light+, cnc_terminals.59, terminals_24v.24V]
     - [estop_panel.light-, cnc_terminals.60, run_relay.NC]
     - from: secondary_estop.estop-
-      to: cnc_terminals.64A
+      to: cnc_terminals.62A
       net: secondary_estop.estop-
-    - from: cnc_terminals.64B
+    - from: cnc_terminals.62B
       to: coil_t.COIL+
       net: COIL+
-    - route: [spindle.u, cnc_terminals.61, vfd.U]
+    - route: [spindle.u, cnc_terminals.63, vfd.U]
       awg: 16
-    - route: [spindle.v, cnc_terminals.62, vfd.V]
+    - route: [spindle.v, cnc_terminals.64, vfd.V]
       awg: 16
-    - route: [spindle.w, cnc_terminals.63, vfd.W]
+    - route: [spindle.w, cnc_terminals.65, vfd.W]
       awg: 16
     - [spindle.shield, connector_earth.shield]
     - [run_relay.DC-, safety_5v0.5V0]

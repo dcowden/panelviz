@@ -1059,13 +1059,13 @@ wires:
   label: estop_panel.estop-/2
   net: estop_panel.estop-
   from: cnc_terminals.58B
-  to: cnc_terminals.65B
+  to: cnc_terminals.61B
   assigned_component: cnc_terminals
 - key: row:111:segment:0
   label: secondary_estop.estop+/1
   net: secondary_estop.estop+
   from: secondary_estop.estop+
-  to: cnc_terminals.65A
+  to: cnc_terminals.61A
   assigned_component: cnc_terminals
 - key: row:112:segment:0
   label: 24V/3
@@ -1095,48 +1095,48 @@ wires:
   label: secondary_estop.estop-/1
   net: secondary_estop.estop-
   from: secondary_estop.estop-
-  to: cnc_terminals.64A
+  to: cnc_terminals.62A
   assigned_component: cnc_terminals
 - key: row:115:segment:0
   label: COIL+/1
   net: COIL+
-  from: cnc_terminals.64B
+  from: cnc_terminals.62B
   to: coil_t.2A
   assigned_component: cnc_terminals
 - key: row:116:segment:0
   label: spindle.u/1
   net: spindle.u
   from: spindle.u
-  to: cnc_terminals.61A
+  to: cnc_terminals.63A
   assigned_component: spindle
 - key: row:116:segment:1
   label: spindle.u/2
   net: spindle.u
-  from: cnc_terminals.61B
+  from: cnc_terminals.63B
   to: vfd.U
   assigned_component: cnc_terminals
 - key: row:117:segment:0
   label: spindle.v/1
   net: spindle.v
   from: spindle.v
-  to: cnc_terminals.62A
+  to: cnc_terminals.64A
   assigned_component: spindle
 - key: row:117:segment:1
   label: spindle.v/2
   net: spindle.v
-  from: cnc_terminals.62B
+  from: cnc_terminals.64B
   to: vfd.V
   assigned_component: cnc_terminals
 - key: row:118:segment:0
   label: spindle.w/1
   net: spindle.w
   from: spindle.w
-  to: cnc_terminals.63A
+  to: cnc_terminals.65A
   assigned_component: spindle
 - key: row:118:segment:1
   label: spindle.w/2
   net: spindle.w
-  from: cnc_terminals.63B
+  from: cnc_terminals.65B
   to: vfd.W
   assigned_component: cnc_terminals
 - key: row:119:segment:0
