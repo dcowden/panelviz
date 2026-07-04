@@ -242,7 +242,7 @@ components:
       height: 3
     pins:
       left: [1+, 1-, 2+, 2-, 3+, 3-, 4+, 4-, 5+, 5-, 6+, 6-, 7+, 7-, 8+, 8-]
-      right: [O1, O2, O3, O4, O5, O6, O7, O8]
+      right: [O1, GND, VCC, O2, O3, O4, O5, O6, O7, O8]
     nets:
       - name: X1UL_OK
         pins: [O1]
@@ -260,6 +260,10 @@ components:
         pins: [O7]
       - name: Z_ALM_OK
         pins: [O8]
+      - name: 5V0
+        pins: [GND]
+      - name: 5V
+        pins: [VCC]
   alarm_limit_board:
     type: pcb
     tags: [safety]
@@ -1041,6 +1045,8 @@ connections:
     - [opto_board.6+, safety_5v.5V]
     - [opto_board.7+, safety_5v.5V]
     - [opto_board.8+, safety_5v.5V]
+    - [opto_board.GND, safety_5v0.5B]
+    - [opto_board.VCC, safety_5v.5B]
 
 
 

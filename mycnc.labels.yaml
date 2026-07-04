@@ -1625,3 +1625,15 @@ wires:
   from: opto_board.8+
   to: safety_5v.5A
   assigned_component: opto_board
+- key: row:200:segment:0
+  label: 5V0/41
+  net: 5V0
+  from: opto_board.GND
+  to: safety_5v0.5B
+  assigned_component: opto_board
+- key: row:201:segment:0
+  label: 5V/21
+  net: 5V
+  from: opto_board.VCC
+  to: safety_5v.5B
+  assigned_component: opto_board
