@@ -857,7 +857,7 @@ connections:
     - [z_control.ea+, cnc_terminals.7, Z_cl57s.EA+]
     - [z_control.ea-, cnc_terminals.8, Z_cl57s.EA-]
     - [z_control.vcc, cnc_terminals.9, Z_cl57s.VCC]
-    - [z_control.gnd, cnc_terminals.10, Z_cl57s.GND]
+    - [z_control.gnd, cnc_terminals.10, Z_cl57s.EGND]
     - [z_control.shield, connector_earth.shield]
     - [z_limits.5v, cnc_terminals.11, terminals_5v.5V]
     - [z_limits.ul, cnc_terminals.12, opto_board.4+]
@@ -878,7 +878,7 @@ connections:
     - [y_control.ea+, cnc_terminals.21, y_cl57s.EA+]
     - [y_control.ea-, cnc_terminals.22, y_cl57s.EA-]
     - [y_control.vcc, cnc_terminals.23, y_cl57s.VCC]
-    - [y_control.gnd, cnc_terminals.24, y_cl57s.GND]
+    - [y_control.gnd, cnc_terminals.24, y_cl57s.EGND]
     - [y_control.shield, connector_earth.shield]
     - [y_limits.5v, cnc_terminals.25, terminals_5v.5V]
     - [y_limits.ul, cnc_terminals.26, opto_board.3+]
@@ -923,10 +923,23 @@ connections:
     - [estop_panel.reset_sw+, cnc_terminals.55, terminals_5v0.5V0]
     - [estop_panel.reset_sw-, cnc_terminals.56, alarm_limit_board.RESET_SW]
     - [estop_panel.estop+, cnc_terminals.57, terminals_24v.24V]
-    - [estop_panel.estop-, cnc_terminals.58, secondary_estop.estop+]
+    - from: estop_panel.estop-
+      to: cnc_terminals.58A
+      net: estop_panel.estop-
+    - from: cnc_terminals.58B
+      to: cnc_terminals.65B
+      net: estop_panel.estop-
+    - from: secondary_estop.estop+
+      to: cnc_terminals.65A
+      net: secondary_estop.estop+
     - [estop_panel.light+, cnc_terminals.59, terminals_24v.24V]
     - [estop_panel.light-, cnc_terminals.60, run_relay.NC]
-    - [secondary_estop.estop-, cnc_terminals.64, coil_t.COIL+]
+    - from: secondary_estop.estop-
+      to: cnc_terminals.64A
+      net: secondary_estop.estop-
+    - from: cnc_terminals.64B
+      to: coil_t.COIL+
+      net: COIL+
     - route: [spindle.u, cnc_terminals.61, vfd.U]
       awg: 16
     - route: [spindle.v, cnc_terminals.62, vfd.V]
@@ -1028,6 +1041,7 @@ connections:
     - [opto_board.6+, safety_5v.5V]
     - [opto_board.7+, safety_5v.5V]
     - [opto_board.8+, safety_5v.5V]
+
 
 
 
