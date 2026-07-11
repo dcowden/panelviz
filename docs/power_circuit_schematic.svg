@@ -1,0 +1,243 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1450" viewBox="0 0 2200 1450" role="img" aria-label="Power Distribution Schematic">
+
+  <style>
+    svg { background: #f8fafc; font-family: Arial, Helvetica, sans-serif; }
+    .sheet { fill: #ffffff; stroke: #1f2937; stroke-width: 2.5; }
+    .grid { stroke: #e2e8f0; stroke-width: 1; }
+    .title { font-size: 30px; font-weight: 800; fill: #0f172a; }
+    .subtitle { font-size: 15px; fill: #475569; }
+    .zoneTitle { font-size: 17px; font-weight: 800; fill: #0f172a; letter-spacing: .02em; }
+    .label { font-size: 14px; fill: #0f172a; }
+    .small { font-size: 12px; fill: #334155; }
+    .tiny { font-size: 10.5px; fill: #475569; }
+    .wireL { stroke: #dc2626; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wireN { stroke: #2563eb; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wirePE { stroke: #16a34a; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wire0 { stroke: #111827; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wire24 { stroke: #dc2626; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wireSense { stroke: #0891b2; stroke-width: 3; fill: none; stroke-dasharray: 8 7; stroke-linecap: round; stroke-linejoin: round; }
+    .wireLogic { stroke: #7c3aed; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wireGrey { stroke: #64748b; stroke-width: 3.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .device { fill: #ffffff; stroke: #1f2937; stroke-width: 2.5; rx: 10; filter: drop-shadow(0 2px 3px rgba(15,23,42,.10)); }
+    .terminal { fill: #f1f5f9; stroke: #94a3b8; stroke-width: 1.5; rx: 5; }
+    .contact { stroke: #111827; stroke-width: 3.5; fill: none; stroke-linecap: round; }
+    .coil { stroke: #111827; stroke-width: 3.5; fill: none; stroke-linecap: round; }
+    .nodeL { fill: #dc2626; stroke: #ffffff; stroke-width: 2; }
+    .nodeN { fill: #2563eb; stroke: #ffffff; stroke-width: 2; }
+    .nodePE { fill: #16a34a; stroke: #ffffff; stroke-width: 2; }
+    .node0 { fill: #111827; stroke: #ffffff; stroke-width: 2; }
+    .nodeSense { fill: #0891b2; stroke: #ffffff; stroke-width: 2; }
+    .zone { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; rx: 14; }
+    .note { fill: #fff7ed; stroke: #f97316; stroke-width: 1.5; rx: 10; }
+    .legend { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.2; rx: 8; }
+  </style>
+
+<rect x="30" y="30" width="2140" height="1390" class="sheet" />
+<text x="70" y="85" class="title" text-anchor="start">Power Distribution Schematic</text>
+<text x="70" y="113" class="subtitle" text-anchor="start">Clean version of docs/power_schematic.jpg, checked against current mycnc.yml routing</text>
+<rect x="70" y="155" width="2060" height="345" class="zone" />
+<text x="92" y="185" class="zoneTitle" text-anchor="start">120 VAC input and unswitched control power</text>
+<rect x="70" y="540" width="2060" height="360" class="zone" />
+<text x="92" y="570" class="zoneTitle" text-anchor="start">Switched motor supply through K1 / contactor_110</text>
+<rect x="70" y="940" width="2060" height="310" class="zone" />
+<text x="92" y="970" class="zoneTitle" text-anchor="start">VFD 220 VAC branch through K2 / contactor_220</text>
+<rect x="1760" y="1220" width="310" height="154" class="legend" />
+<text x="1780" y="1248" class="zoneTitle" text-anchor="start">Legend</text>
+<path class="wireL" d=" M 1780 1275 L 1840 1275" />
+<text x="1856" y="1280" class="small" text-anchor="start">110L / line / +24V</text>
+<path class="wireN" d=" M 1780 1302 L 1840 1302" />
+<text x="1856" y="1307" class="small" text-anchor="start">110N / neutral</text>
+<path class="wirePE" d=" M 1780 1329 L 1840 1329" />
+<text x="1856" y="1334" class="small" text-anchor="start">earth / PE</text>
+<path class="wire0" d=" M 1780 1356 L 1840 1356" />
+<text x="1856" y="1361" class="small" text-anchor="start">0V / coil return</text>
+<rect x="105" y="230" width="185" height="160" class="device" />
+<text x="197.5" y="306.0" class="zoneTitle" text-anchor="middle">Wall plug</text>
+<text x="197.5" y="328.0" class="small" text-anchor="middle">wall_plug</text>
+<text x="132" y="260" class="small" text-anchor="start">L / 110L</text>
+<text x="132" y="313" class="small" text-anchor="start">N / 110N</text>
+<text x="132" y="366" class="small" text-anchor="start">PE / earth</text>
+<path class="wireL" d=" M 290 260 L 390 260" />
+<path class="wireN" d=" M 290 313 L 1560 313" />
+<path class="wirePE" d=" M 290 366 L 620 366 L 620 840 L 1800 840" />
+<circle cx="390" cy="260" r="6" class="nodeL" />
+<circle cx="1560" cy="313" r="6" class="nodeN" />
+<circle cx="620" cy="366" r="6" class="nodePE" />
+<rect x="390" y="238" width="150" height="44" class="terminal" />
+<text x="465.0" y="256" class="label" text-anchor="middle">wall_power_t</text>
+<text x="465.0" y="272" class="tiny" text-anchor="middle">1A/1B</text>
+<path class="wireL" d=" M 540 260 L 635 260" />
+<path class="wireL" d=" M 635 260 L 702.0 260" />
+<path class="wireL" d=" M 764.0 260 L 825 260" />
+<path class="contact" d="M 710.0 260 L 754.0 225" />
+<text x="730.0" y="208" class="zoneTitle" text-anchor="middle">S3</text>
+<text x="730.0" y="293" class="small" text-anchor="middle">power_switch L pole</text>
+<circle cx="635" cy="260" r="5" class="nodeL" />
+<circle cx="825" cy="260" r="5" class="nodeL" />
+<path class="wireL" d=" M 825 260 L 886.0 260" />
+<path class="wireL" d=" M 954.0 260 L 1015 260" />
+<path class="contact" d="M 892.0 288 L 948.0 232" />
+<text x="920.0" y="208" class="zoneTitle" text-anchor="middle">CB1</text>
+<text x="920.0" y="293" class="small" text-anchor="middle">breaker L pole</text>
+<circle cx="825" cy="260" r="5" class="nodeL" />
+<circle cx="1015" cy="260" r="5" class="nodeL" />
+<path class="wireL" d=" M 1015 260 L 1160 260" />
+<rect x="1160" y="238" width="210" height="52" class="terminal" />
+<text x="1265.0" y="256" class="label" text-anchor="middle">live_power_t</text>
+<text x="1265.0" y="272" class="tiny" text-anchor="middle">110L / 110N bus</text>
+<path class="wireL" d=" M 1370 260 L 1560 260" />
+<circle cx="1560" cy="260" r="6" class="nodeL" />
+<text x="1490" y="292" class="small" text-anchor="middle">110N bypasses switch/breaker</text>
+<circle cx="1160" cy="260" r="6" class="nodeL" />
+<circle cx="1560" cy="313" r="6" class="nodeN" />
+<rect x="930" y="410" width="220" height="100" class="device" />
+<text x="1040.0" y="456.0" class="zoneTitle" text-anchor="middle">24V supply</text>
+<text x="1040.0" y="478.0" class="small" text-anchor="middle">24v</text>
+<path class="wireL" d=" M 990 260 L 990 410" />
+<circle cx="990" cy="260" r="6" class="nodeL" />
+<path class="wireN" d=" M 1090 313 L 1090 410" />
+<circle cx="1090" cy="313" r="6" class="nodeN" />
+<text x="990" y="402" class="tiny" text-anchor="middle">110L</text>
+<text x="1090" y="402" class="tiny" text-anchor="middle">110N</text>
+<text x="1040" y="538" class="small" text-anchor="middle">24V / 24V0</text>
+<rect x="1240" y="410" width="220" height="100" class="device" />
+<text x="1350.0" y="456.0" class="zoneTitle" text-anchor="middle">5V supply</text>
+<text x="1350.0" y="478.0" class="small" text-anchor="middle">5v</text>
+<path class="wireL" d=" M 1300 260 L 1300 410" />
+<circle cx="1300" cy="260" r="6" class="nodeL" />
+<path class="wireN" d=" M 1400 313 L 1400 410" />
+<circle cx="1400" cy="313" r="6" class="nodeN" />
+<text x="1300" y="402" class="tiny" text-anchor="middle">110L</text>
+<text x="1400" y="402" class="tiny" text-anchor="middle">110N</text>
+<text x="1350" y="538" class="small" text-anchor="middle">5V / 5V0</text>
+<rect x="1550" y="410" width="220" height="100" class="device" />
+<text x="1660.0" y="456.0" class="zoneTitle" text-anchor="middle">Transformer</text>
+<text x="1660.0" y="478.0" class="small" text-anchor="middle">transformer</text>
+<path class="wireL" d=" M 1610 260 L 1610 410" />
+<circle cx="1610" cy="260" r="6" class="nodeL" />
+<path class="wireN" d=" M 1710 313 L 1710 410" />
+<circle cx="1710" cy="313" r="6" class="nodeN" />
+<text x="1610" y="402" class="tiny" text-anchor="middle">110L</text>
+<text x="1710" y="402" class="tiny" text-anchor="middle">110N</text>
+<text x="1660" y="538" class="small" text-anchor="middle">220L/220N output shown in VFD branch</text>
+<path class="wireL" d=" M 990 510 L 990 575 L 1215 575" />
+<path class="wire0" d=" M 1090 510 L 1090 600 L 1215 600" />
+<path class="wireL" d=" M 1300 510 L 1300 575 L 1485 575" />
+<path class="wire0" d=" M 1400 510 L 1400 600 L 1485 600" />
+<text x="1215" y="570" class="small" text-anchor="start">to row 24V buses</text>
+<text x="1485" y="570" class="small" text-anchor="start">to row 5V buses</text>
+<path class="wireL" d=" M 220 260 L 220 650 L 430 650" />
+<circle cx="220" cy="260" r="6" class="nodeL" />
+<path class="wireN" d=" M 250 313 L 250 725 L 430 725" />
+<circle cx="250" cy="313" r="6" class="nodeN" />
+<path class="wireL" d=" M 430 650 L 521.0 650" />
+<path class="wireL" d=" M 603.0 650 L 680 650" />
+<path class="contact" d="M 531.0 678 L 583.0 622" />
+<text x="520" y="620" class="zoneTitle" text-anchor="middle">K1 L</text>
+<text x="520" y="640" class="small" text-anchor="middle">T2 -&gt; L2</text>
+<circle cx="430" cy="650" r="5" class="nodeL" />
+<circle cx="680" cy="650" r="5" class="nodeL" />
+<path class="wireN" d=" M 430 725 L 521.0 725" />
+<path class="wireN" d=" M 603.0 725 L 680 725" />
+<path class="contact" d="M 531.0 753 L 583.0 697" />
+<text x="520" y="750" class="zoneTitle" text-anchor="middle">K1 N</text>
+<text x="520" y="770" class="small" text-anchor="middle">T3 -&gt; L3</text>
+<circle cx="430" cy="725" r="5" class="nodeN" />
+<circle cx="680" cy="725" r="5" class="nodeN" />
+<rect x="720" y="626" width="190" height="46" class="terminal" />
+<text x="815.0" y="644" class="label" text-anchor="middle">switched_110L</text>
+<text x="815.0" y="660" class="tiny" text-anchor="middle">motor PSU L</text>
+<rect x="720" y="701" width="190" height="46" class="terminal" />
+<text x="815.0" y="719" class="label" text-anchor="middle">switched_110N</text>
+<text x="815.0" y="735" class="tiny" text-anchor="middle">motor PSU N</text>
+<path class="wireL" d=" M 680 650 L 720 650" />
+<path class="wireN" d=" M 680 725 L 720 725" />
+<path class="wireL" d=" M 910 650 L 1790 650" />
+<path class="wireN" d=" M 910 725 L 1790 725" />
+<rect x="1030" y="780" width="230" height="85" class="device" />
+<text x="1145.0" y="818.5" class="zoneTitle" text-anchor="middle">48V PSU</text>
+<text x="1145.0" y="840.5" class="small" text-anchor="middle">48v</text>
+<path class="wireL" d=" M 1095 650 L 1095 780" />
+<circle cx="1095" cy="650" r="6" class="nodeL" />
+<path class="wireN" d=" M 1195 725 L 1195 780" />
+<circle cx="1195" cy="725" r="6" class="nodeN" />
+<text x="1095" y="772" class="tiny" text-anchor="middle">110L</text>
+<text x="1195" y="772" class="tiny" text-anchor="middle">110N</text>
+<rect x="1320" y="780" width="230" height="85" class="device" />
+<text x="1435.0" y="818.5" class="zoneTitle" text-anchor="middle">36V X1 PSU</text>
+<text x="1435.0" y="840.5" class="small" text-anchor="middle">36V_X1</text>
+<path class="wireL" d=" M 1385 650 L 1385 780" />
+<circle cx="1385" cy="650" r="6" class="nodeL" />
+<path class="wireN" d=" M 1485 725 L 1485 780" />
+<circle cx="1485" cy="725" r="6" class="nodeN" />
+<text x="1385" y="772" class="tiny" text-anchor="middle">110L</text>
+<text x="1485" y="772" class="tiny" text-anchor="middle">110N</text>
+<rect x="1610" y="780" width="230" height="85" class="device" />
+<text x="1725.0" y="818.5" class="zoneTitle" text-anchor="middle">36V X2 PSU</text>
+<text x="1725.0" y="840.5" class="small" text-anchor="middle">36V_X2</text>
+<path class="wireL" d=" M 1675 650 L 1675 780" />
+<circle cx="1675" cy="650" r="6" class="nodeL" />
+<path class="wireN" d=" M 1775 725 L 1775 780" />
+<circle cx="1775" cy="725" r="6" class="nodeN" />
+<text x="1675" y="772" class="tiny" text-anchor="middle">110L</text>
+<text x="1775" y="772" class="tiny" text-anchor="middle">110N</text>
+<text x="1080" y="890" class="small" text-anchor="start">Outputs: DRIVER_48V / DRIVER_GND</text>
+<text x="1355" y="890" class="small" text-anchor="start">Outputs: 36V_X1 / 36V0_X1</text>
+<text x="1645" y="890" class="small" text-anchor="start">Outputs: 36V_X2 / 36V0_X2</text>
+<path class="wireL" d=" M 460 1045 L 640 1045" />
+<path class="wireN" d=" M 460 1120 L 640 1120" />
+<circle cx="460" cy="1045" r="5" class="nodeL" />
+<circle cx="460" cy="1120" r="5" class="nodeN" />
+<rect x="200" y="1010" width="260" height="145" class="device" />
+<text x="330.0" y="1078.5" class="zoneTitle" text-anchor="middle">Transformer</text>
+<text x="330.0" y="1100.5" class="small" text-anchor="middle">220L / 220N output</text>
+<text x="430" y="1040" class="tiny" text-anchor="start">220L</text>
+<text x="430" y="1115" class="tiny" text-anchor="start">220N</text>
+<path class="wireL" d=" M 640 1045 L 731.0 1045" />
+<path class="wireL" d=" M 813.0 1045 L 890 1045" />
+<path class="contact" d="M 741.0 1073 L 793.0 1017" />
+<text x="760" y="1017" class="zoneTitle" text-anchor="middle">K2 L</text>
+<text x="760" y="1037" class="small" text-anchor="middle">T1 -&gt; L1</text>
+<circle cx="640" cy="1045" r="5" class="nodeL" />
+<circle cx="890" cy="1045" r="5" class="nodeL" />
+<path class="wireN" d=" M 640 1120 L 731.0 1120" />
+<path class="wireN" d=" M 813.0 1120 L 890 1120" />
+<path class="contact" d="M 741.0 1148 L 793.0 1092" />
+<text x="760" y="1148" class="zoneTitle" text-anchor="middle">K2 N</text>
+<text x="760" y="1168" class="small" text-anchor="middle">T2 -&gt; L2</text>
+<circle cx="640" cy="1120" r="5" class="nodeN" />
+<circle cx="890" cy="1120" r="5" class="nodeN" />
+<rect x="1000" y="995" width="260" height="190" class="device" />
+<text x="1130.0" y="1086.0" class="zoneTitle" text-anchor="middle">VFD</text>
+<text x="1130.0" y="1108.0" class="small" text-anchor="middle">R/T in, U/V/W out</text>
+<path class="wireL" d=" M 890 1045 L 1000 1045" />
+<path class="wireN" d=" M 890 1120 L 1000 1120" />
+<text x="1010" y="1037" class="tiny" text-anchor="start">R</text>
+<text x="1010" y="1112" class="tiny" text-anchor="start">T</text>
+<rect x="1520" y="1015" width="230" height="150" class="device" />
+<text x="1635.0" y="1086.0" class="zoneTitle" text-anchor="middle">Spindle</text>
+<text x="1635.0" y="1108.0" class="small" text-anchor="middle">U / V / W</text>
+<path class="wireGrey" d=" M 1260 1055 L 1520 1055" />
+<text x="1280" y="1048" class="small" text-anchor="start">U</text>
+<text x="1500" y="1048" class="small" text-anchor="end">U</text>
+<path class="wireGrey" d=" M 1260 1105 L 1520 1105" />
+<text x="1280" y="1098" class="small" text-anchor="start">V</text>
+<text x="1500" y="1098" class="small" text-anchor="end">V</text>
+<path class="wireGrey" d=" M 1260 1155 L 1520 1155" />
+<text x="1280" y="1148" class="small" text-anchor="start">W</text>
+<text x="1500" y="1148" class="small" text-anchor="end">W</text>
+<path class="wirePE" d=" M 620 840 L 620 1205 L 1750 1205" />
+<circle cx="620" cy="1205" r="6" class="nodePE" />
+<path class="wirePE" d=" M 1130 1185 L 1130 1205" />
+<circle cx="1130" cy="1205" r="6" class="nodePE" />
+<path class="wirePE" d=" M 1635 1165 L 1635 1205" />
+<circle cx="1635" cy="1205" r="6" class="nodePE" />
+<text x="1765" y="1210" class="small" text-anchor="start">earth to VFD / spindle shields / PE blocks</text>
+<rect x="1545" y="175" width="530" height="170" class="note" />
+<text x="1570" y="210" class="zoneTitle" text-anchor="start">Circuit check against mycnc.yml</text>
+<text x="1570" y="240" class="small" text-anchor="start">- Switch and breaker interrupt only 110L.</text>
+<text x="1570" y="262" class="small" text-anchor="start">- 110N goes directly to live_power_t.</text>
+<text x="1570" y="284" class="small" text-anchor="start">- 24V, 5V, and transformer are unswitched.</text>
+<text x="1570" y="306" class="small" text-anchor="start">- K1 switches 110L/110N to motor PSUs.</text>
+<text x="1570" y="328" class="small" text-anchor="start">- K2 switches transformer 220L/220N to VFD R/T.</text>
+</svg>

@@ -21,7 +21,6 @@ component_order:
 - terminals_5v0
 - terminals_5v
 - terminals_24v
-- terminals_24v0
 - terminals_earth
 - Z_cl57s
 - axbb-e
@@ -1259,12 +1258,6 @@ wires:
   from: safety_24v0.1B
   to: control_24v0.1A
   assigned_component: control_24v0
-- key: row:139:segment:0
-  label: 24V0/1
-  net: 24V0
-  from: control_24v0.1B
-  to: terminals_24v0.1A
-  assigned_component: terminals_24v0
 - key: row:140:segment:0
   label: earth/6
   net: earth

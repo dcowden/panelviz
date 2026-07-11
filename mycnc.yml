@@ -413,18 +413,6 @@ components:
       left: [A]
       right: [B]
     positions: 2
-  terminals_24v0:
-    type: bus_block
-    tags: [terminals]
-    size:
-      width: 2
-      height: 0.118
-    nets:
-      - name: 24V0
-    pins:
-      left: [A]
-      right: [B]
-    positions: 1
   terminals_earth:
     type: bus_block
     tags: [terminals]
@@ -970,7 +958,6 @@ connections:
     - [control_24v.24V, terminals_24v.24V]
     - [dc_power_24v0.24V0, safety_24v0.24V0]
     - [safety_24v0.24V0, control_24v0.24V0]
-    - [control_24v0.24V0, terminals_24v0.24V0]
     - [vfd_earth.earth, dc_power_earth.earth]
     - [dc_power_earth.earth, safety_earth.earth]
     - [safety_earth.earth, control_earth.earth]

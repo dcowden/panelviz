@@ -167,10 +167,6 @@ components:
     x: 2295.021
     y: -404.891
     rotation: 90
-  terminals_24v0:
-    x: 2316.795
-    y: -398.779
-    rotation: 90
   terminals_earth:
     x: 2179.046
     y: -398.168

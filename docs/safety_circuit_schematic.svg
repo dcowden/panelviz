@@ -1,228 +1,189 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1150" viewBox="0 0 1700 1150" role="img" aria-label="PanelViz safety circuit electrical schematic">
-  <defs>
-    <style>
-      :root {
-        --wire: #e85d1f;
-        --logic: #2563eb;
-        --device: #1f2937;
-        --muted: #6b7280;
-        --panel: #ffffff;
-        --fill: #fff7ed;
-      }
-      .sheet { fill: #fff; }
-      .wire { stroke: var(--wire); stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-      .logic { stroke: var(--logic); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-      .device { stroke: var(--device); stroke-width: 3; fill: var(--panel); stroke-linecap: round; stroke-linejoin: round; }
-      .symbol { stroke: var(--device); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-      .contact { stroke: var(--device); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-      .node { fill: var(--wire); stroke: var(--wire); }
-      .logic-node { fill: var(--logic); stroke: var(--logic); }
-      .title { font: 700 34px Arial, Helvetica, sans-serif; fill: #111827; }
-      .subtitle { font: 700 22px Arial, Helvetica, sans-serif; fill: #334155; }
-      .label { font: 700 19px Arial, Helvetica, sans-serif; fill: #111827; }
-      .small { font: 15px Arial, Helvetica, sans-serif; fill: #334155; }
-      .tiny { font: 13px Arial, Helvetica, sans-serif; fill: #475569; }
-      .pin { font: 700 15px Arial, Helvetica, sans-serif; fill: #111827; }
-      .orange { fill: var(--wire); }
-      .blue { fill: var(--logic); }
-      .muted { fill: var(--muted); }
-      .box-fill { fill: #f8fafc; }
-      .warn { fill: #fff7ed; stroke: #fb923c; stroke-width: 2; }
-    </style>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1450" viewBox="0 0 2200 1450" role="img" aria-label="Safety / Run-Permissive Circuit Schematic">
 
-  <rect class="sheet" x="0" y="0" width="1700" height="1150"/>
-  <rect class="device" x="38" y="38" width="1624" height="1074" rx="0"/>
-  <text class="title" x="70" y="88">Safety Circuit Schematic</text>
-  <text class="small" x="70" y="116">PanelViz / mycnc.yml - control power, E-stop chain, Arduino permissive, contactor coils, AXBB status</text>
+  <style>
+    svg { background: #f8fafc; font-family: Arial, Helvetica, sans-serif; }
+    .sheet { fill: #ffffff; stroke: #1f2937; stroke-width: 2.5; }
+    .grid { stroke: #e2e8f0; stroke-width: 1; }
+    .title { font-size: 30px; font-weight: 800; fill: #0f172a; }
+    .subtitle { font-size: 15px; fill: #475569; }
+    .zoneTitle { font-size: 17px; font-weight: 800; fill: #0f172a; letter-spacing: .02em; }
+    .label { font-size: 14px; fill: #0f172a; }
+    .small { font-size: 12px; fill: #334155; }
+    .tiny { font-size: 10.5px; fill: #475569; }
+    .wireL { stroke: #dc2626; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wireN { stroke: #2563eb; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wirePE { stroke: #16a34a; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wire0 { stroke: #111827; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wire24 { stroke: #dc2626; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wireSense { stroke: #0891b2; stroke-width: 3; fill: none; stroke-dasharray: 8 7; stroke-linecap: round; stroke-linejoin: round; }
+    .wireLogic { stroke: #7c3aed; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wireGrey { stroke: #64748b; stroke-width: 3.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .device { fill: #ffffff; stroke: #1f2937; stroke-width: 2.5; rx: 10; filter: drop-shadow(0 2px 3px rgba(15,23,42,.10)); }
+    .terminal { fill: #f1f5f9; stroke: #94a3b8; stroke-width: 1.5; rx: 5; }
+    .contact { stroke: #111827; stroke-width: 3.5; fill: none; stroke-linecap: round; }
+    .coil { stroke: #111827; stroke-width: 3.5; fill: none; stroke-linecap: round; }
+    .nodeL { fill: #dc2626; stroke: #ffffff; stroke-width: 2; }
+    .nodeN { fill: #2563eb; stroke: #ffffff; stroke-width: 2; }
+    .nodePE { fill: #16a34a; stroke: #ffffff; stroke-width: 2; }
+    .node0 { fill: #111827; stroke: #ffffff; stroke-width: 2; }
+    .nodeSense { fill: #0891b2; stroke: #ffffff; stroke-width: 2; }
+    .zone { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; rx: 14; }
+    .note { fill: #fff7ed; stroke: #f97316; stroke-width: 1.5; rx: 10; }
+    .legend { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.2; rx: 8; }
+  </style>
 
-  <!-- Main 24V safety ladder -->
-  <text class="subtitle" x="70" y="168">24V Contactor Coil Power</text>
-  <line class="wire" x1="90" y1="220" x2="1550" y2="220"/>
-  <line class="wire" x1="90" y1="555" x2="1550" y2="555"/>
-  <text class="label orange" x="70" y="213">+24V</text>
-  <text class="label orange" x="70" y="565">24V0</text>
-  <circle class="node" cx="90" cy="220" r="7"/>
-  <circle class="node" cx="90" cy="555" r="7"/>
-
-  <!-- E-stop contacts in series -->
-  <line class="wire" x1="150" y1="220" x2="230" y2="220"/>
-  <g transform="translate(250 178)">
-    <line class="contact" x1="0" y1="42" x2="34" y2="42"/>
-    <line class="contact" x1="64" y1="42" x2="98" y2="42"/>
-    <line class="contact" x1="34" y1="18" x2="64" y2="66"/>
-    <text class="label" x="-4" y="-16">S1</text>
-    <text class="small" x="-44" y="92">Primary E-stop</text>
-    <text class="tiny" x="4" y="114">NC contact</text>
-  </g>
-  <line class="wire" x1="348" y1="220" x2="430" y2="220"/>
-  <g transform="translate(450 178)">
-    <line class="contact" x1="0" y1="42" x2="34" y2="42"/>
-    <line class="contact" x1="64" y1="42" x2="98" y2="42"/>
-    <line class="contact" x1="34" y1="18" x2="64" y2="66"/>
-    <text class="label" x="-4" y="-16">S2</text>
-    <text class="small" x="-56" y="92">Secondary E-stop</text>
-    <text class="tiny" x="4" y="114">NC contact</text>
-  </g>
-  <line class="wire" x1="548" y1="220" x2="675" y2="220"/>
-  <circle class="node" cx="675" cy="220" r="7"/>
-  <text class="label orange" x="648" y="198">COIL+</text>
-  <text class="tiny" x="624" y="246">coil_t positions 1-4</text>
-
-  <!-- Contactor coils in parallel -->
-  <line class="wire" x1="675" y1="220" x2="675" y2="292"/>
-  <line class="wire" x1="675" y1="292" x2="820" y2="292"/>
-  <line class="wire" x1="675" y1="292" x2="675" y2="420"/>
-  <line class="wire" x1="675" y1="420" x2="820" y2="420"/>
-  <g transform="translate(820 250)">
-    <rect class="device" x="0" y="0" width="190" height="84" rx="10"/>
-    <path class="symbol" d="M28 42 C42 10, 68 74, 84 42 S124 10, 146 42"/>
-    <text class="pin" x="-26" y="19">A1</text>
-    <text class="pin" x="198" y="70">A2</text>
-    <text class="label" x="58" y="-16">K110</text>
-    <text class="small" x="48" y="110">110V contactor coil</text>
-  </g>
-  <line class="wire" x1="1010" y1="292" x2="1135" y2="292"/>
-  <g transform="translate(820 378)">
-    <rect class="device" x="0" y="0" width="190" height="84" rx="10"/>
-    <path class="symbol" d="M28 42 C42 10, 68 74, 84 42 S124 10, 146 42"/>
-    <text class="pin" x="-26" y="19">A1</text>
-    <text class="pin" x="198" y="70">A2</text>
-    <text class="label" x="58" y="-16">K220</text>
-    <text class="small" x="48" y="110">220V contactor coil</text>
-  </g>
-  <line class="wire" x1="1010" y1="420" x2="1135" y2="420"/>
-  <line class="wire" x1="1135" y1="292" x2="1135" y2="420"/>
-  <line class="wire" x1="1135" y1="356" x2="1240" y2="356"/>
-  <circle class="node" cx="1135" cy="356" r="7"/>
-  <text class="label orange" x="1105" y="270">COIL-</text>
-  <text class="tiny" x="1064" y="448">coil_t positions 5-8</text>
-
-  <!-- Run relay NO contact in coil return -->
-  <g transform="translate(1240 314)">
-    <line class="contact" x1="0" y1="42" x2="34" y2="42"/>
-    <line class="contact" x1="64" y1="42" x2="98" y2="42"/>
-    <line class="contact" x1="34" y1="42" x2="64" y2="18"/>
-    <text class="label" x="8" y="-16">K_RUN</text>
-    <text class="small" x="-8" y="92">NO run contact</text>
-  </g>
-  <line class="wire" x1="1338" y1="356" x2="1450" y2="356"/>
-  <line class="wire" x1="1450" y1="356" x2="1450" y2="555"/>
-  <circle class="node" cx="1450" cy="555" r="7"/>
-
-  <!-- AXBB coil sense -->
-  <g transform="translate(1230 170)">
-    <rect class="device box-fill" x="0" y="0" width="270" height="88" rx="8"/>
-    <text class="label" x="24" y="34">AXBB-E I6</text>
-    <text class="small" x="24" y="62">coil energized status</text>
-  </g>
-  <line class="wire" x1="675" y1="220" x2="1230" y2="220"/>
-  <line class="wire" x1="1135" y1="292" x2="1230" y2="292"/>
-  <line class="wire" x1="1230" y1="220" x2="1230" y2="210"/>
-  <line class="wire" x1="1230" y1="292" x2="1230" y2="246"/>
-  <text class="pin" x="1200" y="214">I6+</text>
-  <text class="pin" x="1200" y="280">I6-</text>
-
-  <!-- Reset lamp rung -->
-  <text class="subtitle" x="70" y="638">Reset Lamp</text>
-  <line class="wire" x1="90" y1="700" x2="220" y2="700"/>
-  <g transform="translate(220 662)">
-    <circle class="symbol" cx="42" cy="38" r="30"/>
-    <line class="symbol" x1="22" y1="18" x2="62" y2="58"/>
-    <line class="symbol" x1="62" y1="18" x2="22" y2="58"/>
-    <text class="label" x="-6" y="-16">H1</text>
-    <text class="small" x="-42" y="86">reset lamp</text>
-  </g>
-  <line class="wire" x1="292" y1="700" x2="430" y2="700"/>
-  <g transform="translate(450 658)">
-    <line class="contact" x1="0" y1="42" x2="34" y2="42"/>
-    <line class="contact" x1="64" y1="42" x2="98" y2="42"/>
-    <line class="contact" x1="34" y1="66" x2="64" y2="18"/>
-    <text class="label" x="8" y="-16">K_RUN</text>
-    <text class="small" x="-2" y="92">NC contact</text>
-  </g>
-  <line class="wire" x1="548" y1="700" x2="1450" y2="700"/>
-  <line class="wire" x1="1450" y1="700" x2="1450" y2="555"/>
-
-  <!-- Arduino/control logic -->
-  <text class="subtitle" x="70" y="815">5V Logic and Permissive Control</text>
-  <rect class="device box-fill" x="70" y="850" width="520" height="210" rx="12"/>
-  <text class="label" x="104" y="890">AL-ZARD opto board</text>
-  <text class="small" x="104" y="924">UL OK inputs: X1, X2, Y, Z</text>
-  <text class="small" x="104" y="954">Driver alarm OK inputs: X1, X2, Y, Z</text>
-  <text class="tiny" x="104" y="986">HIGH = OK, LOW = fault/disconnected</text>
-  <line class="logic" x1="590" y1="930" x2="710" y2="930"/>
-  <polygon points="710,930 690,918 690,942" fill="#2563eb"/>
-
-  <rect class="device box-fill" x="710" y="810" width="410" height="300" rx="12"/>
-  <text class="label" x="748" y="852">Alarm Limit Board</text>
-  <text class="small" x="748" y="882">Arduino Nano run-permissive logic</text>
-  <text class="small" x="748" y="922">D2-D5: upper limits OK</text>
-  <text class="small" x="748" y="952">D6-D9: driver alarms OK</text>
-  <text class="small" x="748" y="982">D10: K_RUN relay module input</text>
-  <text class="small" x="748" y="1012">D11: K_UL_OK relay module input</text>
-  <text class="small" x="748" y="1042">D12: reset button, INPUT_PULLUP</text>
-
-  <!-- Reset pushbutton to Arduino -->
-  <line class="logic" x1="90" y1="770" x2="250" y2="770"/>
-  <g transform="translate(250 728)">
-    <line class="contact" x1="0" y1="42" x2="34" y2="42"/>
-    <line class="contact" x1="64" y1="42" x2="98" y2="42"/>
-    <line class="contact" x1="34" y1="18" x2="64" y2="42"/>
-    <text class="label" x="14" y="-16">S3</text>
-    <text class="small" x="-42" y="92">Reset pushbutton</text>
-    <text class="tiny" x="-4" y="114">NO, pulls D12 to 5V0</text>
-  </g>
-  <line class="logic" x1="348" y1="770" x2="910" y2="770"/>
-  <line class="logic" x1="910" y1="770" x2="910" y2="810"/>
-  <text class="pin blue" x="875" y="763">D12</text>
-  <text class="label blue" x="70" y="763">5V0</text>
-
-  <!-- Relay module outputs from Arduino -->
-  <line class="logic" x1="1120" y1="982" x2="1230" y2="982"/>
-  <line class="logic" x1="1230" y1="982" x2="1230" y2="402"/>
-  <text class="pin blue" x="1130" y="970">D10</text>
-  <text class="tiny" x="1238" y="520">energize K_RUN</text>
-
-  <line class="logic" x1="1120" y1="1012" x2="1320" y2="1012"/>
-  <text class="pin blue" x="1130" y="1002">D11</text>
-  <rect class="device box-fill" x="1320" y="920" width="270" height="120" rx="8"/>
-  <text class="label" x="1344" y="956">K_UL_OK</text>
-  <text class="small" x="1344" y="986">upper-limits-ok relay</text>
-  <text class="tiny" x="1344" y="1014">NC contact drives AXBB I1 fault</text>
-
-  <!-- AXBB I1 fault indication rung -->
-  <line class="wire" x1="90" y1="1080" x2="1210" y2="1080"/>
-  <text class="label orange" x="70" y="1072">+24V</text>
-  <rect class="device box-fill" x="1210" y="1042" width="160" height="76" rx="8"/>
-  <text class="label" x="1244" y="1074">AXBB I1</text>
-  <text class="tiny" x="1238" y="1098">upper limit fault</text>
-  <line class="wire" x1="1370" y1="1080" x2="1425" y2="1080"/>
-  <g transform="translate(1425 1038)">
-    <line class="contact" x1="0" y1="42" x2="34" y2="42"/>
-    <line class="contact" x1="64" y1="42" x2="98" y2="42"/>
-    <line class="contact" x1="34" y1="66" x2="64" y2="18"/>
-    <text class="label" x="-10" y="-14">K_UL_OK</text>
-    <text class="tiny" x="-8" y="88">NC opens when limits OK</text>
-  </g>
-  <line class="wire" x1="1523" y1="1080" x2="1550" y2="1080"/>
-  <line class="wire" x1="1550" y1="1080" x2="1550" y2="555"/>
-
-  <!-- Notes / title block -->
-  <rect class="warn" x="1170" y="735" width="410" height="135" rx="8"/>
-  <text class="label" x="1194" y="770">Design note</text>
-  <text class="small" x="1194" y="802">K_RUN is Arduino-maintained seal-in logic.</text>
-  <text class="small" x="1194" y="828">Physical E-stop contacts directly remove COIL+.</text>
-  <text class="tiny" x="1194" y="854">Not a certified safety relay / EDM circuit.</text>
-
-  <rect class="device" x="1180" y="48" width="455" height="95" rx="0"/>
-  <line class="symbol" x1="1180" y1="84" x2="1635" y2="84"/>
-  <line class="symbol" x1="1370" y1="48" x2="1370" y2="143"/>
-  <line class="symbol" x1="1510" y1="84" x2="1510" y2="143"/>
-  <text class="tiny" x="1192" y="72">TITLE</text>
-  <text class="label" x="1192" y="116">Safety Circuit</text>
-  <text class="tiny" x="1382" y="72">FILE</text>
-  <text class="small" x="1382" y="116">mycnc.yml</text>
-  <text class="tiny" x="1522" y="108">DATE</text>
-  <text class="small" x="1522" y="132">2026-05-25</text>
+<rect x="30" y="30" width="2140" height="1390" class="sheet" />
+<text x="70" y="85" class="title" text-anchor="start">Safety / Run-Permissive Circuit Schematic</text>
+<text x="70" y="113" class="subtitle" text-anchor="start">Clean version of docs/safety_schematic.jpg, checked against current mycnc.yml and EstopBoardv3.ino</text>
+<rect x="70" y="155" width="2060" height="560" class="zone" />
+<text x="92" y="185" class="zoneTitle" text-anchor="start">24V contactor coil ladder</text>
+<rect x="70" y="750" width="2060" height="420" class="zone" />
+<text x="92" y="780" class="zoneTitle" text-anchor="start">5V isolated input and relay-control side</text>
+<rect x="1770" y="1230" width="310" height="154" class="legend" />
+<text x="1790" y="1258" class="zoneTitle" text-anchor="start">Legend</text>
+<path class="wireL" d=" M 1790 1285 L 1850 1285" />
+<text x="1866" y="1290" class="small" text-anchor="start">110L / line / +24V</text>
+<path class="wireN" d=" M 1790 1312 L 1850 1312" />
+<text x="1866" y="1317" class="small" text-anchor="start">110N / neutral</text>
+<path class="wirePE" d=" M 1790 1339 L 1850 1339" />
+<text x="1866" y="1344" class="small" text-anchor="start">earth / PE</text>
+<path class="wire0" d=" M 1790 1366 L 1850 1366" />
+<text x="1866" y="1371" class="small" text-anchor="start">0V / coil return</text>
+<path class="wire24" d=" M 110 255 L 1910 255" />
+<text x="92" y="260" class="label" text-anchor="end">+24V</text>
+<path class="wire24" d=" M 210 255 L 275.0 255" />
+<path class="wire24" d=" M 345.0 255 L 410 255" />
+<path class="contact" d="M 280.0 231 L 340.0 279" />
+<text x="310.0" y="207" class="zoneTitle" text-anchor="middle">S1</text>
+<text x="310.0" y="291" class="small" text-anchor="middle">estop_panel NC</text>
+<circle cx="210" cy="255" r="5" class="nodeL" />
+<circle cx="410" cy="255" r="5" class="nodeL" />
+<path class="wire24" d=" M 470 255 L 535.0 255" />
+<path class="wire24" d=" M 605.0 255 L 670 255" />
+<path class="contact" d="M 540.0 231 L 600.0 279" />
+<text x="570.0" y="207" class="zoneTitle" text-anchor="middle">S2</text>
+<text x="570.0" y="291" class="small" text-anchor="middle">secondary_estop NC</text>
+<circle cx="470" cy="255" r="5" class="nodeL" />
+<circle cx="670" cy="255" r="5" class="nodeL" />
+<circle cx="720" cy="255" r="6" class="nodeL" />
+<text x="720" y="230" class="zoneTitle" text-anchor="middle">COIL+</text>
+<text x="215" y="335" class="pin" text-anchor="start">Terminal chain: 57A -&gt; 58A, 58B -&gt; 61B bridge, 61A -&gt; 62A</text>
+<path class="wire24" d=" M 720 255 L 720 500" />
+<path class="wire24" d=" M 720 330 L 850 330" />
+<path class="wire24" d=" M 720 465 L 850 465" />
+<rect x="850" y="290" width="310" height="80" class="device" />
+<path class="coil" d="M 882 330.0 C 912 306, 944 306, 974 330.0 S 1036 354, 1066 330.0 S 1128 306, 1158 330.0" />
+<text x="1005.0" y="398" class="zoneTitle" text-anchor="middle">K1 coil</text>
+<text x="1005.0" y="418" class="small" text-anchor="middle">contactor_110 A1/A2</text>
+<rect x="850" y="425" width="310" height="80" class="device" />
+<path class="coil" d="M 882 465.0 C 912 441, 944 441, 974 465.0 S 1036 489, 1066 465.0 S 1128 441, 1158 465.0" />
+<text x="1005.0" y="533" class="zoneTitle" text-anchor="middle">K2 coil</text>
+<text x="1005.0" y="553" class="small" text-anchor="middle">contactor_220 A1/A2</text>
+<path class="wire0" d=" M 1160 330 L 1270 330 L 1270 555" />
+<path class="wire0" d=" M 1160 465 L 1270 465" />
+<circle cx="1270" cy="330" r="6" class="node0" />
+<circle cx="1270" cy="465" r="6" class="node0" />
+<text x="1268" y="315" class="zoneTitle" text-anchor="middle">COIL-</text>
+<path class="wire0" d=" M 1350 555 L 1433.5 555" />
+<path class="wire0" d=" M 1515.5 555 L 1585 555" />
+<path class="contact" d="M 1443.5 583 L 1495.5 527" />
+<text x="1467.5" y="507" class="zoneTitle" text-anchor="middle">K3</text>
+<text x="1467.5" y="591" class="small" text-anchor="middle">run_relay NO</text>
+<circle cx="1350" cy="555" r="5" class="node0" />
+<circle cx="1585" cy="555" r="5" class="node0" />
+<path class="wire0" d=" M 1585 555 L 1585 640 L 1920 640" />
+<path class="wire0" d=" M 110 640 L 1350 640" />
+<path class="wire0" d=" M 1585 640 L 1910 640" />
+<text x="92" y="645" class="label" text-anchor="end">24V0</text>
+<text x="1330" y="610" class="small" text-anchor="start">K3 opens on Arduino loss, relay loss, or fault</text>
+<rect x="1510" y="300" width="320" height="170" class="device" />
+<text x="1670" y="275" class="zoneTitle" text-anchor="middle">AXBB-E status inputs</text>
+<text x="1545" y="342" class="label" text-anchor="start">I6+ = COIL+</text>
+<text x="1545" y="372" class="label" text-anchor="start">I6- = COIL-</text>
+<text x="1545" y="412" class="label" text-anchor="start">I1+ = +24V</text>
+<text x="1545" y="442" class="label" text-anchor="start">I1- = UL fault input</text>
+<text x="1545" y="500" class="small" text-anchor="start">Status only: AXBB does not authorize run</text>
+<path class="wireSense" d=" M 720 255 L 1510 342" />
+<circle cx="720" cy="255" r="4" class="nodeSense" />
+<path class="wireSense" d=" M 1270 555 L 1510 372" />
+<circle cx="1270" cy="555" r="4" class="nodeSense" />
+<path class="wire24" d=" M 1725 255 L 1725 300" />
+<circle cx="1725" cy="255" r="6" class="nodeL" />
+<path class="wireSense" d=" M 1830 430 L 1905 430" />
+<path class="wire0" d=" M 1905 430 L 1952.5 430" />
+<path class="wire0" d=" M 2022.5 430 L 2070 430" />
+<path class="contact" d="M 1957.5 406 L 2017.5 454" />
+<text x="1987.5" y="382" class="zoneTitle" text-anchor="middle">K4</text>
+<text x="1987.5" y="466" class="small" text-anchor="middle">upper_limits_ok NC</text>
+<circle cx="1905" cy="430" r="5" class="node0" />
+<circle cx="2070" cy="430" r="5" class="node0" />
+<path class="wire0" d=" M 2070 430 L 2070 640" />
+<circle cx="2070" cy="640" r="6" class="node0" />
+<text x="1835" y="500" class="small" text-anchor="start">I1 fault closes on upper-limit fault or logic power loss</text>
+<text x="1745" y="525" class="zoneTitle" text-anchor="middle">Reset lamp: on when not running</text>
+<path class="wire24" d=" M 1845 255 L 1845 500" />
+<circle cx="1845" cy="255" r="6" class="nodeL" />
+<circle cx="1845" cy="535" r="36" fill="#fff" stroke="#1f2937" stroke-width="3" />
+<path class="contact" d="M 1822 512 L 1868 558 M 1868 512 L 1822 558" />
+<text x="1845" y="590" class="small" text-anchor="middle">estop_panel lamp</text>
+<path class="wire24" d=" M 1845 570 L 1960 600" />
+<path class="wire0" d=" M 1960 600 L 1995.0 600" />
+<path class="wire0" d=" M 2065.0 600 L 2100 600" />
+<path class="contact" d="M 2000.0 576 L 2060.0 624" />
+<text x="2030" y="552" class="zoneTitle" text-anchor="middle">K3 NC</text>
+<text x="2030" y="636" class="small" text-anchor="middle">lamp return</text>
+<circle cx="1960" cy="600" r="5" class="node0" />
+<circle cx="2100" cy="600" r="5" class="node0" />
+<path class="wire0" d=" M 2100 600 L 2100 640" />
+<circle cx="2100" cy="640" r="6" class="node0" />
+<rect x="110" y="835" width="420" height="260" class="device" />
+<text x="320" y="865" class="zoneTitle" text-anchor="middle">Field devices</text>
+<text x="320" y="887" class="small" text-anchor="middle">5V good / 0V fault</text>
+<text x="145" y="885" class="small" text-anchor="start">X1 upper limit</text>
+<text x="145" y="909" class="small" text-anchor="start">X2 upper limit</text>
+<text x="145" y="933" class="small" text-anchor="start">Y upper limit</text>
+<text x="145" y="957" class="small" text-anchor="start">Z upper limit</text>
+<text x="145" y="981" class="small" text-anchor="start">X1 driver alarm</text>
+<text x="145" y="1005" class="small" text-anchor="start">X2 driver alarm</text>
+<text x="145" y="1029" class="small" text-anchor="start">Y CL57S alarm</text>
+<text x="145" y="1053" class="small" text-anchor="start">Z CL57S alarm</text>
+<rect x="650" y="825" width="410" height="290" class="device" />
+<text x="855" y="865" class="zoneTitle" text-anchor="middle">AL-ZARD DST-1R8P-P</text>
+<text x="855" y="887" class="small" text-anchor="middle">8 isolated inputs, 5V outputs</text>
+<text x="690" y="900" class="small" text-anchor="start">Inputs 1..8 from field devices</text>
+<text x="690" y="930" class="small" text-anchor="start">Outputs O1..O8 -&gt; Arduino D2..D9</text>
+<text x="690" y="960" class="small" text-anchor="start">VCC/GND -&gt; safety_5v / safety_5v0</text>
+<rect x="1185" y="810" width="390" height="320" class="device" />
+<text x="1380" y="850" class="zoneTitle" text-anchor="middle">Arduino Nano</text>
+<text x="1380" y="872" class="small" text-anchor="middle">alarm_limit_board</text>
+<text x="1225" y="880" class="small" text-anchor="start">D2-D5 upper limits OK</text>
+<text x="1225" y="908" class="small" text-anchor="start">D6-D9 driver alarms OK</text>
+<text x="1225" y="936" class="small" text-anchor="start">D12 reset button input</text>
+<text x="1225" y="964" class="small" text-anchor="start">D10 -&gt; K3 run relay</text>
+<text x="1225" y="992" class="small" text-anchor="start">D11 -&gt; K4 upper-limit relay</text>
+<rect x="1650" y="835" width="330" height="130" class="device" />
+<text x="1815.0" y="896.0" class="zoneTitle" text-anchor="middle">K3 relay board</text>
+<text x="1815.0" y="918.0" class="small" text-anchor="middle">NO contact in COIL- return</text>
+<rect x="1650" y="1030" width="330" height="130" class="device" />
+<text x="1815.0" y="1091.0" class="zoneTitle" text-anchor="middle">K4 relay board</text>
+<text x="1815.0" y="1113.0" class="small" text-anchor="middle">NC contact to AXBB I1 fault</text>
+<path class="wireLogic" d=" M 530 920 L 650 920" />
+<path class="wireLogic" d=" M 1060 930 L 1185 930" />
+<path class="wireLogic" d=" M 1575 935 L 1650 900" />
+<path class="wireLogic" d=" M 1575 1000 L 1610 1000 L 1610 1095 L 1650 1095" />
+<circle cx="530" cy="920" r="4" class="nodeSense" />
+<circle cx="1060" cy="930" r="4" class="nodeSense" />
+<circle cx="1575" cy="935" r="4" class="nodeSense" />
+<circle cx="1575" cy="1000" r="4" class="nodeSense" />
+<text x="590" y="905" class="tiny" text-anchor="middle">isolated signals</text>
+<text x="1122" y="915" class="tiny" text-anchor="middle">D2..D9</text>
+<text x="1610" y="875" class="tiny" text-anchor="middle">D10</text>
+<text x="1618" y="1082" class="tiny" text-anchor="middle">D11</text>
+<rect x="112" y="1208" width="980" height="135" class="note" />
+<text x="140" y="1240" class="zoneTitle" text-anchor="start">Circuit check against mycnc.yml</text>
+<text x="140" y="1270" class="small" text-anchor="start">- E-stops directly interrupt the COIL+ source before the contactor coils.</text>
+<text x="140" y="1288" class="small" text-anchor="start">- K1 and K2 contactor coils are in parallel; both drop when COIL+ or COIL- opens.</text>
+<text x="140" y="1306" class="small" text-anchor="start">- Arduino controls only the K3 low-side run relay and the K4 upper-limit indication relay.</text>
+<text x="140" y="1324" class="small" text-anchor="start">- AXBB I6 observes actual coil voltage; AXBB I1 receives an upper-limit fault indication.</text>
+<text x="140" y="1342" class="small" text-anchor="start">- No EDM feedback is shown because the contactors do not have NC aux contacts.</text>
 </svg>
