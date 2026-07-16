@@ -412,7 +412,19 @@ components:
     pins:
       left: [A]
       right: [B]
-    positions: 2
+    positions: 4
+  terminals_24v0:
+    type: bus_block
+    tags: [terminals]
+    size:
+      width: 2
+      height: 0.118
+    nets:
+      - name: 24V0
+    pins:
+      left: [A]
+      right: [B]
+    positions: 3
   terminals_earth:
     type: bus_block
     tags: [terminals]
@@ -532,7 +544,7 @@ components:
     pins:
       left: [A]
       right: [B]
-    positions: 2
+    positions: 4
   safety_earth:
     type: bus_block
     tags: [safety]
@@ -667,7 +679,7 @@ components:
       width: .5
       height: .5
     pins:
-      left: [5v, ul, ll, 5v0, shield]
+      left: [24v, ul, ll, 24v0, shield]
   y_motor:
     type: connector
     tags: [terminals]
@@ -691,7 +703,7 @@ components:
       width: .5
       height: .5
     pins:
-      left: [5v, ul, ll, 5v0, shield]
+      left: [24v, ul, ll, 24v0, shield]
   x1_motor:
     type: connector
     tags: [terminals]
@@ -715,7 +727,7 @@ components:
       width: .5
       height: .5
     pins:
-      left: [5v, ul, ll, 5v0, shield]
+      left: [24v, ul, ll, 24v0, shield]
   x2_motor:
     type: connector
     tags: [terminals]
@@ -739,7 +751,7 @@ components:
       width: .5
       height: .5
     pins:
-      left: [5v, ul, ll, 5v0, shield]
+      left: [24v, ul, ll, 24v0, shield]
   probe:
     type: connector
     tags: [terminals]
@@ -851,10 +863,10 @@ connections:
     - [z_control.vcc, cnc_terminals.9, Z_cl57s.VCC]
     - [z_control.gnd, cnc_terminals.10, Z_cl57s.EGND]
     - [z_control.shield, connector_earth.shield]
-    - [z_limits.5v, cnc_terminals.11, terminals_5v.5V]
+    - [z_limits.24v, cnc_terminals.11, terminals_24v.24V]
     - [z_limits.ul, cnc_terminals.12, opto_board.4+]
     - [z_limits.ll, cnc_terminals.13, axbb-e.ZLL]
-    - [z_limits.5v0, cnc_terminals.14, terminals_5v0.5V0]
+    - [z_limits.24v0, cnc_terminals.14, terminals_24v0.24V0]
     - [z_limits.shield, connector_earth.shield]
     - route: [y_motor.ma+, cnc_terminals.15, y_cl57s.A+]
       awg: 16
@@ -872,10 +884,10 @@ connections:
     - [y_control.vcc, cnc_terminals.23, y_cl57s.VCC]
     - [y_control.gnd, cnc_terminals.24, y_cl57s.EGND]
     - [y_control.shield, connector_earth.shield]
-    - [y_limits.5v, cnc_terminals.25, terminals_5v.5V]
+    - [y_limits.24v, cnc_terminals.25, terminals_24v.24V]
     - [y_limits.ul, cnc_terminals.26, opto_board.3+]
     - [y_limits.ll, cnc_terminals.27, axbb-e.YLL]
-    - [y_limits.5v0, cnc_terminals.28, terminals_5v0.5V0]
+    - [y_limits.24v0, cnc_terminals.28, terminals_24v0.24V0]
     - [y_limits.shield, connector_earth.shield]
     - route: [x1_motor.M+, cnc_terminals.29, driver_power.36V_X1]
       awg: 16
@@ -888,10 +900,10 @@ connections:
     - [x1_control.dir-, cnc_terminals.34, terminals_5v0.5V0]
     - [x1_control.pul+, cnc_terminals.35, axbb-e.X1STEP]
     - [x1_control.pul-, cnc_terminals.36, terminals_5v0.5V0]
-    - [x1_limits.5v, cnc_terminals.37, terminals_5v.5V]
+    - [x1_limits.24v, cnc_terminals.37, terminals_24v.24V]
     - [x1_limits.ul, cnc_terminals.38, opto_board.1+]
     - [x1_limits.ll, cnc_terminals.39, axbb-e.X1LL]
-    - [x1_limits.5v0, cnc_terminals.40, terminals_5v0.5V0]
+    - [x1_limits.24v0, cnc_terminals.40, terminals_24v0.24V0]
     - [x1_limits.shield, connector_earth.shield]
     - route: [x2_motor.M+, cnc_terminals.41, driver_power.36V_X2]
       awg: 16
@@ -904,10 +916,10 @@ connections:
     - [x2_control.dir-, cnc_terminals.46, terminals_5v0.5V0]
     - [x2_control.pul+, cnc_terminals.47, axbb-e.X2STEP]
     - [x2_control.pul-, cnc_terminals.48, terminals_5v0.5V0]
-    - [x2_limits.5v, cnc_terminals.49, terminals_5v.5V]
+    - [x2_limits.24v, cnc_terminals.49, terminals_24v.24V]
     - [x2_limits.ul, cnc_terminals.50, opto_board.2+]
     - [x2_limits.ll, cnc_terminals.51, axbb-e.X2LL]
-    - [x2_limits.5v0, cnc_terminals.52, terminals_5v0.5V0]
+    - [x2_limits.24v0, cnc_terminals.52, terminals_24v0.24V0]
     - [x2_limits.shield, connector_earth.shield]
     - [probe.probe+, cnc_terminals.53A]
     - [probe.probe-, cnc_terminals.54A]
@@ -1024,16 +1036,17 @@ connections:
     - [upper_limits_ok_relay.NC, axbb-e.UL1]
 
   #opto board
-    - [opto_board.1-, safety_5v0.5V0]
-    - [opto_board.2-, safety_5v0.5V0]
-    - [opto_board.3-, safety_5v0.5V0]
-    - [opto_board.4-, safety_5v0.5V0]
+    - [opto_board.1-, safety_24v0.24V0]
+    - [opto_board.2-, safety_24v0.24V0]
+    - [opto_board.3-, safety_24v0.24V0]
+    - [opto_board.4-, safety_24v0.24V0]
     - [opto_board.5+, safety_5v.5V]
     - [opto_board.6+, safety_5v.5V]
     - [opto_board.7+, safety_5v.5V]
     - [opto_board.8+, safety_5v.5V]
     - [opto_board.GND, safety_5v0.5B]
     - [opto_board.VCC, safety_5v.5B]
+    - [control_24v0.24V0, terminals_24v0.24V0]
 
 
 
