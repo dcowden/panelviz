@@ -60,68 +60,68 @@ components:
     y: -427.792
     rotation: 90
   z_control:
-    x: 1397.302
-    y: -660.747
+    x: 2085.393
+    y: -637.473
     rotation: 0
   z_motor:
-    x: 1390.696
-    y: -727.392
+    x: 2085.486
+    y: -591.092
     rotation: 0
   z_limits:
-    x: 1395.81
-    y: -594.336
+    x: 2085.027
+    y: -697.894
     rotation: 0
   y_motor:
-    x: 1570.412
-    y: -729.835
+    x: 1967.575
+    y: -700.179
     rotation: 0
   y_control:
-    x: 1574.445
-    y: -661.971
+    x: 1968.605
+    y: -642.075
     rotation: 0
   y_limits:
-    x: 1578.88
-    y: -601.565
+    x: 1971.163
+    y: -586.925
     rotation: 0
   x1_motor:
-    x: 1715.253
-    y: -722.236
+    x: 1835.305
+    y: -598.283
     rotation: 0
   x1_control:
-    x: 1711.165
-    y: -659.128
+    x: 1836.851
+    y: -647.86
     rotation: 0
   x1_limits:
-    x: 1712.59
-    y: -603.235
+    x: 1837.409
+    y: -705.084
     rotation: 0
   x2_motor:
-    x: 1894.615
-    y: -711.868
+    x: 1716.081
+    y: -605.584
     rotation: 0
   x2_control:
     x: 1888.416
     y: -658.449
     rotation: 0
   x2_limits:
-    x: 1891.825
-    y: -603.482
+    x: 1591.137
+    y: -639.144
     rotation: 0
   probe:
-    x: 2118.908
-    y: -660.907
+    x: 1592.763
+    y: -510.565
     rotation: 0
   estop_panel:
-    x: 2062.39
-    y: -604.559
+    x: 1572.881
+    y: -526.478
     rotation: 0
   secondary_estop:
-    x: 2263.177
-    y: -596.095
+    x: 1594.477
+    y: -630.354
     rotation: 0
   spindle:
-    x: 2117.213
-    y: -713.25
+    x: 1598.159
+    y: -692.645
     rotation: 0
   vfd:
     x: 2554.088
