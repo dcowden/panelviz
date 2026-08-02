@@ -465,7 +465,7 @@ wires:
     label: z_limits.ul/2
     net: z_limits.ul
     from: cnc_terminals.12B
-    to: opto_board.4+
+    to: opto_board.4-
     assigned_component: cnc_terminals
   - key: row:55:segment:0
     label: ZLL/1
@@ -651,7 +651,7 @@ wires:
     label: y_limits.ul/2
     net: y_limits.ul
     from: cnc_terminals.26B
-    to: opto_board.3+
+    to: opto_board.3-
     assigned_component: cnc_terminals
   - key: row:72:segment:0
     label: YLL/1
@@ -726,16 +726,16 @@ wires:
     to: opto_board.5-
     assigned_component: cnc_terminals
   - key: row:79:segment:0
-    label: 5V0/5
-    net: 5V0
+    label: 24V0/21
+    net: 24V0
     from: x1_control.alrm-
     to: cnc_terminals.32A
     assigned_component: cnc_terminals
   - key: row:79:segment:1
-    label: 5V0/6
-    net: 5V0
+    label: 24V0/22
+    net: 24V0
     from: cnc_terminals.32B
-    to: terminals_5v0.1A
+    to: terminals_24v0.4A
     assigned_component: cnc_terminals
   - key: row:80:segment:0
     label: X1DIR/1
@@ -759,7 +759,7 @@ wires:
     label: 5V0/8
     net: 5V0
     from: cnc_terminals.34B
-    to: terminals_5v0.1B
+    to: terminals_5v0.1A
     assigned_component: cnc_terminals
   - key: row:82:segment:0
     label: X1STEP/1
@@ -783,7 +783,7 @@ wires:
     label: 5V0/10
     net: 5V0
     from: cnc_terminals.36B
-    to: terminals_5v0.2A
+    to: terminals_5v0.1B
     assigned_component: cnc_terminals
   - key: row:84:segment:0
     label: 24V/19
@@ -807,7 +807,7 @@ wires:
     label: x1_limits.ul/2
     net: x1_limits.ul
     from: cnc_terminals.38B
-    to: opto_board.1+
+    to: opto_board.1-
     assigned_component: cnc_terminals
   - key: row:86:segment:0
     label: X1LL/1
@@ -882,16 +882,16 @@ wires:
     to: opto_board.6-
     assigned_component: cnc_terminals
   - key: row:93:segment:0
-    label: 5V0/13
-    net: 5V0
+    label: 24V0/23
+    net: 24V0
     from: x2_control.alrm-
     to: cnc_terminals.44A
     assigned_component: cnc_terminals
   - key: row:93:segment:1
-    label: 5V0/14
-    net: 5V0
+    label: 24V0/24
+    net: 24V0
     from: cnc_terminals.44B
-    to: terminals_5v0.2B
+    to: terminals_24v0.4B
     assigned_component: cnc_terminals
   - key: row:94:segment:0
     label: X2DIR/1
@@ -939,7 +939,7 @@ wires:
     label: 5V0/18
     net: 5V0
     from: cnc_terminals.48B
-    to: terminals_5v0.3B
+    to: terminals_5v0.2B
     assigned_component: cnc_terminals
   - key: row:98:segment:0
     label: 24V/21
@@ -963,7 +963,7 @@ wires:
     label: x2_limits.ul/2
     net: x2_limits.ul
     from: cnc_terminals.50B
-    to: opto_board.2+
+    to: opto_board.2-
     assigned_component: cnc_terminals
   - key: row:100:segment:0
     label: X2LL/1
@@ -1326,10 +1326,10 @@ wires:
     to: control_5v0.2B
     assigned_component: y_cl57s
   - key: row:150:segment:0
-    label: 5V0/30
-    net: 5V0
+    label: 24V0/25
+    net: 24V0
     from: y_cl57s.COM-
-    to: control_5v0.3A
+    to: control_24v0.2B
     assigned_component: y_cl57s
   - key: row:151:segment:0
     label: DRIVER_48V/2
@@ -1374,10 +1374,10 @@ wires:
     to: control_5v0.4A
     assigned_component: Z_cl57s
   - key: row:158:segment:0
-    label: 5V0/26
-    net: 5V0
+    label: 24V0/26
+    net: 24V0
     from: Z_cl57s.COM-
-    to: control_5v0.4B
+    to: control_24v0.3A
     assigned_component: Z_cl57s
   - key: row:159:segment:0
     label: DRIVER_48V/1
@@ -1572,52 +1572,52 @@ wires:
     to: axbb-e.I1-
     assigned_component: axbb-e
   - key: row:191:segment:0
-    label: 24V0/16
-    net: 24V0
-    from: opto_board.1-
-    to: safety_24v0.3A
+    label: 24V/27
+    net: 24V
+    from: opto_board.1+
+    to: safety_24v.4A
     assigned_component: opto_board
   - key: row:192:segment:0
-    label: 24V0/17
-    net: 24V0
-    from: opto_board.2-
-    to: safety_24v0.3B
+    label: 24V/28
+    net: 24V
+    from: opto_board.2+
+    to: safety_24v.4B
     assigned_component: opto_board
   - key: row:193:segment:0
-    label: 24V0/18
-    net: 24V0
-    from: opto_board.3-
-    to: safety_24v0.4A
+    label: 24V/29
+    net: 24V
+    from: opto_board.3+
+    to: safety_24v.5A
     assigned_component: opto_board
   - key: row:194:segment:0
-    label: 24V0/19
-    net: 24V0
-    from: opto_board.4-
-    to: safety_24v0.4B
+    label: 24V/30
+    net: 24V
+    from: opto_board.4+
+    to: safety_24v.5B
     assigned_component: opto_board
   - key: row:195:segment:0
-    label: 5V/12
-    net: 5V
+    label: 24V/23
+    net: 24V
     from: opto_board.5+
-    to: safety_5v.3B
+    to: safety_24v.2A
     assigned_component: opto_board
   - key: row:196:segment:0
-    label: 5V/13
-    net: 5V
+    label: 24V/24
+    net: 24V
     from: opto_board.6+
-    to: safety_5v.4A
+    to: safety_24v.2B
     assigned_component: opto_board
   - key: row:197:segment:0
-    label: 5V/14
-    net: 5V
+    label: 24V/25
+    net: 24V
     from: opto_board.7+
-    to: safety_5v.4B
+    to: safety_24v.3A
     assigned_component: opto_board
   - key: row:198:segment:0
-    label: 5V/15
-    net: 5V
+    label: 24V/26
+    net: 24V
     from: opto_board.8+
-    to: safety_5v.5A
+    to: safety_24v.3B
     assigned_component: opto_board
   - key: row:199:segment:0
     label: 5V0/41

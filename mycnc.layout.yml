@@ -56,8 +56,8 @@ components:
     y: -670.496
     rotation: 90
   connector_earth:
-    x: 2359.008
-    y: -427.792
+    x: 2481.993
+    y: -427.266
     rotation: 90
   z_control:
     x: 2085.393
@@ -100,20 +100,20 @@ components:
     y: -605.584
     rotation: 0
   x2_control:
-    x: 1888.416
-    y: -658.449
+    x: 1720.14
+    y: -701.963
     rotation: 0
   x2_limits:
-    x: 1591.137
-    y: -639.144
+    x: 1703.159
+    y: -651.99
     rotation: 0
   probe:
     x: 1592.763
     y: -510.565
     rotation: 0
   estop_panel:
-    x: 1572.881
-    y: -526.478
+    x: 1589.336
+    y: -572.004
     rotation: 0
   secondary_estop:
     x: 1594.477
@@ -164,12 +164,12 @@ components:
     y: -426.283
     rotation: 270
   terminals_24v:
-    x: 2295.021
-    y: -404.891
+    x: 2311.314
+    y: -412.775
     rotation: 90
   terminals_24v0:
-    x: 2316.795
-    y: -398.779
+    x: 2373.032
+    y: -419.802
     rotation: 90
   terminals_earth:
     x: 2179.046
