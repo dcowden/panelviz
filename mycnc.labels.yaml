@@ -1637,3 +1637,15 @@ wires:
     from: control_24v0.2A
     to: terminals_24v0.3A
     assigned_component: terminals_24v0
+  - key: row:202:segment:0
+    label: 24V/31
+    net: 24V
+    from: dc_power_24v.2A
+    to: alarm_limit_board.24V
+    assigned_component: alarm_limit_board
+  - key: row:203:segment:0
+    label: CHARGE_PUMP/1
+    net: CHARGE_PUMP
+    from: axbb-e.O1
+    to: alarm_limit_board.CPUMP
+    assigned_component: axbb-e

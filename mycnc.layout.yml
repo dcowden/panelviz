@@ -45,7 +45,7 @@ components:
     rotation: 0
   alarm_limit_board:
     x: 2086.01
-    y: 364.942
+    y: 519.942
     rotation: 0
   opto_board:
     x: 1817.782
