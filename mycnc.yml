@@ -76,7 +76,7 @@ components:
             I4-, I5+, I5-, I6+, I6-]
       right: [IN-24V0, IN-24V+, IN-5V0, IN-5V+, OUT-5V+, OUT-5V0, A01, AI2, AI1, 
             O17, O16, O15, O14, O13, O12, O11, O10, O9]
-      bottom: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]                                                                           #these are in the aux board
+      bottom: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,11,12]                                                                           #these are in the aux board
     nets:
       - {name: VFD_REV, pins: [O2]}
       - {name: VFD_FWD, pins: [O3]}
@@ -96,6 +96,10 @@ components:
       - {name: X1STEP, pins: [O11]}
       - {name: YDIR, pins: [O10]}
       - {name: YSTEP, pins: [O9]}
+      - { name: VAC, pins: [ 4 ] }
+      - { name: ATC, pins: [ 12 ] }
+      - { name: PROBE1, pins: [ 10 ] }
+      - { name: PROBE2, pins: [ 11 ] }
   contactor_110:
     type: switch
     tags: [vfd]
@@ -317,7 +321,7 @@ components:
     pins:
       left: [A]
       right: [B]
-    positions: 66
+    positions: 73 # Fieldbox: 67-72; 73 reserved spare.
   live_power_t:
     type: terminal_block
     tags: [vfd]
@@ -754,14 +758,6 @@ components:
       height: .5
     pins:
       left: [24v, ul, ll, 24v0, shield]
-  probe:
-    type: connector
-    tags: [terminals]
-    size:
-      width: .5
-      height: .5
-    pins:
-      left: [probe+, probe-, shield]
   estop_panel:
     type: connector
     tags: [terminals]
@@ -786,6 +782,16 @@ components:
       height: 0.5
     pins:
       left: [u, v, w, x, shield]
+  field_box:
+    type: connector
+    tags: [terminals]
+    size:
+      width: 4
+      height: 4
+    pins:
+      left: [ 5V0, 5V, PROBE1, PROBE2,ATC,VAC]
+      right: [ PROBE1+,PROBE1-,PROBE2+,PROBE2-,ATC+,ATC-SIG,ATC-]
+      bottom:  [ 110L, 110N, VAC-110N, VAC-110L ]
 connections:
   wires:
     - from: wall_plug.GND
@@ -923,9 +929,6 @@ connections:
     - [x2_limits.ll, cnc_terminals.51, axbb-e.X2LL]
     - [x2_limits.24v0, cnc_terminals.52, terminals_24v0.24V0]
     - [x2_limits.shield, connector_earth.shield]
-    - [probe.probe+, cnc_terminals.53A]
-    - [probe.probe-, cnc_terminals.54A]
-    - [probe.shield, connector_earth.shield]
     - [estop_panel.reset_sw+, cnc_terminals.55, terminals_5v0.5V0]
     - [estop_panel.reset_sw-, cnc_terminals.56, alarm_limit_board.RESET_SW]
     - [estop_panel.estop+, cnc_terminals.57, terminals_24v.24V]
@@ -952,7 +955,7 @@ connections:
       awg: 16
     - route: [spindle.w, cnc_terminals.65, vfd.W]
       awg: 16
-    - [spindle.shield, connector_earth.shield]
+    - [spindle.shield, connector_earth.6B]
     - [run_relay.DC-, safety_5v0.5V0]
     - [run_relay.DC+, safety_5v.5V]
     - [upper_limits_ok_relay.DC-, safety_5v0.5V0]
@@ -1017,6 +1020,7 @@ connections:
     - [axbb-e.IN-5V+, control_5v.5V]
     - [axbb-e.VFD_V1, vfd.VI]
 
+
   #alarm_limit_board
     - [alarm_limit_board.X1UL_OK, opto_board.X1UL_OK]
     - [alarm_limit_board.X2UL_OK, opto_board.X2UL_OK]
@@ -1050,17 +1054,26 @@ connections:
     - [opto_board.VCC, safety_5v.5B]
     - [control_24v0.24V0, terminals_24v0.24V0]
 
-
-
-
     # Charge-pump optocoupler on the alarm/limit board.
     - [dc_power_24v.24V, alarm_limit_board.24V]
     - from: axbb-e.O1
       to: alarm_limit_board.CPUMP
       net: CHARGE_PUMP
 
+    # As-built VFD commons added 2026-10-17, from DC supply row terminal blocks.
+    # Append routes to preserve all existing wire-label assignment keys.
+    - [dc_power_24v0.24V0, vfd.DCM]
+    - [dc_power_5v0.5V0, vfd.ACM]
+
+  #field box
+    - [control_5v.5V,cnc_terminals.67, field_box.5V]
+    - [control_5v0.5V0,cnc_terminals.68, field_box.5V0 ]
+    - [axbb-e.ATC, cnc_terminals.69, field_box.ATC]
+    - [ axbb-e.VAC, cnc_terminals.70 , field_box.VAC]
+    - [axbb-e.PROBE1, cnc_terminals.71 , field_box.PROBE1]
+    - [ axbb-e.PROBE2, cnc_terminals.72, field_box.PROBE2 ]
+
 no_connects:
-  - axbb-e.O4
   - axbb-e.O5
   - axbb-e.O6
   - axbb-e.O7

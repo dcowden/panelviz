@@ -7,7 +7,7 @@ component_order:
   - x2_motor
   - cnc_terminals
   - y_control
-  - probe
+  - field_box
   - z_control
   - x1_control
   - x2_control
@@ -915,7 +915,7 @@ wires:
     label: 5V0/16
     net: 5V0
     from: cnc_terminals.46B
-    to: terminals_5v0.3A
+    to: terminals_5v0.2A
     assigned_component: cnc_terminals
   - key: row:96:segment:0
     label: X2STEP/1
@@ -996,656 +996,722 @@ wires:
     to: connector_earth.5B
     assigned_component: x2_limits
   - key: row:103:segment:0
-    label: probe.probe+/1
-    net: probe.probe+
-    from: probe.probe+
-    to: cnc_terminals.53A
-    assigned_component: cnc_terminals
-  - key: row:104:segment:0
-    label: probe.probe-/1
-    net: probe.probe-
-    from: probe.probe-
-    to: cnc_terminals.54A
-    assigned_component: cnc_terminals
-  - key: row:105:segment:0
-    label: shield/7
-    net: shield
-    from: probe.shield
-    to: connector_earth.6A
-    assigned_component: probe
-  - key: row:106:segment:0
     label: 5V0/21
     net: 5V0
     from: estop_panel.reset_sw+
     to: cnc_terminals.55A
     assigned_component: cnc_terminals
-  - key: row:106:segment:1
+  - key: row:103:segment:1
     label: 5V0/22
     net: 5V0
     from: cnc_terminals.55B
-    to: terminals_5v0.4A
+    to: terminals_5v0.3A
     assigned_component: cnc_terminals
-  - key: row:107:segment:0
+  - key: row:104:segment:0
     label: RESET_SW/1
     net: RESET_SW
     from: estop_panel.reset_sw-
     to: cnc_terminals.56A
     assigned_component: cnc_terminals
-  - key: row:107:segment:1
+  - key: row:104:segment:1
     label: RESET_SW/2
     net: RESET_SW
     from: cnc_terminals.56B
     to: alarm_limit_board.D12
     assigned_component: cnc_terminals
-  - key: row:108:segment:0
+  - key: row:105:segment:0
     label: 24V/1
     net: 24V
     from: estop_panel.estop+
     to: cnc_terminals.57A
     assigned_component: cnc_terminals
-  - key: row:108:segment:1
+  - key: row:105:segment:1
     label: 24V/2
     net: 24V
     from: cnc_terminals.57B
     to: terminals_24v.3A
     assigned_component: cnc_terminals
-  - key: row:109:segment:0
+  - key: row:106:segment:0
     label: estop_panel.estop-/1
     net: estop_panel.estop-
     from: estop_panel.estop-
     to: cnc_terminals.58A
     assigned_component: cnc_terminals
-  - key: row:110:segment:0
+  - key: row:107:segment:0
     label: estop_panel.estop-/2
     net: estop_panel.estop-
     from: cnc_terminals.58B
     to: cnc_terminals.61B
     assigned_component: cnc_terminals
-  - key: row:111:segment:0
+  - key: row:108:segment:0
     label: secondary_estop.estop+/1
     net: estop_panel.estop-
     from: secondary_estop.estop+
     to: cnc_terminals.61A
     assigned_component: cnc_terminals
-  - key: row:112:segment:0
+  - key: row:109:segment:0
     label: 24V/3
     net: 24V
     from: estop_panel.light+
     to: cnc_terminals.59A
     assigned_component: cnc_terminals
-  - key: row:112:segment:1
+  - key: row:109:segment:1
     label: 24V/4
     net: 24V
     from: cnc_terminals.59B
     to: terminals_24v.3B
     assigned_component: cnc_terminals
-  - key: row:113:segment:0
+  - key: row:110:segment:0
     label: estop_panel.light-/1
     net: estop_panel.light-
     from: estop_panel.light-
     to: cnc_terminals.60A
     assigned_component: cnc_terminals
-  - key: row:113:segment:1
+  - key: row:110:segment:1
     label: estop_panel.light-/2
     net: estop_panel.light-
     from: cnc_terminals.60B
     to: run_relay.NC
     assigned_component: cnc_terminals
-  - key: row:114:segment:0
+  - key: row:111:segment:0
     label: secondary_estop.estop-/1
     net: secondary_estop.estop-
     from: secondary_estop.estop-
     to: cnc_terminals.62A
     assigned_component: cnc_terminals
-  - key: row:115:segment:0
+  - key: row:112:segment:0
     label: COIL+/1
     net: secondary_estop.estop-
     from: cnc_terminals.62B
     to: coil_t.2A
     assigned_component: cnc_terminals
-  - key: row:116:segment:0
+  - key: row:113:segment:0
     label: spindle.u/1
     net: spindle.u
     from: spindle.u
     to: cnc_terminals.63A
     assigned_component: spindle
-  - key: row:116:segment:1
+  - key: row:113:segment:1
     label: spindle.u/2
     net: spindle.u
     from: cnc_terminals.63B
     to: vfd.U
     assigned_component: cnc_terminals
-  - key: row:117:segment:0
+  - key: row:114:segment:0
     label: spindle.v/1
     net: spindle.v
     from: spindle.v
     to: cnc_terminals.64A
     assigned_component: spindle
-  - key: row:117:segment:1
+  - key: row:114:segment:1
     label: spindle.v/2
     net: spindle.v
     from: cnc_terminals.64B
     to: vfd.V
     assigned_component: cnc_terminals
-  - key: row:118:segment:0
+  - key: row:115:segment:0
     label: spindle.w/1
     net: spindle.w
     from: spindle.w
     to: cnc_terminals.65A
     assigned_component: spindle
-  - key: row:118:segment:1
+  - key: row:115:segment:1
     label: spindle.w/2
     net: spindle.w
     from: cnc_terminals.65B
     to: vfd.W
     assigned_component: cnc_terminals
-  - key: row:119:segment:0
+  - key: row:116:segment:0
     label: shield/4
     net: shield
     from: spindle.shield
     to: connector_earth.6B
     assigned_component: spindle
-  - key: row:120:segment:0
+  - key: row:117:segment:0
     label: 5V0/37
     net: 5V0
     from: run_relay.DC-
     to: safety_5v0.1A
     assigned_component: run_relay
-  - key: row:121:segment:0
+  - key: row:118:segment:0
     label: 5V/17
     net: 5V
     from: run_relay.DC+
     to: safety_5v.1A
     assigned_component: run_relay
-  - key: row:122:segment:0
+  - key: row:119:segment:0
     label: 5V0/38
     net: 5V0
     from: upper_limits_ok_relay.DC-
     to: safety_5v0.1B
     assigned_component: upper_limits_ok_relay
-  - key: row:123:segment:0
+  - key: row:120:segment:0
     label: 5V/18
     net: 5V
     from: upper_limits_ok_relay.DC+
     to: safety_5v.1B
     assigned_component: upper_limits_ok_relay
-  - key: row:124:segment:0
+  - key: row:121:segment:0
     label: 5V/20
     net: 5V
     from: 5v.5V
     to: dc_power_5v.1A
     assigned_component: 5v
-  - key: row:125:segment:0
+  - key: row:122:segment:0
     label: 5V0/40
     net: 5V0
     from: 5v.5V0
     to: dc_power_5v0.1A
     assigned_component: 5v
-  - key: row:126:segment:0
+  - key: row:123:segment:0
     label: 24V/14
     net: 24V
     from: 24v.24V
     to: dc_power_24v.1A
     assigned_component: 24v
-  - key: row:127:segment:0
+  - key: row:124:segment:0
     label: 24V0/7
     net: 24V0
     from: 24v.24V0
     to: dc_power_24v0.1A
     assigned_component: 24v
-  - key: row:128:segment:0
+  - key: row:125:segment:0
     label: 5V/19
     net: 5V
     from: dc_power_5v.1B
     to: safety_5v.2A
     assigned_component: safety_5v
-  - key: row:129:segment:0
+  - key: row:126:segment:0
     label: 5V/11
     net: 5V
     from: safety_5v.2B
     to: control_5v.1A
     assigned_component: control_5v
-  - key: row:130:segment:0
+  - key: row:127:segment:0
     label: 5V/9
     net: 5V
     from: control_5v.1B
     to: terminals_5v.1A
     assigned_component: terminals_5v
-  - key: row:131:segment:0
+  - key: row:128:segment:0
     label: 5V0/39
     net: 5V0
     from: dc_power_5v0.1B
     to: safety_5v0.2A
     assigned_component: safety_5v0
-  - key: row:132:segment:0
+  - key: row:129:segment:0
     label: 5V0/31
     net: 5V0
     from: safety_5v0.2B
     to: control_5v0.1A
     assigned_component: control_5v0
-  - key: row:133:segment:0
+  - key: row:130:segment:0
     label: 5V0/23
     net: 5V0
     from: control_5v0.1B
-    to: terminals_5v0.4B
+    to: terminals_5v0.3B
     assigned_component: terminals_5v0
-  - key: row:134:segment:0
+  - key: row:131:segment:0
     label: 24V/13
     net: 24V
     from: dc_power_24v.1B
     to: safety_24v.1A
     assigned_component: safety_24v
-  - key: row:135:segment:0
+  - key: row:132:segment:0
     label: 24V/12
     net: 24V
     from: safety_24v.1B
     to: control_24v.1A
     assigned_component: control_24v
-  - key: row:136:segment:0
+  - key: row:133:segment:0
     label: 24V/5
     net: 24V
     from: control_24v.1B
     to: terminals_24v.4A
     assigned_component: terminals_24v
-  - key: row:137:segment:0
+  - key: row:134:segment:0
     label: 24V0/6
     net: 24V0
     from: dc_power_24v0.1B
     to: safety_24v0.1A
     assigned_component: safety_24v0
-  - key: row:138:segment:0
+  - key: row:135:segment:0
     label: 24V0/3
     net: 24V0
     from: safety_24v0.1B
     to: control_24v0.1A
     assigned_component: control_24v0
-  - key: row:139:segment:0
+  - key: row:136:segment:0
     label: earth/6
     net: earth
     from: vfd_earth.4A
     to: dc_power_earth.2A
     assigned_component: dc_power_earth
-  - key: row:140:segment:0
+  - key: row:137:segment:0
     label: earth/3
     net: earth
     from: dc_power_earth.2B
     to: safety_earth.1A
     assigned_component: safety_earth
-  - key: row:141:segment:0
+  - key: row:138:segment:0
     label: earth/2
     net: earth
     from: safety_earth.1B
     to: control_earth.1A
     assigned_component: control_earth
-  - key: row:142:segment:0
+  - key: row:139:segment:0
     label: earth/1
     net: earth
     from: control_earth.1B
     to: terminals_earth.1A
     assigned_component: terminals_earth
-  - key: row:143:segment:0
+  - key: row:140:segment:0
     label: vfd.R/1
     net: vfd.R
     from: vfd.R
     to: contactor_220.L1
     assigned_component: contactor_220
-  - key: row:144:segment:0
+  - key: row:141:segment:0
     label: vfd.T/1
     net: vfd.T
     from: vfd.T
     to: contactor_220.L2
     assigned_component: contactor_220
-  - key: row:145:segment:0
+  - key: row:142:segment:0
     label: YSTEP/1
     net: YSTEP
     from: y_cl57s.PUL+
     to: axbb-e.O9
     assigned_component: axbb-e
-  - key: row:146:segment:0
+  - key: row:143:segment:0
     label: y_cl57s.ALM/1
     net: y_cl57s.ALM
     from: y_cl57s.ALM
     to: opto_board.7-
     assigned_component: y_cl57s
-  - key: row:147:segment:0
+  - key: row:144:segment:0
     label: 5V0/28
     net: 5V0
     from: y_cl57s.PUL-
     to: control_5v0.2A
     assigned_component: y_cl57s
-  - key: row:148:segment:0
+  - key: row:145:segment:0
     label: YDIR/1
     net: YDIR
     from: y_cl57s.DIR+
     to: axbb-e.O10
     assigned_component: axbb-e
-  - key: row:149:segment:0
+  - key: row:146:segment:0
     label: 5V0/29
     net: 5V0
     from: y_cl57s.DIR-
     to: control_5v0.2B
     assigned_component: y_cl57s
-  - key: row:150:segment:0
+  - key: row:147:segment:0
     label: 24V0/25
     net: 24V0
     from: y_cl57s.COM-
     to: control_24v0.2B
     assigned_component: y_cl57s
-  - key: row:151:segment:0
+  - key: row:148:segment:0
     label: DRIVER_48V/2
     net: DRIVER_48V
     from: y_cl57s.+VDC
     to: driver_power.5B
     assigned_component: y_cl57s
-  - key: row:152:segment:0
+  - key: row:149:segment:0
     label: DRIVER_GND/6
     net: DRIVER_GND
     from: y_cl57s.GND
     to: driver_power.7B
     assigned_component: y_cl57s
-  - key: row:153:segment:0
+  - key: row:150:segment:0
     label: ZSTEP/1
     net: ZSTEP
     from: Z_cl57s.PUL+
     to: axbb-e.O15
     assigned_component: Z_cl57s
-  - key: row:154:segment:0
+  - key: row:151:segment:0
     label: Z_cl57s.ALM/1
     net: Z_cl57s.ALM
     from: Z_cl57s.ALM
     to: opto_board.8-
     assigned_component: Z_cl57s
-  - key: row:155:segment:0
+  - key: row:152:segment:0
     label: 5V0/24
     net: 5V0
     from: Z_cl57s.PUL-
-    to: control_5v0.3B
+    to: control_5v0.3A
     assigned_component: Z_cl57s
-  - key: row:156:segment:0
+  - key: row:153:segment:0
     label: ZDIR/1
     net: ZDIR
     from: Z_cl57s.DIR+
     to: axbb-e.O16
     assigned_component: Z_cl57s
-  - key: row:157:segment:0
+  - key: row:154:segment:0
     label: 5V0/25
     net: 5V0
     from: Z_cl57s.DIR-
-    to: control_5v0.4A
+    to: control_5v0.3B
     assigned_component: Z_cl57s
-  - key: row:158:segment:0
+  - key: row:155:segment:0
     label: 24V0/26
     net: 24V0
     from: Z_cl57s.COM-
     to: control_24v0.3A
     assigned_component: Z_cl57s
-  - key: row:159:segment:0
+  - key: row:156:segment:0
     label: DRIVER_48V/1
     net: DRIVER_48V
     from: Z_cl57s.+VDC
     to: driver_power.6A
     assigned_component: Z_cl57s
-  - key: row:160:segment:0
+  - key: row:157:segment:0
     label: DRIVER_GND/5
     net: DRIVER_GND
     from: Z_cl57s.GND
     to: driver_power.8A
     assigned_component: Z_cl57s
-  - key: row:161:segment:0
+  - key: row:158:segment:0
     label: VFD_FWD/1
     net: VFD_FWD
     from: axbb-e.O3
     to: vfd.FOR
     assigned_component: axbb-e
-  - key: row:162:segment:0
+  - key: row:159:segment:0
     label: VFD_REV/1
     net: VFD_REV
     from: axbb-e.O2
     to: vfd.REV
     assigned_component: axbb-e
-  - key: row:163:segment:0
+  - key: row:160:segment:0
     label: 24V/6
     net: 24V
     from: control_24v.2A
     to: axbb-e.I1+
     assigned_component: axbb-e
-  - key: row:164:segment:0
+  - key: row:161:segment:0
     label: 24V/7
     net: 24V
     from: control_24v.2B
     to: axbb-e.I2+
     assigned_component: axbb-e
-  - key: row:165:segment:0
+  - key: row:162:segment:0
     label: 24V/8
     net: 24V
     from: control_24v.3A
     to: axbb-e.I3+
     assigned_component: axbb-e
-  - key: row:166:segment:0
+  - key: row:163:segment:0
     label: 24V/9
     net: 24V
     from: control_24v.3B
     to: axbb-e.I4+
     assigned_component: axbb-e
-  - key: row:167:segment:0
+  - key: row:164:segment:0
     label: 24V/10
     net: 24V
     from: control_24v.4A
     to: axbb-e.I5+
     assigned_component: axbb-e
-  - key: row:168:segment:0
+  - key: row:165:segment:0
     label: COIL+/3
     net: secondary_estop.estop-
     from: axbb-e.I6+
     to: coil_t.2B
     assigned_component: axbb-e
-  - key: row:169:segment:0
+  - key: row:166:segment:0
     label: COIL-/1
     net: COIL-
     from: axbb-e.I6-
     to: coil_t.4A
     assigned_component: axbb-e
-  - key: row:170:segment:0
+  - key: row:167:segment:0
     label: 24V0/2
     net: 24V0
     from: axbb-e.IN-24V0
     to: control_24v0.1B
     assigned_component: axbb-e
-  - key: row:171:segment:0
+  - key: row:168:segment:0
     label: 24V/11
     net: 24V
     from: axbb-e.IN-24V+
     to: control_24v.4B
     assigned_component: axbb-e
-  - key: row:172:segment:0
+  - key: row:169:segment:0
     label: 5V0/27
     net: 5V0
     from: axbb-e.IN-5V0
-    to: control_5v0.5A
+    to: control_5v0.4A
     assigned_component: axbb-e
-  - key: row:173:segment:0
+  - key: row:170:segment:0
     label: 5V/10
     net: 5V
     from: axbb-e.IN-5V+
     to: control_5v.2A
     assigned_component: axbb-e
-  - key: row:174:segment:0
+  - key: row:171:segment:0
     label: VFD_V1/1
     net: VFD_V1
     from: axbb-e.A01
     to: vfd.VI
     assigned_component: axbb-e
-  - key: row:175:segment:0
+  - key: row:172:segment:0
     label: X1UL_OK/1
     net: X1UL_OK
     from: alarm_limit_board.D2
     to: opto_board.O1
     assigned_component: opto_board
-  - key: row:176:segment:0
+  - key: row:173:segment:0
     label: X2UL_OK/1
     net: X2UL_OK
     from: alarm_limit_board.D3
     to: opto_board.O2
     assigned_component: opto_board
-  - key: row:177:segment:0
+  - key: row:174:segment:0
     label: YUL_OK/1
     net: YUL_OK
     from: alarm_limit_board.D4
     to: opto_board.O3
     assigned_component: opto_board
-  - key: row:178:segment:0
+  - key: row:175:segment:0
     label: ZUL_OK/1
     net: ZUL_OK
     from: alarm_limit_board.D5
     to: opto_board.O4
     assigned_component: opto_board
-  - key: row:179:segment:0
+  - key: row:176:segment:0
     label: X1_ALM_OK/1
     net: X1_ALM_OK
     from: alarm_limit_board.D6
     to: opto_board.O5
     assigned_component: opto_board
-  - key: row:180:segment:0
+  - key: row:177:segment:0
     label: X2_ALM_OK/1
     net: X2_ALM_OK
     from: alarm_limit_board.D7
     to: opto_board.O6
     assigned_component: opto_board
-  - key: row:181:segment:0
+  - key: row:178:segment:0
     label: Y_ALM_OK/1
     net: Y_ALM_OK
     from: alarm_limit_board.D8
     to: opto_board.O7
     assigned_component: opto_board
-  - key: row:182:segment:0
+  - key: row:179:segment:0
     label: Z_ALM_OK/1
     net: Z_ALM_OK
     from: alarm_limit_board.D9
     to: opto_board.O8
     assigned_component: opto_board
-  - key: row:183:segment:0
+  - key: row:180:segment:0
     label: 5V0/36
     net: 5V0
     from: alarm_limit_board.5V0
     to: safety_5v0.3A
     assigned_component: alarm_limit_board
-  - key: row:184:segment:0
+  - key: row:181:segment:0
     label: 5V/16
     net: 5V
     from: alarm_limit_board.5V
     to: safety_5v.3A
     assigned_component: alarm_limit_board
-  - key: row:185:segment:0
+  - key: row:182:segment:0
     label: RUN_RELAY_CTL/1
     net: RUN_RELAY_CTL
     from: alarm_limit_board.D10
     to: run_relay.IN
     assigned_component: alarm_limit_board
-  - key: row:186:segment:0
+  - key: row:183:segment:0
     label: UPPER_LIMITS_OK_RELAY_CTL/1
     net: UPPER_LIMITS_OK_RELAY_CTL
     from: alarm_limit_board.D11
     to: upper_limits_ok_relay.IN
     assigned_component: alarm_limit_board
-  - key: row:187:segment:0
+  - key: row:184:segment:0
     label: 24V0/4
     net: 24V0
     from: run_relay.COM
     to: safety_24v0.2A
     assigned_component: run_relay
-  - key: row:188:segment:0
+  - key: row:185:segment:0
     label: COIL-/2
     net: COIL-
     from: run_relay.NO
     to: coil_t.4B
     assigned_component: run_relay
-  - key: row:189:segment:0
+  - key: row:186:segment:0
     label: 24V0/5
     net: 24V0
     from: upper_limits_ok_relay.COM
     to: safety_24v0.2B
     assigned_component: upper_limits_ok_relay
-  - key: row:190:segment:0
+  - key: row:187:segment:0
     label: UL1/1
     net: UL1
     from: upper_limits_ok_relay.NC
     to: axbb-e.I1-
     assigned_component: axbb-e
-  - key: row:191:segment:0
+  - key: row:188:segment:0
     label: 24V/27
     net: 24V
     from: opto_board.1+
     to: safety_24v.4A
     assigned_component: opto_board
-  - key: row:192:segment:0
+  - key: row:189:segment:0
     label: 24V/28
     net: 24V
     from: opto_board.2+
     to: safety_24v.4B
     assigned_component: opto_board
-  - key: row:193:segment:0
+  - key: row:190:segment:0
     label: 24V/29
     net: 24V
     from: opto_board.3+
     to: safety_24v.5A
     assigned_component: opto_board
-  - key: row:194:segment:0
+  - key: row:191:segment:0
     label: 24V/30
     net: 24V
     from: opto_board.4+
     to: safety_24v.5B
     assigned_component: opto_board
-  - key: row:195:segment:0
+  - key: row:192:segment:0
     label: 24V/23
     net: 24V
     from: opto_board.5+
     to: safety_24v.2A
     assigned_component: opto_board
-  - key: row:196:segment:0
+  - key: row:193:segment:0
     label: 24V/24
     net: 24V
     from: opto_board.6+
     to: safety_24v.2B
     assigned_component: opto_board
-  - key: row:197:segment:0
+  - key: row:194:segment:0
     label: 24V/25
     net: 24V
     from: opto_board.7+
     to: safety_24v.3A
     assigned_component: opto_board
-  - key: row:198:segment:0
+  - key: row:195:segment:0
     label: 24V/26
     net: 24V
     from: opto_board.8+
     to: safety_24v.3B
     assigned_component: opto_board
-  - key: row:199:segment:0
+  - key: row:196:segment:0
     label: 5V0/41
     net: 5V0
     from: opto_board.GND
     to: safety_5v0.5B
     assigned_component: opto_board
-  - key: row:200:segment:0
+  - key: row:197:segment:0
     label: 5V/21
     net: 5V
     from: opto_board.VCC
     to: safety_5v.5B
     assigned_component: opto_board
-  - key: row:201:segment:0
+  - key: row:198:segment:0
     label: 24V0/20
     net: 24V0
     from: control_24v0.2A
     to: terminals_24v0.3A
     assigned_component: terminals_24v0
-  - key: row:202:segment:0
+  - key: row:199:segment:0
     label: 24V/31
     net: 24V
     from: dc_power_24v.2A
     to: alarm_limit_board.24V
     assigned_component: alarm_limit_board
-  - key: row:203:segment:0
+  - key: row:200:segment:0
     label: CHARGE_PUMP/1
     net: CHARGE_PUMP
     from: axbb-e.O1
     to: alarm_limit_board.CPUMP
     assigned_component: axbb-e
+  - key: row:201:segment:0
+    label: 24V0/27
+    net: 24V0
+    from: dc_power_24v0.2A
+    to: vfd.DCM
+    assigned_component: dc_power_24v0
+  - key: row:202:segment:0
+    label: 5V0/42
+    net: 5V0
+    from: dc_power_5v0.2A
+    to: vfd.ACM
+    assigned_component: dc_power_5v0
+  - key: row:203:segment:0
+    label: 5V/22
+    net: 5V
+    from: control_5v.2B
+    to: cnc_terminals.67A
+    assigned_component: cnc_terminals
+  - key: row:203:segment:1
+    label: 5V/23
+    net: 5V
+    from: cnc_terminals.67B
+    to: field_box.5V
+    assigned_component: cnc_terminals
+  - key: row:204:segment:0
+    label: 5V0/43
+    net: 5V0
+    from: control_5v0.4B
+    to: cnc_terminals.68A
+    assigned_component: cnc_terminals
+  - key: row:204:segment:1
+    label: 5V0/44
+    net: 5V0
+    from: cnc_terminals.68B
+    to: field_box.5V0
+    assigned_component: cnc_terminals
+  - key: row:205:segment:0
+    label: ATC/1
+    net: ATC
+    from: axbb-e.12
+    to: cnc_terminals.69A
+    assigned_component: cnc_terminals
+  - key: row:205:segment:1
+    label: ATC/2
+    net: ATC
+    from: cnc_terminals.69B
+    to: field_box.ATC
+    assigned_component: cnc_terminals
+  - key: row:206:segment:0
+    label: VAC/1
+    net: VAC
+    from: axbb-e.4
+    to: cnc_terminals.70A
+    assigned_component: cnc_terminals
+  - key: row:206:segment:1
+    label: VAC/2
+    net: VAC
+    from: cnc_terminals.70B
+    to: field_box.VAC
+    assigned_component: cnc_terminals
+  - key: row:207:segment:0
+    label: PROBE1/1
+    net: PROBE1
+    from: axbb-e.10
+    to: cnc_terminals.71A
+    assigned_component: cnc_terminals
+  - key: row:207:segment:1
+    label: PROBE1/2
+    net: PROBE1
+    from: cnc_terminals.71B
+    to: field_box.PROBE1
+    assigned_component: cnc_terminals
+  - key: row:208:segment:0
+    label: PROBE2/1
+    net: PROBE2
+    from: axbb-e.11
+    to: cnc_terminals.72A
+    assigned_component: cnc_terminals
+  - key: row:208:segment:1
+    label: PROBE2/2
+    net: PROBE2
+    from: cnc_terminals.72B
+    to: field_box.PROBE2
+    assigned_component: cnc_terminals

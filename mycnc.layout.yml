@@ -1,15 +1,15 @@
 components:
   axbb-e:
-    x: 1926.873
-    y: -141.88
+    x: 1970.997
+    y: -132.966
     rotation: 90
   Z_cl57s:
-    x: 1634.033
-    y: -210.395
+    x: 1640.506
+    y: -150.195
     rotation: 270
   y_cl57s:
-    x: 1261.208
-    y: -214.191
+    x: 1254.088
+    y: -153.344
     rotation: 270
   36V_X1:
     x: 1329.484
@@ -176,23 +176,23 @@ components:
     y: -398.168
     rotation: 90
   control_5v:
-    x: 2210.826
+    x: 2310.826
     y: -82.386
     rotation: 90
   control_5v0:
-    x: 2265.355
+    x: 2365.355
     y: -87.617
     rotation: 90
   control_24v:
-    x: 2320.192
+    x: 2420.192
     y: -81.466
     rotation: 90
   control_24v0:
-    x: 2361.499
+    x: 2461.499
     y: -78.697
     rotation: 90
   control_earth:
-    x: 2412.948
+    x: 2512.948
     y: -98.061
     rotation: 90
   safety_5v:
@@ -255,3 +255,7 @@ components:
     x: 2140.979
     y: 1449.116
     rotation: 270
+  field_box:
+    x: 1137.569
+    y: -640.023
+    rotation: 180
